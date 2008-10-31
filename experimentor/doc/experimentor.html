@@ -1,0 +1,141 @@
+<html>
+<title>Experimentor - map-reduce for RL-Glue experiments</title>
+<body>
+<h3>Experimentor - map-reduce for RL-Glue experiments</h3>
+<h4>TOC</h4>
+<li><a href="#introduction">Introduction</a>
+<li><a href="#dice">Dice</a>
+<li><a href="#presidents">Presidents Setup</a>
+<li><a href="#custom">Using your own Agents and Environments</a>
+<p>
+
+<h4><a name="introduction">Introduction</a></h4>
+Input:
+<blockquote>
+<code>
+experiment_name = "random_example"
+<br>
+<br>log_dir = "/home/jasmuth/exp_log"
+<br>
+<br>#&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(working directory, command line)
+<br>agent_1 = (None, "random_agent")
+<br>agent_2 = (None, "random_agent")
+<br>#&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(working directory, command line)
+<br>env = (None, "walk_env")
+<br>
+<br>#instance names must be unique
+<br>instances = [
+<br>#&nbsp;&nbsp;&nbsp;(name, agent, environment, trials, runs)
+<br>&nbsp;&nbsp;&nbsp;&nbsp;("Random Walk 1", agent_1, env, 100, 2),
+<br>&nbsp;&nbsp;&nbsp;&nbsp;("Random Walk 2", agent_2, env, 100, 2)
+<br>]
+</code>
+</blockquote>
+Output:
+<blockquote>
+<code>
+/home/jasmuth/exp_log/random_example/results.csv
+<br>/home/jasmuth/exp_log/random_example/resultsTerminal.csv
+<br>/home/jasmuth/exp_log/random_example/resultsCumulative.csv
+<br>/home/jasmuth/exp_log/random_example/resultsReturn.csv
+<br>/home/jasmuth/exp_log/random_example/resultsSteps.csv
+<br>
+<br><i>resultsCumulative.csv</i>:
+<br>Random Walk 1 \t  Random Walk 2
+<br>8.0 \t    9.0
+<br>-4.0 \t   8.0
+<br>-12.0 \t  9.0
+<br>-22.0 \t  18.0
+<br>-20.0 \t  14.0
+<br>-16.0 \t  9.0
+<br>-18.0 \t  2.0
+<br>-12.0 \t  5.0
+<br>-22.0 \t  -4.0
+<br>-20.0 \t  2.0
+<br>-20.0 \t  2.0
+<br>-8.0 \t   0.0
+<br>-22.0 \t  -2.0
+<br>-42.0 \t  -6.0
+<br>-34.0 \t  2.0
+<br>-14.0 \t  -7.0
+<br>[...]
+</code>
+</blockquote>
+Experimentor is a set of scripts designed to run with RL-glue experiments. It takes
+as input a description of the experiments (which agents, environments, how many runs
+to perform, etc), and executes them, averaging the results from each of the runs
+together (individual run results are not lost) and collecting them in an easy to
+view and parse format.
+<p>
+Experimentor can also run synchronous experiments. The number of concurrent experiments
+to allow at a time is specified as a command line option.
+<p>
+Experimentor can also be distributed over a cluster! You simply give it a list of hosts
+to use (and some more info on how to use them) and it leverages the remote computing
+power in an efficient way. For example, the following host configuration uses the
+entire presidents cluster to run a set of experiments:
+<blockquote>
+<code>
+hosts = [(x+'.rutgers.edu', 4, 'run_cmd_with_env') for x in """
+<br>&nbsp;&nbsp;&nbsp;&nbsp;adams arthur buchanan coolidge fillmore grant
+<br>&nbsp;&nbsp;&nbsp;&nbsp;harding harrison hayes jackson jefferson johnson
+<br>&nbsp;&nbsp;&nbsp;&nbsp;lincoln madison mckinley monroe pierce polk
+<br>&nbsp;&nbsp;&nbsp;&nbsp;roosevelt taft tyler vanburen washington wilson
+<br>""".split()]
+</code>
+</blockquote>
+Experimentor also does full backups of all experiments, tagging them with dates, 
+and moving them to a directory called .archive in the experiment directory. Each
+experiment will have a file called 'launch.txt' that specifies the conditions under
+which the experiment was run.
+<p>
+
+<h4><a name="dice">Dice Setup</a></h4>
+All the necessary components to use experimentor are already installed on dice, in
+/usr/local. You need to make sure that a few environmental variables are set correctly.
+<blockquote>
+<code>
+PATH = $PATH:/usr/local/bin
+<br>LD_LIBRARY_PATH = $LD_LIBRARY_PATH:/usr/local/lib
+<br>PYTHONPATH = $PYTHONPATH:/usr/local/lib
+</code>
+</blockquote>
+<p>
+Now you need to create an experiment specification. The "input" at the top of this
+page is an example of a very simple experiment, where an agent chooses random
+actions in an environment that walks up and down a number line. Be sure to replace
+the log_dir with something more appropriate. Then run the following command line:
+<blockquote>
+<code>experimentor &lt;my experiment file&gt;</code>
+</blockquote>
+
+If things worked, it should be clear that they did and where the results are stored.
+
+<h4><a name="presidents">Presidents Setup</a></h4>
+Experimentor is installed in the presidents cluster, too.
+<blockquote>
+<code>
+PATH = $PATH:/koko/rl3/jasmuth/presidents/bin
+<br>LD_LIBRARY_PATH = $LD_LIBRARY_PATH:/koko/rl3/jasmuth/presidents/lib
+<br>PYTHONPATH = $PYTHONPATH:/koko/rl3/jasmuth/presidents/lib
+</code>
+</blockquote>
+
+Except now you can distribute your experiments over the entire cluster. To do so,
+run the experiment like so:
+
+<blockquote>
+<code>experimentor &lt;my experiment file&gt; -h/koko/rl3/jasmuth/presidents/presidents_hosts.py</code>
+</blockquote>
+
+Once again if things worked, it should be clear that they did.
+
+<h4><a name="custom">Using your own Agents and Environments</a></h4>
+Make a copy of the experiment description file. Change the
+<code>experiment_name</code>. Now, for the agents and environments, simply
+put in your own agent's and environment's command line (complete with options)
+and working directory (in case it needs to open files with a relative path).
+Rewrite <code>instances</code> such that it runs the combinations you want, and
+it should work, in theory.
+
+</html>

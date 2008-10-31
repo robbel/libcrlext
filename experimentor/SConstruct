@@ -1,0 +1,56 @@
+lib = Dir('lib')
+bin = Dir('bin')
+src = Dir('src')
+inc = Dir('include')
+build = Dir('build')
+
+prefix = Dir(ARGUMENTS.get('prefix', '.'))
+prefix_lib = prefix.Dir('lib')
+prefix_bin = prefix.Dir('bin')
+prefix_inc = prefix.Dir('include')
+
+import os
+cpath = os.environ.get('CPATH', "")
+ld_library_path = ""#os.environ.get('LD_LIBRARY_PATH', "")
+cpp_paths = cpath.split(':')+[prefix_inc, inc]
+lib_paths = ld_library_path.split(':')+[lib, prefix_lib]
+
+ccflags = ['-Wall', '-Werror', '-ansi']
+
+if 'debug' in COMMAND_LINE_TARGETS:
+	ccflags += ['-g']
+
+BuildDir(build, src, duplicate=0)
+
+sources = [lib.Entry(x) for x in """
+experimentor.py csv_util.py os_util.py
+""".split()]
+executables = [bin.Entry(x) for x in """
+experimentor
+""".split()]
+
+exp_sources = [build.File(source) for source  in """
+glue_exp.cpp
+""".split()]
+
+env = Environment(CPPPATH=cpp_paths, CCFLAGS=ccflags, LIBPATH=lib_paths)
+config = Configure(env)
+config.CheckHeader('rlglue/RL_glue.h')
+config.CheckHeader('rlglue/utils/C/RLStruct_util.h')
+config.CheckLib('rlutils')
+config.CheckLib('rlexperiment')
+config.CheckLib('rlgluenetdev')
+env = config.Finish()
+
+glue_exp = env.Program(bin.Entry('glue_exp'), exp_sources,
+                       LIBS=['rlutils', 'rlexperiment', 'rlgluenetdev'])
+
+if prefix != Dir('.'):
+	Alias('install', Install(prefix_bin, glue_exp))
+	for source in sources:
+		Alias('install', Install(prefix_lib, source))
+	for executable in executables:
+		Alias('install', Install(prefix_bin, executable))
+
+Default(glue_exp)
+Alias('debug', 'install')
