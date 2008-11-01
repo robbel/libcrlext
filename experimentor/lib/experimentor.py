@@ -13,6 +13,7 @@ exp_quiet = True
 env_quiet = True
 agent_quiet = True
 
+
 class Agent:
     def __init__(self, command, **entries):
         self.command = command
