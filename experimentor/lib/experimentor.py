@@ -17,13 +17,13 @@ agent_quiet = True
 class Agent:
     def __init__(self, command, **entries):
         self.command = command
-        self.working_directory = None
+        self.cwd = None
         self.load = 1
         self.__dict__.update(entries)
 class Environment:
     def __init__(self, command, **entries):
         self.command = command
-        self.working_directory = None
+        self.cwd = None
         self.__dict__.update(entries)
 class Instance:
     def __init__(self, name, agent, env, **entries):
@@ -33,7 +33,7 @@ class Instance:
         self.name = name
         self.agent = agent
         self.env = env
-        self.working_directory = None
+        self.cwd = None
         self.__dict__.update(entries)
     
 
@@ -65,9 +65,9 @@ def setupInstanceDir(exp_dir, instance):
     makeDirectory(instance_dir)
     file = open(instance_dir+'/launch.txt', 'w')
     file.write("This instance launched with\n")
-    file.write("Agent CWD = "+`instance.agent.working_directory`+"\n")
+    file.write("Agent CWD = "+`instance.agent.cwd`+"\n")
     file.write("Agent CMD = "+`instance.agent.command`+"\n")
-    file.write("Environment CWD = "+`instance.env.working_directory`+"\n")
+    file.write("Environment CWD = "+`instance.env.cwd`+"\n")
     file.write("Environment CMD= "+`instance.env.command`+"\n")
     file.write("Steps = "+`instance.steps`+"\n")
     file.write("Trials = "+`instance.trials`+"\n")
@@ -94,9 +94,9 @@ def performInstanceRun(host, (instance_dir, run, instance), rand_seed, experimen
     
     file = open(run_dir+'/launch.txt', 'w')
     file.write("This instance run launched with\n")
-    file.write("Agent CWD = "+`instance.agent.working_directory`+"\n")
+    file.write("Agent CWD = "+`instance.agent.cwd`+"\n")
     file.write("Agent CMD = "+`instance.agent.command`+"\n")
-    file.write("Environment CWD = "+`instance.env.working_directory`+"\n")
+    file.write("Environment CWD = "+`instance.env.cwd`+"\n")
     file.write("Environment CMD= "+`instance.env.command`+"\n")
     file.write("Steps = "+`instance.steps`+"\n")
     file.write("Trials = "+`instance.trials`+"\n")
@@ -112,15 +112,15 @@ def performInstanceRun(host, (instance_dir, run, instance), rand_seed, experimen
     time.sleep(.1) #so the server is always ready for the things connecting
     exp_str = 'glue_exp -seed '+`rand_seed`+' -csv '+`instance.trials`+' '+`instance.steps`+' "'+log_file+'" "'+experiment_name+'"'
     exp_id = launchProcess(None, None, exp_str, False, exp_quiet, RLGLUE_HOST=exp_host, RLGLUE_PORT=`port`)
-    agent_id = launchProcess(host, agent.working_directory, agent.command, False, agent_quiet, RLGLUE_HOST=exp_host, RLGLUE_PORT=`port`)
-    env_id = launchProcess(host, env.working_directory, env.command, False, env_quiet, RLGLUE_HOST=exp_host, RLGLUE_PORT=`port`)
+    agent_id = launchProcess(host, agent.cwd, agent.command, False, agent_quiet, RLGLUE_HOST=exp_host, RLGLUE_PORT=`port`)
+    env_id = launchProcess(host, env.cwd, env.command, False, env_quiet, RLGLUE_HOST=exp_host, RLGLUE_PORT=`port`)
     
     agent_str = agent.command
-    if agent.working_directory:
-        agent_str = agent.working_directory+'$ '+agent_str
+    if agent.cwd:
+        agent_str = agent.cwd+'$ '+agent_str
     env_str = env.command
-    if env.working_directory:
-        env_str = env.working_directory+'$ '+env_str
+    if env.cwd:
+        env_str = env.cwd+'$ '+env_str
     
     
     desc = 'On '+exp_host+':'+`port`+'\n'+instance_dir+'\nInstance run:'+`run`+'\n'+agent_str+'\n'+env_str+'\n'+`instance.trials`+' trials\n'
