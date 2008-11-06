@@ -348,45 +348,54 @@ def runExperimentor():
         backupOldExperiments(log_dir, experiment_name)
     
     makeDirectory(exp_dir)
+    print "creating", exp_dir+'/LOCK'
     open(exp_dir+'/LOCK', 'w').write(time.strftime("%Y-%m-%d@%H:%M:%S"))
-    if not checkIfExists(exp_dir, '.date'):
-        open(exp_dir+'/.date', 'w').write(time.strftime("%Y-%m-%d@%H:%M:%S"))
-    else:
-        open(exp_dir+'/.date', 'a').write(time.strftime("+%Y-%m-%d@%H:%M:%S"))
     
-    instanceDirs = [setupInstanceDir(exp_dir, instance) for instance in instances]
-
-    instanceDirs = [setupInstanceDir(exp_dir, instance) for instance in instances]
+    
+    try:
+        if not checkIfExists(exp_dir, '.date'):
+            open(exp_dir+'/.date', 'w').write(time.strftime("%Y-%m-%d@%H:%M:%S"))
+        else:
+            open(exp_dir+'/.date', 'a').write(time.strftime("+%Y-%m-%d@%H:%M:%S"))
         
-    instanceRuns = []
-    for i in range(len(instances)):
-        instance = instances[i]
-        if single_instance and instance.name!=single_instance:
-            continue
-        if max_runs > 0 and max_runs < instance.runs:
-            instance.runs = max_runs
-        instanceDir = instanceDirs[i]
-        for run in range(instance.runs):
-            #("VI", agent_vi, env, 0, 100, 1)
-            instanceRuns += [(instanceDir, run, instance)]
+        instanceDirs = [setupInstanceDir(exp_dir, instance) for instance in instances]
     
-    lock = threading.Lock()
+        instanceDirs = [setupInstanceDir(exp_dir, instance) for instance in instances]
+            
+        instanceRuns = []
+        for i in range(len(instances)):
+            instance = instances[i]
+            if single_instance and instance.name!=single_instance:
+                continue
+            if max_runs > 0 and max_runs < instance.runs:
+                instance.runs = max_runs
+            instanceDir = instanceDirs[i]
+            for run in range(instance.runs):
+                #("VI", agent_vi, env, 0, 100, 1)
+                instanceRuns += [(instanceDir, run, instance)]
+        
+        lock = threading.Lock()
+        
+        threads = []
+        for i in range(concurrent_experiments):
+            threads.append(spawnThread(instanceRuns, hqueue, lock, i, rand_seed, experiment_name, low_port))
+        [thread.join() for thread in threads]
+        
+        names = set()
+        for i in range(len(instances)):
+            instance = instances[i]
+            instanceDir = instanceDirs[i]
+            averageResults(instanceDir)
+            names_instance = separateResults(instanceDir, instance.name)
+            if names_instance:
+                names = names.union(names_instance)
+        if len(names):
+            augmentResults(exp_dir, names)
+    except Exception, e:
+        print e
+    except KeyboardInterrupt:
+        pass
     
-    threads = []
-    for i in range(concurrent_experiments):
-        threads.append(spawnThread(instanceRuns, hqueue, lock, i, rand_seed, experiment_name, low_port))
-    [thread.join() for thread in threads]
-    
-    names = set()
-    for i in range(len(instances)):
-        instance = instances[i]
-        instanceDir = instanceDirs[i]
-        averageResults(instanceDir)
-        names_instance = separateResults(instanceDir, instance.name)
-        if names_instance:
-            names = names.union(names_instance)
-    if len(names):
-        augmentResults(exp_dir, names)
-    
+    print "removing", exp_dir+'/LOCK'
     os.remove(exp_dir+'/LOCK')
     
