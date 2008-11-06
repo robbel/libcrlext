@@ -245,7 +245,7 @@ def separateResults(dir, title):
     return names
 
 def printUsage():
-    print "Usage:", sys.argv[0], " [options] <experiment>"
+    print "Usage:", sys.argv[0], "[options] <experiment>"
     print " Options:"
     print "  -s <n>: seed the experiment with n"
     print "  -x <n>: run n experiments concurrently on any system"
@@ -270,21 +270,26 @@ def runExperimentor():
     max_runs = 0
     
     try:
-        long_opts = ['vagent', 'vexp', 'venv', 'ignore-lock', 'instance=', 'run-max=']
-        optlist, args = getopt.gnu_getopt(sys.argv[1:], 's:x:h:p:r', long_opts)
+        long_opts = ['vagent', 'vexp', 'venv', 'ignore-lock', 'instance=', 'run-max=', 'help']
+        optlist, args = getopt.gnu_getopt(sys.argv[1:], 's:x:p:rh:?', long_opts)
                                           
         if len(args) != 1:
-            raise `args`
+            printUsage()
+            return
         exp_file = args[0]
         for opt, val in optlist:
+            if opt == '-?' or opt=='--help':
+                printUsage()
+                return
             if opt == '-h':
                 try:
                     exec open(val).read()
                     if not hosts:
-                        raise ""
+                        print "Bad hosts file"
+                        return
                 except:
                     print "Bad hosts file"
-                    sys.exit(1)
+                    return
             if opt == '-s':
                 rand_seed = int(val)
             if opt == '-x':
@@ -308,7 +313,7 @@ def runExperimentor():
     except Exception, e:
         print e
         printUsage()
-        sys.exit(1)
+        return
 
     exp_data = open(exp_file).read()
     
