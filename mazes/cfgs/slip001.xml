@@ -1,0 +1,12 @@
+<SlipConfig>
+  <Slip>
+    <forward>0.8</forward>
+    <left>0.1</left>
+    <right>0.1</right>
+  </Slip>
+  <Reward>
+    <goal>1</goal>
+    <pit>-1</pit>
+    <step>-0.001</step>
+  </Reward>
+</SlipConfig>

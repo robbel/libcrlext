@@ -1,0 +1,19 @@
+<Maze width="4" height="4">
+	<tiles>
+		S...
+		...F
+		F...
+		...S
+	</tiles>
+	<verticalWalls>
+		...
+		.|.
+		.|.
+		...
+	</verticalWalls>
+	<horizontalWalls>
+		....
+		.--.
+		....
+	</horizontalWalls>
+</Maze>
