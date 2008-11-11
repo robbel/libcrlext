@@ -66,9 +66,6 @@ for target in lib_targets+bin_targets:
 	Default(target)
 	env.Alias('debug', target)
 
-dist_dirs = [Dir(x) for x in """
-bin build include include/crl lib src
-""".split()	]
 dist_files = [File(x) for x in """
 COPYING COPYING.LESSER SConstruct tools.py
 """.split()]
@@ -76,7 +73,5 @@ dist_files += [inc.Entry(header) for header in headers]
 dist_files += [src.Entry(build_source) for build_source in build_sources] 
 dist_files += [src.Entry(test_source) for test_source in test_sources] 
 
-dist_dst = Dir('libcrl.tar.gz')
-
-env.Alias('dist', env.DistTar(dist_dst, dist_files))
+env.Alias('dist', env.DistTar('libcrl.tar.gz', dist_files))
 	
