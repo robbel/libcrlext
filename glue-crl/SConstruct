@@ -1,0 +1,117 @@
+lib = Dir('lib')
+build = Dir('build')
+src = Dir('src')
+inc = Dir('include')
+bin = Dir('bin')
+
+prefix = Dir(ARGUMENTS.get('prefix', '.'))
+prefix_lib = prefix.Dir('lib')
+prefix_inc = prefix.Dir('include')
+prefix_bin = prefix.Dir('bin')
+
+
+import os
+cpath = os.environ.get('CPATH', "")
+ld_library_path = ""#os.environ.get('LD_LIBRARY_PATH', "")
+cpp_paths = cpath.split(':')+[prefix_inc, inc]
+lib_paths = ld_library_path.split(':')+[lib, prefix_lib]
+
+ccflags = ['-Wall', '-Werror', '-ansi']
+
+if 'debug' in COMMAND_LINE_TARGETS:
+	ccflags += ['-g']
+
+BuildDir(build, src, duplicate=0)
+
+agent_sources = """
+glue_util.cpp glue_agent.cpp
+""".split()
+env_sources = """
+glue_util.cpp glue_env.cpp
+""".split()
+headers = """
+crl/glue_env.hpp crl/glue_agent.hpp
+""".split()
+invis_headers = """
+crl/glue_util.hpp
+""".split()
+
+random_agent_sources = """
+random_agent.cpp
+""".split()
+walk_env_sources = """
+walk_env.cpp
+""".split()
+
+
+agent_sources = [build.File(source) for source in agent_sources]
+env_sources = [build.File(source) for source in env_sources]
+random_agent_sources = [build.File(source) for source in random_agent_sources]
+walk_env_sources = [build.File(source) for source in walk_env_sources]
+
+env = Environment(tools = ["default", "tools"], toolpath = '.',
+                  CPPPATH=cpp_paths, CCFLAGS=ccflags, LIBPATH=lib_paths)
+
+config = Configure(env)
+has_crl = sum([
+	config.CheckCXXHeader('cpputil.hpp'),
+	config.CheckCXXHeader('boost/shared_ptr.hpp'),
+	config.CheckLibWithHeader('crl', 'crl/crl.hpp', 'cpp'),
+])
+has_glue = sum([
+	config.CheckHeader('rlglue/Agent_common.h'),
+    config.CheckHeader('rlglue/utils/C/RLStruct_util.h'),
+    config.CheckHeader('rlglue/utils/C/TaskSpec_Parser.h'),
+    config.CheckLib('rlutils'),
+    config.CheckLib('rlagent'),
+    config.CheckLib('rlgluenetdev'),
+    config.CheckLib('taskspecutils')
+])
+has_glue_nm = sum([
+	config.CheckLib('rlgnmagent'),
+	config.CheckLib('rlgnmenv')
+])
+env = config.Finish()
+
+lib_targets = []
+bin_targets = []
+
+librlcrlagent = env.SharedLibrary(lib.File('librlcrlagent.so'), agent_sources)
+librlcrlenv = env.SharedLibrary(lib.File('librlcrlenv.so'), env_sources)
+lib_targets += [librlcrlagent, librlcrlenv]
+random_agent = env.Program(bin.Entry('random_agent'), random_agent_sources, LIBS=['crl', 'librlcrlagent', 'rlgnmagent', 'rlutils', 'rlgluenetdev', 'taskspecutils'])
+walk_env = env.Program(bin.Entry('walk_env'), walk_env_sources,
+                       LIBS=['crl', 'librlcrlenv', 'rlgnmenv',
+                             'rlutils',
+                             'rlgluenetdev', 'taskspecutils'])
+bin_targets += [random_agent, walk_env]
+
+	
+if prefix != Dir('.'):
+	for header in headers:
+		env.Alias('install', env.InstallPerm(prefix_inc.Dir('crl'), inc.Entry(header), 0644))
+	env.Alias('install', env.InstallPerm(prefix_lib, lib_targets, 0644))
+	env.Alias('install', env.InstallPerm(prefix_bin, bin_targets, 0755))
+
+for target in lib_targets+bin_targets:
+	Default(target)
+	env.Alias('debug', target)
+	
+dist_files = [File(x) for x in """
+COPYING COPYING.LESSER SConstruct tools.py
+""".split()]
+dist_files += [inc.Entry(header) for header in headers+invis_headers]
+
+
+agent_sources = [build.File(source) for source in agent_sources]
+env_sources = [build.File(source) for source in env_sources]
+random_agent_sources = [build.File(source) for source in random_agent_sources]
+walk_env_sources = [build.File(source) for source in walk_env_sources]
+
+dist_files += [src.Entry(s) for s in agent_sources] 
+dist_files += [src.Entry(s) for s in env_sources] 
+dist_files += [src.Entry(s) for s in random_agent_sources] 
+dist_files += [src.Entry(s) for s in walk_env_sources] 
+
+env.Alias('dist', env.DistTar('glue-crl.tar.gz', dist_files))
+	
