@@ -33,7 +33,8 @@ exp_sources = [build.File(source) for source  in """
 glue_exp.cpp
 """.split()]
 
-env = Environment(CPPPATH=cpp_paths, CCFLAGS=ccflags, LIBPATH=lib_paths)
+env = Environment(tools = ["default", "tools"], toolpath = '.',
+                  CPPPATH=cpp_paths, CCFLAGS=ccflags, LIBPATH=lib_paths)
 config = Configure(env)
 config.CheckHeader('rlglue/RL_glue.h')
 config.CheckHeader('rlglue/utils/C/RLStruct_util.h')
@@ -46,11 +47,20 @@ glue_exp = env.Program(bin.Entry('glue_exp'), exp_sources,
                        LIBS=['rlutils', 'rlexperiment', 'rlgluenetdev'])
 
 if prefix != Dir('.'):
-	Alias('install', Install(prefix_bin, glue_exp))
-	for source in sources:
-		Alias('install', Install(prefix_lib, source))
-	for executable in executables:
-		Alias('install', Install(prefix_bin, executable))
+	Alias('install', env.InstallPerm(prefix_bin, glue_exp, 0755))
+	Alias('install', env.InstallPerm(prefix_lib, sources, 0644))
+	Alias('install', env.InstallPerm(prefix_bin, executables, 0755))
 
 Default(glue_exp)
 Alias('debug', 'install')
+
+dist_files = [File(x) for x in """
+COPYING COPYING.LESSER SConstruct tools.py
+examples/presidents_hosts.py examples/random_example.py examples/run_cmd_with_env
+doc/experimentor.html
+""".split()]
+dist_files += sources
+dist_files += [src.Entry(build_source) for build_source in exp_sources] 
+
+env.Alias('dist', env.DistTar('experimentor.tar.gz', dist_files))
+
