@@ -44,20 +44,20 @@ protected:
 	
 	_UCTPlanner(const MDP& mdp, float confidence_coeff, float gamma);
 	
-	virtual bool isTerminal(const State& s, size_t depth) = 0;
-	virtual int getVisits(const State& s, size_t depth) = 0;
-	virtual int getVisits(const State& s, const Action& a, size_t depth) = 0;
-	virtual void setQ(const State& s, const Action& a, Reward q, size_t depth) = 0;
-	virtual const Reward getQ(const State& s, const Action& a, size_t depth) = 0;
-	virtual void incrVisits(const State& s, const Action& a, size_t depth) = 0;
+	virtual bool isTerminal(const State& s, Size depth) = 0;
+	virtual int getVisits(const State& s, Size depth) = 0;
+	virtual int getVisits(const State& s, const Action& a, Size depth) = 0;
+	virtual void setQ(const State& s, const Action& a, Reward q, Size depth) = 0;
+	virtual const Reward getQ(const State& s, const Action& a, Size depth) = 0;
+	virtual void incrVisits(const State& s, const Action& a, Size depth) = 0;
 	
 	
-	Reward getConfidence(const State& s, const Action& a, size_t depth);
-	Action selectAction(ActionIterator& aitr, const State& s, size_t depth); 
-	virtual void avgQ(const State& s, const Action& a, Reward q, size_t depth);
+	Reward getConfidence(const State& s, const Action& a, Size depth);
+	Action selectAction(ActionIterator& aitr, const State& s, Size depth); 
+	virtual void avgQ(const State& s, const Action& a, Reward q, Size depth);
 	
-	Reward runSimulation(const State& initial_state, size_t depth=0);
-	virtual QTable getQTable(size_t depth) = 0;
+	Reward runSimulation(const State& initial_state, Size depth=0);
+	virtual QTable getQTable(Size depth) = 0;
 	
 public:
 	void setTimeLimit(time_t time_limit);
@@ -73,16 +73,16 @@ class _FactoredUCTPlanner : public _UCTPlanner {
 protected:
 	const Domain _domain;
 	std::vector<FQTable> _qtables;
-	_FStateActionTable<std::vector<size_t> > _sa_visits;
-	_FStateTable<std::vector<size_t> > _s_visits;
+	_FStateActionTable<std::vector<Size> > _sa_visits;
+	_FStateTable<std::vector<Size> > _s_visits;
 
-	virtual bool isTerminal(const State& s, size_t depth);
-	virtual int getVisits(const State& s, size_t depth);
-	virtual int getVisits(const State& s, const Action& a, size_t depth);
-	virtual void setQ(const State& s, const Action& a, Reward q, size_t depth);
-	virtual const Reward getQ(const State& s, const Action& a, size_t depth);
-	virtual void incrVisits(const State& s, const Action& a, size_t depth);
-	virtual QTable getQTable(size_t depth);
+	virtual bool isTerminal(const State& s, Size depth);
+	virtual int getVisits(const State& s, Size depth);
+	virtual int getVisits(const State& s, const Action& a, Size depth);
+	virtual void setQ(const State& s, const Action& a, Reward q, Size depth);
+	virtual const Reward getQ(const State& s, const Action& a, Size depth);
+	virtual void incrVisits(const State& s, const Action& a, Size depth);
+	virtual QTable getQTable(Size depth);
 public:
 	_FactoredUCTPlanner(const Domain& domain, const MDP& mdp, float confidence_bias, float gamma);
 };

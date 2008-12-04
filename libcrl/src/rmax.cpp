@@ -24,13 +24,13 @@
 using namespace std;
 using namespace crl;
 
-_FKnownClassifier::_FKnownClassifier(const Domain& domain, size_t m)
+_FKnownClassifier::_FKnownClassifier(const Domain& domain, Size m)
 : _counter(new _FCounter(domain)), _m(m) {
 	
 }
 
 bool _FKnownClassifier::isKnown(const State& s, const Action& a) {
-	size_t count = _counter->getCount(s, a);
+	Size count = _counter->getCount(s, a);
 //	cout << s << ", " << a << " : " << count << endl;
 	return count >= _m;
 }

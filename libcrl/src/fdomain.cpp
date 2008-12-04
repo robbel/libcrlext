@@ -165,7 +165,7 @@ void _FMDP::clear() {
 }
 
 _FCounter::_FCounter(const Domain& domain)
-: _domain(domain), _count_sa(new _FStateActionTable<size_t>(domain)),
+: _domain(domain), _count_sa(new _FStateActionTable<Size>(domain)),
   _count_sa_s(new _FStateActionTable<SCountTable>(domain)) {
 	
 }
@@ -179,16 +179,16 @@ StateIterator _FCounter::iterator(const State& s, const Action& a) {
 	return c_ns->iterator();
 }
 
-size_t _FCounter::getCount(const State& s, const Action& a) {
+Size _FCounter::getCount(const State& s, const Action& a) {
 	return _count_sa->getValue(s, a);
 }
 
-size_t _FCounter::getCount(const State& s, const Action& a, const State& n) {
+Size _FCounter::getCount(const State& s, const Action& a, const State& n) {
 	SCountTable c_ns = _count_sa_s->getValue(s, a);
 	if (!c_ns) {
 		return 0;
 	}
-	size_t c_sa_s = c_ns->getValue(n);
+	Size c_sa_s = c_ns->getValue(n);
 	return c_sa_s;
 }
 
@@ -198,11 +198,11 @@ bool _FCounter::observe(const State& s, const Action& a, const Observation& o) {
 	
 	SCountTable c_ns = _count_sa_s->getValue(s, a);
 	if (!c_ns) {
-		c_ns = SCountTable(new _FStateTable<size_t>(_domain));
+		c_ns = SCountTable(new _FStateTable<Size>(_domain));
 		_count_sa_s->setValue(s, a, c_ns);
 	}
 	if (o->getState()) {
-		size_t c_sa_s = c_ns->getValue(o->getState());
+		Size c_sa_s = c_ns->getValue(o->getState());
 		c_ns->setValue(o->getState(), c_sa_s+1);
 	}
 	
@@ -224,7 +224,7 @@ bool _FMDPLearner::observe(const State& s, const Action& a, const Observation& o
 	
 	_counter->observe(s, a, o);
 	
-	size_t c_sa = _counter->getCount(s, a);
+	Size c_sa = _counter->getCount(s, a);
 	
 	Probability c_inv = 1.0/c_sa;
 	
@@ -232,7 +232,7 @@ bool _FMDPLearner::observe(const State& s, const Action& a, const Observation& o
 	StateIterator itr = _counter->iterator(s, a);
 	while (itr->hasNext()) {
 		State n = itr->next();
-		size_t c_sa_n = _counter->getCount(s, a, n);
+		Size c_sa_n = _counter->getCount(s, a, n);
 		setT(s, a, n, c_inv*c_sa_n);
 	}
 	

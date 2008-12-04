@@ -37,9 +37,9 @@ typedef boost::shared_ptr<_KnownClassifier> KnownClassifier;
 class _FKnownClassifier : public _KnownClassifier {
 protected:
 	FCounter _counter;
-	size_t _m;
+	Size _m;
 public:
-	_FKnownClassifier(const Domain& domain, size_t m);
+	_FKnownClassifier(const Domain& domain, Size m);
 	virtual ~_FKnownClassifier() { }
 	virtual bool isKnown(const State& s, const Action& a);
 	virtual bool observe(const State& s, const Action& a, const Observation& o);

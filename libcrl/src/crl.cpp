@@ -43,7 +43,7 @@ void _Domain::addActionFactor(Factor min, Factor max) {
 }
 
 void RLType::print(std::ostream& os) const {
-	for (size_t i=0; i<size(); i++) {
+	for (Size i=0; i<size(); i++) {
 		if (i != 0)
 			os << " ";
 		os << getFactor(i);

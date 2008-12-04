@@ -34,14 +34,14 @@ _UCTPlanner::_UCTPlanner(const MDP& mdp, float confidence_coeff, float gamma)
   	
 }
 
-Reward _UCTPlanner::getConfidence(const State& s, const Action& a, size_t depth) {
+Reward _UCTPlanner::getConfidence(const State& s, const Action& a, Size depth) {
 	int s_visits = getVisits(s, depth)+1;
 	int sa_visits = getVisits(s, a, depth)+1;
 	Reward conf = 2*_confidence_coeff*sqrt(log(s_visits)/sa_visits);
 	return conf;
 }
 
-Action _UCTPlanner::selectAction(ActionIterator& aitr, const State& s, size_t depth) {
+Action _UCTPlanner::selectAction(ActionIterator& aitr, const State& s, Size depth) {
 	Action selected_action;
 	Reward selected_qc_val = -1*std::numeric_limits<float>::max();
 	while (aitr->hasNext()) {
@@ -59,7 +59,7 @@ Action _UCTPlanner::selectAction(ActionIterator& aitr, const State& s, size_t de
 	return selected_action;
 }
 
-Reward _UCTPlanner::runSimulation(const State& s, size_t depth) {
+Reward _UCTPlanner::runSimulation(const State& s, Size depth) {
 	if (isTerminal(s, depth)) {
 		cerr << "terminal depth = " << depth << endl;
 		return 0;
@@ -73,8 +73,8 @@ Reward _UCTPlanner::runSimulation(const State& s, size_t depth) {
 	Action selected_action = selectAction(aitr, s, depth);
 	incrVisits(s, selected_action, depth);
 
-	size_t s_visits = getVisits(s, depth);
-	size_t frequency_threshold = 25;
+	Size s_visits = getVisits(s, depth);
+	Size frequency_threshold = 25;
 	if (s_visits == frequency_threshold) {
 		_frequent_states->insert(s);
 		_ps_planner->insert(s, getQ(s, selected_action, depth));
@@ -105,7 +105,7 @@ Reward _UCTPlanner::runSimulation(const State& s, size_t depth) {
 	
 	return q;
 }
-void _UCTPlanner::avgQ(const State& s, const Action& a, Reward q, size_t depth) {
+void _UCTPlanner::avgQ(const State& s, const Action& a, Reward q, Size depth) {
 	Reward old_q = getQ(s, a, depth);
 	int count = getVisits(s, a, depth);
 	Reward new_q = old_q + (q-old_q)/count;
@@ -151,7 +151,7 @@ void _UCTPlanner::setLearningRate(float learning_rate) {
 	_learning_rate = learning_rate;
 }
 
-bool _FactoredUCTPlanner::isTerminal(const State& s, size_t depth) {
+bool _FactoredUCTPlanner::isTerminal(const State& s, Size depth) {
 //	int visits = getVisits(s, depth);
 	float term_decay = .9;
 	float term_factor = .001;
@@ -160,21 +160,21 @@ bool _FactoredUCTPlanner::isTerminal(const State& s, size_t depth) {
 	return randDouble() < prob;//pow(0.99, visits+1);
 //	return depth>50;
 }
-int _FactoredUCTPlanner::getVisits(const State& s, size_t depth) {
+int _FactoredUCTPlanner::getVisits(const State& s, Size depth) {
 	depth = 0;
-	const vector<size_t>& v = _s_visits.getValue(s);
+	const vector<Size>& v = _s_visits.getValue(s);
 	if (v.size() <= depth)
 		return 0;
 	return v[depth];
 }
-int _FactoredUCTPlanner::getVisits(const State& s, const Action& a, size_t depth) {
+int _FactoredUCTPlanner::getVisits(const State& s, const Action& a, Size depth) {
 	depth = 0;
-	const vector<size_t>& v = _sa_visits.getValue(s, a);
+	const vector<Size>& v = _sa_visits.getValue(s, a);
 	if (v.size() <= depth)
 		return 0;
 	return v[depth];
 }
-void _FactoredUCTPlanner::setQ(const State& s, const Action& a, Reward q, size_t depth) {
+void _FactoredUCTPlanner::setQ(const State& s, const Action& a, Reward q, Size depth) {
 	depth = 0;
 	if (_qtables.size() <= depth)
 		_qtables.resize(depth+1);
@@ -182,7 +182,7 @@ void _FactoredUCTPlanner::setQ(const State& s, const Action& a, Reward q, size_t
 		_qtables[depth] = FQTable(new _FQTable(_domain));
 	_qtables[depth]->setQ(s, a, q);
 }
-const Reward _FactoredUCTPlanner::getQ(const State& s, const Action& a, size_t depth) {
+const Reward _FactoredUCTPlanner::getQ(const State& s, const Action& a, Size depth) {
 	depth = 0;
 	if (_qtables.size() <= depth)
 		_qtables.resize(depth+1);
@@ -198,7 +198,7 @@ _FactoredUCTPlanner::_FactoredUCTPlanner(const Domain& domain, const MDP& mdp, f
 	SPriorityQueue pqueue = SPriorityQueue(new _SPriorityQueue(heap_indices));
 	_ps_planner = PSPlanner(new _PSPlanner(_mdp, .0001, _gamma, getQTable(0), pqueue));
 }
-QTable _FactoredUCTPlanner::getQTable(size_t depth) {
+QTable _FactoredUCTPlanner::getQTable(Size depth) {
 	depth = 0;
 	if (_qtables.size() <= depth)
 		_qtables.resize(depth+1);
@@ -206,14 +206,14 @@ QTable _FactoredUCTPlanner::getQTable(size_t depth) {
 		_qtables[depth] = FQTable(new _FQTable(_domain, 0));
 	return _qtables[depth];
 }
-void _FactoredUCTPlanner::incrVisits(const State& s, const Action& a, size_t depth) {
+void _FactoredUCTPlanner::incrVisits(const State& s, const Action& a, Size depth) {
 	depth = 0;
-	vector<size_t>& sv = _s_visits.getValue(s);
+	vector<Size>& sv = _s_visits.getValue(s);
 	if (sv.size() <= depth)
 		sv.resize(depth+1);
 	sv[depth] = getVisits(s, depth)+1;
 	
-	vector<size_t>& sav = _sa_visits.getValue(s, a);
+	vector<Size>& sav = _sa_visits.getValue(s, a);
 	if (sav.size() <= depth)
 		sav.resize(depth+1);
 	sav[depth] = getVisits(s, a, depth)+1;
