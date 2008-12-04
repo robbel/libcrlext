@@ -77,8 +77,7 @@ Reward _UCTPlanner::runSimulation(const State& s, size_t depth) {
 	size_t frequency_threshold = 25;
 	if (s_visits == frequency_threshold) {
 		_frequent_states->insert(s);
-		_PSPlanner::priority_queue::value_type vt(1, s);
-		pqueue.insert(vt);
+		_ps_planner->insert(s, getQ(s, selected_action, depth));
 	}
 
 	Observation o = _mdp->sample(s, selected_action);
@@ -101,8 +100,7 @@ Reward _UCTPlanner::runSimulation(const State& s, size_t depth) {
 			error = fabs(old_q-new_q);
 		}
 		
-		_PSPlanner::priority_queue::value_type vt(error, s);
-		pqueue.insert(vt);
+		_ps_planner->insert(s, error);
 	}
 	
 	return q;
@@ -115,8 +113,6 @@ void _UCTPlanner::avgQ(const State& s, const Action& a, Reward q, size_t depth) 
 }
 
 Action _UCTPlanner::getAction(const State& s) {
-	pqueue.clear();
-	
 	int runs = 0;
 	time_t start_time = time_in_milli();
 	time_t time_total = 0; 
@@ -131,7 +127,7 @@ Action _UCTPlanner::getAction(const State& s) {
 		time_t vi_start_time = time_in_milli();
 		StateIterator sitr(new _StateSetIterator(_frequent_states));
 		ActionIterator aitr = _mdp->A();
-		_ps_planner->sweep(pqueue, aitr);
+		_ps_planner->sweep(aitr);
 		cerr << time_in_milli() - vi_start_time << endl;
 	}
 	
@@ -198,9 +194,12 @@ const Reward _FactoredUCTPlanner::getQ(const State& s, const Action& a, size_t d
 _FactoredUCTPlanner::_FactoredUCTPlanner(const Domain& domain, const MDP& mdp, float confidence_bias, float gamma)
 : _UCTPlanner(mdp, confidence_bias, gamma),
   _domain(domain), _sa_visits(_domain), _s_visits(_domain) {
-	_ps_planner = PSPlanner(new _PSPlanner(_mdp, .0001, _gamma, getQTable(0)));
+	SCountTable heap_indices = SCountTable(new _FStateTable<Size>(domain, -1));
+	SPriorityQueue pqueue = SPriorityQueue(new _SPriorityQueue(heap_indices));
+	_ps_planner = PSPlanner(new _PSPlanner(_mdp, .0001, _gamma, getQTable(0), pqueue));
 }
-QTable _FactoredUCTPlanner::getQTable(size_t depth) {	depth = 0;
+QTable _FactoredUCTPlanner::getQTable(size_t depth) {
+	depth = 0;
 	if (_qtables.size() <= depth)
 		_qtables.resize(depth+1);
 	if (!_qtables[depth])

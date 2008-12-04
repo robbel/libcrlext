@@ -41,7 +41,6 @@ protected:
 	float _learning_rate; //if 0, average
 	StateSet _frequent_states;
 	PSPlanner _ps_planner;
-	_PSPlanner::priority_queue pqueue;
 	
 	_UCTPlanner(const MDP& mdp, float confidence_coeff, float gamma);
 	

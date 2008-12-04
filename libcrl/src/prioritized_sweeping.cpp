@@ -23,34 +23,89 @@
 using namespace std;
 using namespace crl;
 
+void _SPriorityQueue::swap(Size i1, Size i2) {
+	pnode tmp = _heap[i1];
+	_heap[i1] = _heap[i2];
+	_heap[i2] = tmp;
+	_heap_indices->setValue(_heap[i1].s, i1);
+	_heap_indices->setValue(_heap[i2].s, i2);
+}
+void _SPriorityQueue::heapUp(Size i) {
+	if (i == 0)
+		return;
+	Size pi = gpi(i);
+	if (_heap[pi].priority < _heap[i].priority) {
+		swap(i, pi);
+		heapUp(pi);
+	}
+}
+void _SPriorityQueue::heapDown(Size i) {
+	Size rci = grci(i);
+	Size sci = glci(i);
+	if (sci >= _heap.size())
+		return;
+	if (rci < _heap.size() && _heap[sci].priority > _heap[rci].priority)
+		sci = rci;
+	if (_heap[sci].priority > _heap[i].priority) {
+		swap(i, sci);
+		heapDown(sci);
+	}
+}
+	
+void _SPriorityQueue::insert(State s, Reward priority) {
+	priority = fabs(priority);
+	Size cur_index = _heap_indices->getValue(s);
+	if (cur_index > 0 && s == _heap[cur_index].s) {
+		_heap[cur_index].priority += priority;
+	}
+	else {
+		cur_index = _heap.size();
+		_heap.push_back(pnode(s, priority));
+	}
+	heapUp(cur_index);
+}
+bool _SPriorityQueue::empty() {
+	return _heap.size()>0;
+}
+State _SPriorityQueue::pop() {
+	State s = _heap[0].s;
+	if (_heap.size() > 1) {
+		_heap[0] = _heap[_heap.size()-1];
+		heapDown(0);
+	}
+	_heap.resize(_heap.size()-1);
+	_heap_indices->setValue(s, -1);
+	return s;
+}
+Reward _SPriorityQueue::peek() {
+	return _heap[0].priority;
+}
 
 _PSPlanner::_PSPlanner(const MDP& mdp, Reward epsilon, float gamma)
 : _VIPlanner(mdp, epsilon, gamma) {
 	
 }
 
-_PSPlanner::_PSPlanner(const MDP& mdp, Reward epsilon, float gamma, QTable qtable)
-: _VIPlanner(mdp, epsilon, gamma, qtable) {
+_PSPlanner::_PSPlanner(const MDP& mdp, Reward epsilon, float gamma, QTable qtable, SPriorityQueue pqueue)
+: _VIPlanner(mdp, epsilon, gamma, qtable), _pqueue(pqueue) {
 	
 }
 
-int _PSPlanner::sweep(priority_queue& pq, ActionIterator& aitr) {
-	if (pq.size() == 0)
-		return 0;
-	iterator itr = pq.begin();
+int _PSPlanner::sweep(ActionIterator& aitr) {
 	int count = 0;
-	while (itr->first > _epsilon) {
-		State s = itr->second;
-		pq.erase(itr);
-		StateIterator pitr = _mdp->predecessors(s);
-		
-		while (pitr->hasNext()) {
-			State p = pitr->next();
+	while (!_pqueue->empty() && _gamma*_pqueue->peek() > _epsilon) {
+		count++;
+		State s = _pqueue->pop();
+		StateIterator sitr = _mdp->predecessors(s);
+		while (sitr->hasNext()) {
+			State p = sitr->next();
 			Reward error = backupState(p, aitr);
-			priority_queue::value_type vt(error, p);
-			pq.insert(vt);
-			count++;
+			insert(p, error);	
 		}
 	}
 	return count;
+}
+
+void _PSPlanner::insert(State s, Reward priority) {
+	_pqueue->insert(s, priority);
 }
