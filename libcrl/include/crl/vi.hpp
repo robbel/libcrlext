@@ -24,6 +24,7 @@
 #include <iostream>
 #include "crl/crl.hpp"
 #include "crl/fdomain.hpp"
+#include "crl/hdomain.hpp"
 #include "crl/mdomain.hpp"
 
 #ifdef NDEBUG
@@ -63,6 +64,15 @@ public:
 	}
 };
 typedef boost::shared_ptr<_FactoredVIPlanner> FactoredVIPlanner;
+
+class _HashedVIPlanner : public _VIPlanner {
+public:
+	_HashedVIPlanner(const Domain& domain, const MDP& mdp, Reward epsilon, float gamma)
+	: _VIPlanner(mdp, epsilon, gamma) {
+		_qtable = HQTable(new _HQTable(domain));
+	}
+};
+typedef boost::shared_ptr<_HashedVIPlanner> HashedVIPlanner;
 
 class _MappedVIPlanner : public _VIPlanner {
 public:

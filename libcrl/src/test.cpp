@@ -21,6 +21,7 @@
 #include <iostream>
 #include "crl/crl.hpp"
 #include "crl/fdomain.hpp"
+#include "crl/hdomain.hpp"
 #include "crl/vi.hpp"
 #include "crl/uct.hpp"
 #include "crl/sparse_sampling.hpp"
@@ -118,7 +119,7 @@ MDP makeTerminatingMDP(Domain domain) {
 
 Action testVI(MDP mdp, Domain domain) {
 	long start_time = time_in_milli();
-	cout << "VI" << endl;
+	cout << "FVI" << endl;
 	VIPlanner planner(new _FactoredVIPlanner(domain, mdp, .0001, .9));
 	int count = planner->plan();
 	long end_time = time_in_milli();
@@ -127,7 +128,22 @@ Action testVI(MDP mdp, Domain domain) {
 	cout << " V(" << s << ") = " << qtable->getV(s) << endl;
 	Action a = planner->getAction(s);
 	cout << " best action = " << a << endl;
-	cout << "VI finished " << count << " iterations in " << end_time - start_time << endl;
+	cout << "FVI finished " << count << " iterations in " << end_time - start_time << endl;
+	return a;
+}
+
+Action testHVI(MDP mdp, Domain domain) {
+	long start_time = time_in_milli();
+	cout << "HVI" << endl;
+	VIPlanner planner(new _HashedVIPlanner(domain, mdp, .0001, .9));
+	int count = planner->plan();
+	long end_time = time_in_milli();
+	QTable qtable = planner->getQTable();
+	State s(domain, 0);
+	cout << " V(" << s << ") = " << qtable->getV(s) << endl;
+	Action a = planner->getAction(s);
+	cout << " best action = " << a << endl;
+	cout << "HVI finished " << count << " iterations in " << end_time - start_time << endl;
 	return a;
 }
 
@@ -203,6 +219,24 @@ void testState() {
 	cout << mid_time-start_time << endl << time_in_milli()-mid_time << endl;
 }
 
+void testHash(Domain domain) {
+	_HStateActionTable<int> hsat(domain, 10, 100);
+	State s1(domain, 0);
+	State s2(domain, 1);
+	Action a1(domain, 0);
+	Action a2(domain, 1);
+//	hsat.setValue(s1, a1, 1);
+//	hsat.setValue(s1, a2, 5);
+	hsat.setValue(s2, a1, 3);
+	hsat.setValue(s2, a2, 4);
+	cout << hsat.getValue(s1, a1) << endl
+		 << hsat.getValue(s1, a2) << endl
+		 << hsat.getValue(s2, a1) << endl
+		 << hsat.getValue(s2, a2) << endl;
+		 
+	_HQTable qt(domain);
+}
+
 int main(int argc, char** argv) {
 	try {
 		srand(0);
@@ -212,9 +246,12 @@ int main(int argc, char** argv) {
 		domain->addActionFactor(0, 4);
 		domain->setRewardRange(-1, 0);
 		MDP mdp = makeMDP(domain);
+		testVI(mdp, domain);
+		testHVI(mdp, domain);
 		//mdp->printXML(cout);
 //		testState();
-		testVI(mdp, domain);
+//		testVI(mdp, domain);
+//		testHash(domain);
 	}
 	catch (Exception e) {
 		cerr << e << endl;
