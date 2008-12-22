@@ -29,6 +29,7 @@ typedef float Reward;
 typedef float Probability;
 typedef short Factor;
 typedef unsigned long Size;
+typedef long Index;
 
 typedef cpputil::Range<Reward> RewardRange;
 typedef cpputil::Range<Factor> FactorRange;

@@ -246,7 +246,7 @@ public:
 	virtual void fill(T t) = 0;
 	virtual StateIterator iterator() = 0;
 };
-typedef _StateTable<Size> _SCountTable;
+typedef _StateTable<Index> _SCountTable;
 typedef boost::shared_ptr<_SCountTable> SCountTable;
 
 template <class T>
@@ -271,7 +271,7 @@ public:
 	virtual void setValue(const State& s, const Action& a, T t) = 0;
 	virtual void fill(T t) = 0;
 };
-typedef _StateActionTable<Size> _SACountTable;
+typedef _StateActionTable<Index> _SACountTable;
 typedef boost::shared_ptr<_SACountTable> SACountTable;
 
 typedef _StateActionTable<SCountTable> _SASCountTable;

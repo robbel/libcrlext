@@ -165,7 +165,7 @@ void _FMDP::clear() {
 }
 
 _FCounter::_FCounter(const Domain& domain)
-: _domain(domain), _count_sa(new _FStateActionTable<Size>(domain)),
+: _domain(domain), _count_sa(new _FStateActionTable<Index>(domain)),
   _count_sa_s(new _FStateActionTable<SCountTable>(domain)) {
 	
 }
@@ -198,7 +198,7 @@ bool _FCounter::observe(const State& s, const Action& a, const Observation& o) {
 	
 	SCountTable c_ns = _count_sa_s->getValue(s, a);
 	if (!c_ns) {
-		c_ns = SCountTable(new _FStateTable<Size>(_domain));
+		c_ns = SCountTable(new _FStateTable<Index>(_domain));
 		_count_sa_s->setValue(s, a, c_ns);
 	}
 	if (o->getState()) {

@@ -78,7 +78,7 @@ void _FactorLearner::pack() {
 		_subdomain->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax());
 	}
 	
-	_sa_count = SACountTable(new _FStateActionTable<Size>(_subdomain));
+	_sa_count = SACountTable(new _FStateActionTable<Index>(_subdomain));
 	_sa_f_count = SAFCountTable(new _FStateActionTable<SizeVec>(_subdomain));
 	_prob_table = SAFProbTable(new _FStateActionTable<ProbabilityVec>(_subdomain));
 }

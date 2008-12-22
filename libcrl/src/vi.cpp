@@ -36,6 +36,7 @@ _VIPlanner::_VIPlanner(const MDP& mdp, Reward epsilon, float gamma, QTable qtabl
 	
 }
 Reward _VIPlanner::backupState(const State& s, ActionIterator& aitr) {
+//	cout << "backing up " << s << endl;
 	aitr->reset();
 	Reward error_inf = 0;
 	while (aitr->hasNext()) {
@@ -100,7 +101,8 @@ int _VIPlanner::plan() {
 	return plan(sitr, aitr);
 }
 Action _VIPlanner::getAction(const State& s) {
-	return _qtable->getBestAction(s);
+	Action a = _qtable->getBestAction(s);
+	return a;
 }
 QTable _VIPlanner::getQTable() {
 	return _qtable;

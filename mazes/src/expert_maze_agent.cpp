@@ -50,8 +50,26 @@ Agent crl::getCRLAgent(Domain domain) {
 		Reward epsilon = atof(args[2].c_str());
 		sprintf(params, "planner=vi gamma=%f epsilon=%f", gamma, epsilon);
 		VIPlanner vi_planner = VIPlanner(new _FactoredVIPlanner(domain, mdp, epsilon, gamma));
-		vi_planner->plan();
+		
+		int c = vi_planner->plan();
+		cerr << "planned in " << c << " iterations" << endl;
 		planner = vi_planner;
+	}
+	
+	if (args[0] == "ps") {
+		if (args.size() != 3) {
+			cerr << "ps parameters: <gamma> <epsilon>" << endl;
+			exit(1);	
+		}
+		float gamma = atof(args[1].c_str());
+		Reward epsilon = atof(args[2].c_str());
+		sprintf(params, "planner=ps gamma=%f epsilon=%f", gamma, epsilon);
+		PSPlanner ps_planner = PSPlanner(new _FactoredPSPlanner(domain, mdp, epsilon, gamma));
+		StateIterator sitr = mdp->S();
+		ps_planner->insert(sitr);
+		int c = ps_planner->sweep();
+		cerr << "planned in " << c << " updates" << endl;
+		planner = ps_planner;
 	}
 	
 	if (args[0] == "uct") {
@@ -119,6 +137,7 @@ int main(int argc, char** argv) {
 		SlipMaze _slip_maze = SlipMaze(new _SlipMaze(m, cfg));
 		mdp = _slip_maze->getMDP();
 		domain = _slip_maze->getDomain();
+		cerr << "slip maze" << endl;
 	}
 	else {
 		FlagMaze _flag_maze = FlagMaze(new _FlagMaze(m, cfg));

@@ -26,7 +26,7 @@
 #include <boost/shared_ptr.hpp>
 #include "crl/crl.hpp"
 #include "crl/vi.hpp"
-#include "crl/prioritized_sweeping.hpp"
+#include "crl/ps.hpp"
 #include "crl/fdomain.hpp"
 
 namespace crl {

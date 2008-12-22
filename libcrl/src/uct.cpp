@@ -194,7 +194,7 @@ const Reward _FactoredUCTPlanner::getQ(const State& s, const Action& a, Size dep
 _FactoredUCTPlanner::_FactoredUCTPlanner(const Domain& domain, const MDP& mdp, float confidence_bias, float gamma)
 : _UCTPlanner(mdp, confidence_bias, gamma),
   _domain(domain), _sa_visits(_domain), _s_visits(_domain) {
-	SCountTable heap_indices = SCountTable(new _FStateTable<Size>(domain, -1));
+	SCountTable heap_indices = SCountTable(new _FStateTable<Index>(domain, -1));
 	SPriorityQueue pqueue = SPriorityQueue(new _SPriorityQueue(heap_indices));
 	_ps_planner = PSPlanner(new _PSPlanner(_mdp, .0001, _gamma, getQTable(0), pqueue));
 }

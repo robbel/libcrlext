@@ -46,7 +46,8 @@ public:
 	}
 	virtual ~_FlatTable() { }
 	virtual T& getValue(const RLType& r) {
-		return _values[r.getIndex()];
+		T& t = _values[r.getIndex()];
+		return t;//_values[r.getIndex()];
 	}
 	virtual void setValue(const RLType& r, T t) {
 		_values[r.getIndex()] = t;

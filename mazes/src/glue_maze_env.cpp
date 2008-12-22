@@ -45,6 +45,7 @@ Domain crl::getCRLEnvironmentDomain() {
 
 Environment crl::getCRLEnvironment(Domain domain) {
 	if (_slip_maze) {
+		cerr << "getting slip maze" << endl;
 		MDP mdp = _slip_maze->getMDP();
 		State start_state = _slip_maze->getTileState('S');
 		MDPEnvironment env(new _MDPEnvironment(mdp, start_state));

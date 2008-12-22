@@ -24,6 +24,7 @@
 #include "crl/hdomain.hpp"
 #include "crl/vi.hpp"
 #include "crl/uct.hpp"
+#include "crl/ps.hpp"
 #include "crl/sparse_sampling.hpp"
 #include "crl/mdomain.hpp"
 #include "crl/environment.hpp"
@@ -129,6 +130,22 @@ Action testVI(MDP mdp, Domain domain) {
 	Action a = planner->getAction(s);
 	cout << " best action = " << a << endl;
 	cout << "FVI finished " << count << " iterations in " << end_time - start_time << endl;
+	return a;
+}
+
+Action testPS(MDP mdp, Domain domain) {
+	long start_time = time_in_milli();
+	cout << "FPS" << endl;
+	State s(domain, 0);
+	PSPlanner planner(new _FactoredPSPlanner(domain, mdp, .0001, .9));
+	planner->insert(s, 1);
+	int count = planner->sweep();
+	long end_time = time_in_milli();
+	QTable qtable = planner->getQTable();
+	cout << " V(" << s << ") = " << qtable->getV(s) << endl;
+	Action a = planner->getAction(s);
+	cout << " best action = " << a << endl;
+	cout << "FPS finished " << count << " updates in " << end_time - start_time << endl;
 	return a;
 }
 
@@ -247,7 +264,7 @@ int main(int argc, char** argv) {
 		domain->setRewardRange(-1, 0);
 		MDP mdp = makeMDP(domain);
 		testVI(mdp, domain);
-		testHVI(mdp, domain);
+		testPS(mdp, domain);
 		//mdp->printXML(cout);
 //		testState();
 //		testVI(mdp, domain);

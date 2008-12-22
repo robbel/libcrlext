@@ -18,7 +18,7 @@
     along with CRL.  If not, see <http://www.gnu.org/licenses/>.
  */
  
-#include "crl/prioritized_sweeping.hpp"
+#include "crl/ps.hpp"
 
 using namespace std;
 using namespace crl;
@@ -41,39 +41,41 @@ void _SPriorityQueue::heapUp(Size i) {
 }
 void _SPriorityQueue::heapDown(Size i) {
 	Size rci = grci(i);
-	Size sci = glci(i);
-	if (sci >= _heap.size())
+	Size gci = glci(i);
+	if (gci >= _heap.size()) {
 		return;
-	if (rci < _heap.size() && _heap[sci].priority > _heap[rci].priority)
-		sci = rci;
-	if (_heap[sci].priority > _heap[i].priority) {
-		swap(i, sci);
-		heapDown(sci);
+	}
+	if (rci < _heap.size() && _heap[rci].priority > _heap[gci].priority)
+		gci = rci;
+	if (_heap[gci].priority > _heap[i].priority) {
+		swap(i, gci);
+		heapDown(gci);
 	}
 }
 	
 void _SPriorityQueue::insert(State s, Reward priority) {
 	priority = fabs(priority);
-	Size cur_index = _heap_indices->getValue(s);
-	if (cur_index > 0 && s == _heap[cur_index].s) {
-		_heap[cur_index].priority += priority;
+	Index cur_index = _heap_indices->getValue(s);
+	if (cur_index >= 0 && s == _heap[cur_index].s) {
+		if (priority > _heap[cur_index].priority)
+			_heap[cur_index].priority = priority;
 	}
 	else {
 		cur_index = _heap.size();
 		_heap.push_back(pnode(s, priority));
+		_heap_indices->setValue(s, cur_index);
 	}
 	heapUp(cur_index);
 }
 bool _SPriorityQueue::empty() {
-	return _heap.size()>0;
+	return _heap.size()==0;
 }
 State _SPriorityQueue::pop() {
 	State s = _heap[0].s;
-	if (_heap.size() > 1) {
-		_heap[0] = _heap[_heap.size()-1];
-		heapDown(0);
-	}
-	_heap.resize(_heap.size()-1);
+	if (_heap.size() > 1)
+		swap(0, _heap.size()-1);
+	_heap.pop_back();
+	heapDown(0);
 	_heap_indices->setValue(s, -1);
 	return s;
 }
@@ -96,16 +98,39 @@ int _PSPlanner::sweep(ActionIterator& aitr) {
 	while (!_pqueue->empty() && _gamma*_pqueue->peek() > _epsilon) {
 		count++;
 		State s = _pqueue->pop();
+		Reward error = backupState(s, aitr);
 		StateIterator sitr = _mdp->predecessors(s);
 		while (sitr->hasNext()) {
 			State p = sitr->next();
-			Reward error = backupState(p, aitr);
 			insert(p, error);	
 		}
 	}
 	return count;
 }
+int _PSPlanner::sweep() {
+	ActionIterator aitr = _mdp->A();
+	return sweep(aitr);
+}
 
 void _PSPlanner::insert(State s, Reward priority) {
 	_pqueue->insert(s, priority);
 }
+void _PSPlanner::insert(State s) {
+	ActionIterator aitr = _mdp->A();
+	while (aitr->hasNext()) {
+		Action a = aitr->next();
+		_pqueue->insert(s, _mdp->R(s, a));
+	}
+}
+void _PSPlanner::insert(StateIterator& sitr) {
+	while (sitr->hasNext()) {
+		insert(sitr->next());	
+	}
+}
+
+Action _PSPlanner::getAction(const State& s) {
+	sweep();
+	Action a = _VIPlanner::getAction(s);
+	return a;
+}
+	

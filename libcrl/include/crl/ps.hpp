@@ -69,7 +69,11 @@ protected:
 public:
 	_PSPlanner(const MDP& mdp, Reward epsilon, float gamma, QTable qtable, SPriorityQueue pqueue);
 	int sweep(ActionIterator& aitr);
+	int sweep();
 	void insert(State s, Reward priority);
+	void insert(State s);
+	void insert(StateIterator& sitr);
+	virtual Action getAction(const State& s);
 };
 typedef boost::shared_ptr<_PSPlanner> PSPlanner;
 
@@ -78,7 +82,7 @@ public:
 	_FactoredPSPlanner(const Domain& domain, const MDP& mdp, Reward epsilon, float gamma)
 	: _PSPlanner(mdp, epsilon, gamma) {
 		_qtable = FQTable(new _FQTable(domain, 0));
-		SCountTable heap_indices = SCountTable(new _FStateTable<Size>(domain, -1));
+		SCountTable heap_indices = SCountTable(new _FStateTable<Index>(domain, -1));
 		_pqueue = SPriorityQueue(new _SPriorityQueue(heap_indices));
 	}
 };
