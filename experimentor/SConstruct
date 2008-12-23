@@ -26,7 +26,7 @@ sources = [lib.Entry(x) for x in """
 experimentor.py csv_util.py os_util.py
 """.split()]
 executables = [bin.Entry(x) for x in """
-experimentor
+experimentor experimentor_plot
 """.split()]
 
 exp_sources = [build.File(source) for source  in """
