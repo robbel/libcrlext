@@ -91,6 +91,7 @@ State _FStateDistribution::sample() {
 		if (c >= i)
 			return s;
 	}
+	
 	throw DistributionException("exceeded sum of probabilities");
 }
 void _FStateDistribution::setP(const State& s, Probability p) {

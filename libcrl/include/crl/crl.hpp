@@ -81,6 +81,7 @@ public:
 	virtual Reward getV(const State& s) {
 		return getQ(s, getBestAction(s));
 	}
+	virtual void print(std::ostream& os, StateIterator sitr, ActionIterator aitr);
 };
 typedef boost::shared_ptr<_QTable> QTable;
 

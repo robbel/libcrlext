@@ -26,6 +26,7 @@
 #ifndef CPPUTIL_H
 #define CPPUTIL_H
 
+#include <string.h>
 #include <stdexcept>
 #include <execinfo.h>
 #include <signal.h>
@@ -33,10 +34,87 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <string>
 #include <sys/time.h>
 #include <boost/shared_ptr.hpp>
 
 namespace cpputil {
+
+inline std::string getName(char*& rest) {
+	int len = 0;
+	while (isdigit(*rest)) {
+		len *= 10;
+		len += (*rest-'0');
+		rest++;
+	}
+	std::string name = std::string(rest).substr(0, len);
+	for (int i=0; i<len; i++)
+		rest++;
+	
+	return name;
+}
+
+inline std::string getParam(char*& rest) {
+	std::string s;
+	while (*rest && !isdigit(*rest))
+		rest++;
+	if (!*rest)
+		return std::string("");
+	bool first = true;
+	while (isdigit(*rest)) {
+		if (!first)
+			s += "::";
+		s += getName(rest);
+		first = false;
+		
+		if (*rest == 'I') {
+			s += "<";
+			bool first = true;
+			while (*rest != 'E') {
+				if (!first)
+					s += ",";
+				first = false;
+				s += getParam(rest);
+			}
+			s += ">";
+			rest++;
+		}
+	}
+	if (s[0] == 'E')
+		s = "";
+	return s;
+}
+
+inline std::string translateSymbol(char* symbol) {
+	std::string s;
+	strtok(symbol, "(");
+//	s += "[";
+//	s += lib_file;
+//	s += "]";
+	char* rest = strtok(0, "+");
+	if (!rest)
+		return std::string("null symbol");
+	if (*rest == '_') {
+		s += getParam(rest);
+		s += "(";
+		std::string p;
+		bool first = true;
+		while ((p=getParam(rest)) != "") {
+			if (!first)
+				s += ",";
+			first = false;
+			s += p;
+		}
+		s += ")";
+	}
+	else {
+		s += rest;
+	}
+	char* where = strtok(0, ")");
+	s += "+";
+	s += where;
+	return s;
+}
 
 class Exception {
 protected:
@@ -47,7 +125,7 @@ protected:
 		
 		std::ostringstream os;
 		for (int i = 1; i < nSize; i++) {
-			os << i << " - " << symbols[i] << std::endl;
+			os << i << " - " << translateSymbol(symbols[i]) << std::endl;
 		}
 		trace = os.str();
 

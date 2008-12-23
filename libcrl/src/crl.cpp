@@ -55,6 +55,19 @@ DistributionException::DistributionException(std::string what)
 
 }
 
+void _QTable::print(std::ostream& os, StateIterator sitr, ActionIterator aitr) {
+	sitr->reset();
+	while (sitr->hasNext()) {
+		State s = sitr->next();
+		os << "V(" << s << ") = " << getV(s) << endl;
+		aitr->reset();
+		while (aitr->hasNext()) {
+			Action a = aitr->next();
+			os << " Q(" << a << ") = " << getQ(s, a) << endl;	
+		}
+	}
+}
+
 void _MDP::printXML(std::ostream& os) {
 	cout << "<MDP>" << endl;
 	StateIterator sitr = S();

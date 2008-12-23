@@ -87,7 +87,7 @@ Reward _UCTPlanner::runSimulation(const State& s, Size depth) {
 	Reward tail_val = runSimulation(n, depth+1);
 	Reward q = r + _gamma*tail_val;
 	
-	if (s_visits < frequency_threshold) {
+	if (s_visits >= frequency_threshold) {
 		Reward error = 0;
 		if (_learning_rate == 0) {
 			error = fabs(getQ(s, selected_action, depth)-q); 
@@ -102,7 +102,7 @@ Reward _UCTPlanner::runSimulation(const State& s, Size depth) {
 		
 		_ps_planner->insert(s, error);
 	}
-	
+
 	return q;
 }
 void _UCTPlanner::avgQ(const State& s, const Action& a, Reward q, Size depth) {
@@ -124,15 +124,14 @@ Action _UCTPlanner::getAction(const State& s) {
 	}
 
 	if (_ps_planner) {
-		time_t vi_start_time = time_in_milli();
+//		time_t vi_start_time = time_in_milli();
 		StateIterator sitr(new _StateSetIterator(_frequent_states));
-		ActionIterator aitr = _mdp->A();
-		_ps_planner->sweep(aitr);
-		cerr << time_in_milli() - vi_start_time << endl;
+		_ps_planner->sweep();
+//		cerr << time_in_milli() - vi_start_time << endl;
 	}
 	
 	Action a = getQTable()->getBestAction(s);
-	
+	cerr << s << " -> " << a << endl;
 	return a;
 }
 QTable _UCTPlanner::getQTable() {

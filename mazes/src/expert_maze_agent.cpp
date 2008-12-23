@@ -26,6 +26,7 @@
 #include <crl/rmax.hpp>
 #include <crl/vi.hpp>
 #include <crl/uct.hpp>
+#include <crl/rtdp.hpp>
 #include <crl/fdomain.hpp>
 #include <crl/mazes.hpp>
 #include <rlgnmagent.h>
@@ -70,6 +71,22 @@ Agent crl::getCRLAgent(Domain domain) {
 		int c = ps_planner->sweep();
 		cerr << "planned in " << c << " updates" << endl;
 		planner = ps_planner;
+	}
+	if (args[0] == "rtdp") {
+		if (args.size() != 5) {
+			cerr << "rtdp parameters: <gamma> <epsilon> <runlimit> <timelimit>" << endl;
+			exit(1);	
+		}
+		float gamma = atof(args[1].c_str());
+		Reward epsilon = atof(args[2].c_str());
+		int run_limit = atoi(args[3].c_str());
+		int time_limit = atoi(args[4].c_str());
+		sprintf(params, "planner=rtdp gamma=%f epsilon=%f runlimit=%d timelimit=%d", gamma, epsilon, run_limit, time_limit);
+		
+		RTDPPlanner rtdp_planner(new _FlatRTDPPlanner(domain, mdp, gamma, epsilon, .1, 50));
+		rtdp_planner->setRunLimit(run_limit);
+		rtdp_planner->setTimeLimit(time_limit);
+		planner = rtdp_planner;
 	}
 	
 	if (args[0] == "uct") {
@@ -151,8 +168,12 @@ int main(int argc, char** argv) {
 		args.push_back(argv[i]);
 	
 
-	
-	glue_main_agent();
+	try {
+		glue_main_agent();
+	}
+	catch (cpputil::Exception e) {
+		cerr << e << endl;
+	}
 	
 	return 0;
 }

@@ -40,14 +40,15 @@ protected:
 	Reward _epsilon;
 	float _gamma;
 
-	virtual Reward backupState(const State& s, ActionIterator& aitr);
-	virtual Reward backupStateAction(const State& s, const Action& a);
-
 	_VIPlanner(const MDP& mdp, Reward epsilon, float gamma);
 public:
 	_VIPlanner(const MDP& mdp, Reward epsilon, float gamma, QTable qtable);
 	virtual int plan(StateIterator& sitr, ActionIterator& aitr);
 	int plan();
+
+	virtual Reward backupState(const State& s, ActionIterator& aitr);
+	virtual Reward backupStateAction(const State& s, const Action& a);
+	
 	virtual Action getAction(const State& s);
 	QTable getQTable();
 };
