@@ -50,16 +50,18 @@ _FlagMaze::_FlagMaze(const Maze& maze, const SlipConfig& config)
 	for (size_t x=0; x<getWidth(); x++)
 		for (size_t y=0; y<getHeight(); y++) {
 			if (getTile(x, y) == 'S') {
+				//one collecter per 'S'
 				_spawns.push_back(Location(x, y));
-				_domain->addStateFactor(0, getWidth()-1);
-				_domain->addStateFactor(0, getHeight()-1);
-				_domain->addActionFactor(0, 3);
+				_domain->addStateFactor(0, getWidth()-1);//gets an X
+				_domain->addStateFactor(0, getHeight()-1);// and a Y
+				_domain->addActionFactor(0, 3);//and an action
 			}
 		}
 	for (size_t x=0; x<getWidth(); x++)
 		for (size_t y=0; y<getHeight(); y++) {
 			if (getTile(x, y) == 'F') {
 				_flags.push_back(Location(x, y));
+				//each flag gets an indicator
 				_domain->addStateFactor(0, 1);
 			}
 		}
@@ -72,7 +74,7 @@ crl::Domain _FlagMaze::getDomain() {
 }
 
 State _FlagMaze::getInitialState() {
-	State s(_domain);
+	State s(_domain, 0);
 	s.setFactor(0, 0);
 	for (size_t i=0; i<_spawns.size(); i++) {
 		s.setFactor(1+2*i, _spawns[i].x);
@@ -301,11 +303,6 @@ StateDistribution _FlagMDP::T(const State& s, const Action& a) {
 	}
 	Probability c = 0;		
 	while (true) {
-//		if (print) {
-//			for (size_t i=0; i<turn_stack.size(); i++)
-//				cout << turn_stack[i] << " ";
-//			cout << endl;
-//		}
 		
 		c += updateDistribution(sd, locs, directions, turn_stack, flags);
 		bool all_1 = true;
@@ -379,7 +376,7 @@ Observation _FlagMDP::sample(const State& s, const Action& a) {
 			turn = -1;
 		else if (p < config->getSlipLeft()+config->getSlipRight())
 			turn = 1;
-//		cerr << "p = " << p << " " << "turn = " << turn << endl;
+
 		direction += turn;
 		if (direction < 0)
 			direction += 4;
@@ -402,7 +399,7 @@ Observation _FlagMDP::sample(const State& s, const Action& a) {
 			}
 		}
 	}
-	
+
 	Observation o(new _Observation(n, config->getRewardStep()));
 	return o;
 }
