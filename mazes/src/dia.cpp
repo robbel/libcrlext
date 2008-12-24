@@ -118,20 +118,10 @@ int main(int argc, char** argv) {
 	
 	Planner planner;
 	
-	if (true) {
-		PSPlanner ps_planner(new _FactoredPSPlanner(mdp->getDomain(), mdp, .001, 1));
-		//vi_planner->plan();
-		StateIterator sitr = mdp->S();
-		while (sitr->hasNext()) {
-				ps_planner->insert(sitr->next());
-		}
-		planner = ps_planner;
-	}
-	else {
-		VIPlanner vi_planner(new _FactoredVIPlanner(mdp->getDomain(), mdp, .001, 1));
-		vi_planner->plan();
-		planner = vi_planner;
-	}
+	
+	VIPlanner vi_planner(new _FactoredVIPlanner(mdp->getDomain(), mdp, .001, 1));
+	vi_planner->plan();
+	planner = vi_planner;
 	
 	
 	diastream os(argv[3]);

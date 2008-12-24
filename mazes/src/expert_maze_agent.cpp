@@ -65,7 +65,7 @@ Agent crl::getCRLAgent(Domain domain) {
 		float gamma = atof(args[1].c_str());
 		Reward epsilon = atof(args[2].c_str());
 		sprintf(params, "planner=ps gamma=%f epsilon=%f", gamma, epsilon);
-		PSPlanner ps_planner = PSPlanner(new _FactoredPSPlanner(domain, mdp, epsilon, gamma));
+		PSPlanner ps_planner = PSPlanner(new _FlatPSPlanner(domain, mdp, epsilon, gamma));
 		StateIterator sitr = mdp->S();
 		ps_planner->insertThreshold(sitr, 0.1);
 		int c = ps_planner->sweep();
