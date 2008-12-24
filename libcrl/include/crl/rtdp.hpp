@@ -120,7 +120,7 @@ typedef boost::shared_ptr<_RTDPPlanner> RTDPPlanner;
 class _FlatRTDPPlanner : public _RTDPPlanner {
 public:
 	_FlatRTDPPlanner(Domain domain, MDP mdp,
-		             Reward gamma, Reward epsilon, Index m,
+		             Reward gamma, Reward epsilon, Index m, Reward h,
 		             Probability explore_epsilon, Size max_depth);
 };
 

@@ -264,7 +264,7 @@ int main(int argc, char** argv) {
 		domain->setRewardRange(-1, 0);
 		MDP mdp = makeMDP(domain);
 		testVI(mdp, domain);
-		testPS(mdp, domain);
+//		testPS(mdp, domain);
 		//mdp->printXML(cout);
 //		testState();
 //		testVI(mdp, domain);

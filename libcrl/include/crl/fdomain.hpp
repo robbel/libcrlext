@@ -148,21 +148,43 @@ class _FQTable : public _QTable, _FStateActionTable<Reward> {
 protected:
 	std::vector<Action> _best_actions;
 	std::vector<Reward> _best_qs;
+	
+	void checkInitial(const State& s) {
+		if (!_potential || _best_actions[s.getIndex()])
+			return;
+		int index = s.getIndex();
+		_ActionIncrementIterator itr(_domain);
+		_best_qs[s.getIndex()] = -1*std::numeric_limits<double>::max();
+		while (itr.hasNext()) {
+			Action a = itr.next();
+			Reward r = _potential->getPotential(s, a);
+			if (r > _best_qs[index]) {
+				_best_qs[index] = r;
+				_best_actions[index] = a;
+			}
+			_FStateActionTable<Reward>::setValue(s, a, r);
+		}
+	}
 public:
 	_FQTable(const Domain& domain);
 	_FQTable(const Domain& domain, Reward initial);
+	_FQTable(const Domain& domain, Heuristic potential);
 	
 	virtual Reward getQ(const State& s, const Action& a) {
+		checkInitial(s);
 		return _FStateActionTable<Reward>::getValue(s, a);
 	}
 	virtual void setQ(const State& s, const Action& a, Reward r);
 	virtual Reward getV(const State& s) {
+		checkInitial(s);
 		return _best_qs[s.getIndex()];
 	}
-	virtual Action getBestAction(const State& fs) {
-		if (!_best_actions[fs.getIndex()])
-			return _best_actions[fs.getIndex()] = Action(_domain);
-		return _best_actions[fs.getIndex()];
+	virtual Action getBestAction(const State& s) {
+		checkInitial(s);
+		if (!_best_actions[s.getIndex()]) {
+			return Action(_domain);
+		}
+		return _best_actions[s.getIndex()];
 	}
 };
 typedef boost::shared_ptr<_FQTable> FQTable;

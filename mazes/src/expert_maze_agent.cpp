@@ -26,6 +26,7 @@
 #include <crl/rmax.hpp>
 #include <crl/vi.hpp>
 #include <crl/uct.hpp>
+#include <crl/ps.hpp>
 #include <crl/rtdp.hpp>
 #include <crl/fdomain.hpp>
 #include <crl/mazes.hpp>
@@ -73,8 +74,8 @@ Agent crl::getCRLAgent(Domain domain) {
 		planner = ps_planner;
 	}
 	if (args[0] == "rtdp") {
-		if (args.size() != 6) {
-			cerr << "rtdp parameters: <gamma> <epsilon> <m> <runlimit> <timelimit>" << endl;
+		if (args.size() != 7) {
+			cerr << "rtdp parameters: <gamma> <epsilon> <m> <runlimit> <timelimit> <heuristic>" << endl;
 			exit(1);	
 		}
 		float gamma = atof(args[1].c_str());
@@ -82,14 +83,15 @@ Agent crl::getCRLAgent(Domain domain) {
 		int m = atoi(args[3].c_str());
 		int run_limit = atoi(args[4].c_str());
 		int time_limit = atoi(args[5].c_str());
+		int h = atoi(args[6].c_str());
 		sprintf(params, "planner=rtdp gamma=%f epsilon=%f m=%d runlimit=%d timelimit=%d", gamma, epsilon, m, run_limit, time_limit);
 		
-		RTDPPlanner rtdp_planner(new _FlatRTDPPlanner(domain, mdp, gamma, epsilon, m, .1, 50));
+		RTDPPlanner rtdp_planner(new _FlatRTDPPlanner(domain, mdp, gamma, epsilon, m, h, .1, 50));
 		rtdp_planner->setRunLimit(run_limit);
 		rtdp_planner->setTimeLimit(time_limit);
 		planner = rtdp_planner;
 	}
-	
+	/*
 	if (args[0] == "uct") {
 		if (args.size() != 5) {
 			cerr << "uct parameters: <gamma> <bias> <time limit> <run limit>" << endl;
@@ -105,7 +107,7 @@ Agent crl::getCRLAgent(Domain domain) {
 		uct_planner->setRunLimit(run_limit);
 		planner = uct_planner;
 	}
-	
+	*/
 	Agent agent(new _Agent(planner));
 	return agent;
 }

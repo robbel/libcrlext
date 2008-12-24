@@ -32,7 +32,7 @@ Reward _RTDPPlanner::runSimulation(const State& s, Size depth) {
 		
 	//if we've simulated this state too often, terminate the roll-out
 	Index count = _s_counts->getValue(s);
-	if (count >= _m)
+	if (_m > 0 && count >= _m)
 		return 0;
 	
 	//select an epsilon greedy action
@@ -71,9 +71,9 @@ Action _RTDPPlanner::getAction(const State& s) {
 	time_t start_time = time_in_milli();
 	time_t time_total = 0;
 	
-	while (_s_counts->getValue(s) < _m &&
-          (_run_limit==0 || num_runs<_run_limit) && //0 for limit means unlimited
-          (_time_limit==0 || time_total<_time_limit)) {
+	while ((_m == 0 || _s_counts->getValue(s) < _m) &&
+           (_run_limit==0 || num_runs<_run_limit) && //0 for limit means unlimited
+           (_time_limit==0 || time_total<_time_limit)) {
 		
 		Reward error = runSimulation(s);
 		
@@ -114,9 +114,9 @@ _RTDPPlanner::_RTDPPlanner(Domain domain, MDP mdp, QTable qtable,
  * as sending up the planner parameters.
  */
 _FlatRTDPPlanner::_FlatRTDPPlanner(Domain domain, MDP mdp,
-					               Reward gamma, Reward epsilon, Index m,
+					               Reward gamma, Reward epsilon, Index m, Reward h,
 					               Probability explore_epsilon, Size max_depth)
-: _RTDPPlanner(domain, mdp, QTable(new _FQTable(domain, 0)),
+: _RTDPPlanner(domain, mdp, QTable(new _FQTable(domain, h)),
 			   SCountTable(new _FStateTable<Index>(domain, 0)),
                gamma, epsilon, m, explore_epsilon, max_depth) {
 

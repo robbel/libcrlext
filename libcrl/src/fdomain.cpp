@@ -26,37 +26,32 @@ using namespace crl;
 
 
 _FQTable::_FQTable(const Domain& domain)
-: _FStateActionTable<Reward>(domain), _best_actions(_domain->getNumStates()),
-  _best_qs(_domain->getNumStates(), -1*std::numeric_limits<float>::max()) {
+: _FStateActionTable<Reward>(domain, 0), _best_actions(_domain->getNumStates()),
+  _best_qs(_domain->getNumStates(), 0) {
 
 }
+  
 _FQTable::_FQTable(const Domain& domain, Reward initial)
 : _FStateActionTable<Reward>(domain, initial), _best_actions(_domain->getNumStates()),
   _best_qs(_domain->getNumStates(), initial) {
 
 }
+  
+_FQTable::_FQTable(const Domain& domain, Heuristic potential)
+: _QTable(potential),
+  _FStateActionTable<Reward>(domain, 0), _best_actions(_domain->getNumStates()),
+  _best_qs(_domain->getNumStates(), 0) {
 
-/*
-	values[a_index] = v;
-	Reward value = getItem(best_action);
-	if (a_index == best_action.getIndex()) {
-		for (crl::FAction ai(domain); !ai.end(); ai.increment()) {
-			Reward q_value = getItem(ai);
-			if (q_value > value) {
-				best_action = ai;
-			}
-		}
-	}
-	
-	if (v > value) {
-		best_action.setIndex(a_index);
-	}
- */
+}
+
 void _FQTable::setQ(const State& s, const Action& a, Reward r) {
+	checkInitial(s);
 	Size index = s.getIndex();
 	_FStateActionTable<Reward>::setValue(s, a, r);
 	if (!_best_actions[index]) {
-		_best_actions[index] = Action(_domain, 0);
+		Action a0(_domain, 0);
+		_best_actions[index] = a0;
+		_best_qs[index] = _FStateActionTable<Reward>::getValue(s, a);
 	}
 	if (_best_actions[index] == a) {
 		_best_qs[index] = r;

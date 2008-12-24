@@ -77,7 +77,41 @@ typedef boost::shared_ptr<_MDP> MDP;
 
 /**
  */
+class _Heuristic {
+public:
+	virtual ~_Heuristic() { }
+	virtual Reward getPotential(const State& s) = 0;
+	virtual Reward getPotential(const State& s, const Action& a) = 0;
+};
+typedef boost::shared_ptr<_Heuristic> Heuristic;
+
+/**
+ * All states have the same heuristic. eg. Rmax.
+ */
+class _FlatHeuristic : public _Heuristic {
+protected:
+	Reward _v;
+public:
+	_FlatHeuristic(Reward v)
+	: _v(v) { }
+	virtual ~_FlatHeuristic() { }
+	virtual Reward getPotential(const State& s) {
+		return _v;
+	}
+	virtual Reward getPotential(const State& s, const Action& a) {
+		return _v;
+	}
+};
+typedef boost::shared_ptr<_FlatHeuristic> FlatHeuristic;
+
+/**
+ */
 class _QTable {
+protected:
+	Heuristic _potential;
+	_QTable() { }
+	_QTable(Heuristic potential)
+	: _potential(potential) { }
 public:
 	virtual ~_QTable() { }
 	
@@ -114,35 +148,6 @@ public:
 	virtual bool observe(const State& s, const Action& a, const Observation& o) = 0;
 };
 typedef boost::shared_ptr<_Learner> Learner; 
-
-/**
- */
-class _Heuristic {
-public:
-	virtual ~_Heuristic() { }
-	virtual Reward getPotential(const State& s) = 0;
-	virtual Reward getPotential(const State& s, const Action& a) = 0;
-};
-typedef boost::shared_ptr<_Heuristic> Heuristic;
-
-/**
- * All states have the same heuristic. eg. Rmax.
- */
-class _FlatHeuristic : public _Heuristic {
-protected:
-	Reward _v;
-public:
-	_FlatHeuristic(Reward v)
-	: _v(v) { }
-	virtual ~_FlatHeuristic() { }
-	virtual Reward getPotential(const State& s) {
-		return _v;
-	}
-	virtual Reward getPotential(const State& s, const Action& a) {
-		return _v;
-	}
-};
-typedef boost::shared_ptr<_FlatHeuristic> FlatHeuristic;
 
 /**
  * Interface for classes that make observations and take actions

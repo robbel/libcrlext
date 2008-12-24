@@ -95,7 +95,7 @@ class _FactoredVIPlanner : public _VIPlanner {
 public:
 	_FactoredVIPlanner(const Domain& domain, const MDP& mdp, Reward epsilon, float gamma)
 	: _VIPlanner(mdp, epsilon, gamma) {
-		_qtable = FQTable(new _FQTable(domain, 0));
+		_qtable = FQTable(new _FQTable(domain));
 	}
 };
 typedef boost::shared_ptr<_FactoredVIPlanner> FactoredVIPlanner;
