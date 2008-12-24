@@ -17,7 +17,7 @@
     You should have received a copy of the GNU Lesser General Public License
     along with CRL.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 #include <iostream>
 #include "crl/crl.hpp"
 #include "crl/fdomain.hpp"
@@ -66,10 +66,10 @@ void testSTL() {
 	domain->addStateFactor(0, 4);
 	domain->addActionFactor(0, 4);
 	domain->setRewardRange(0, 1);
-	
+
 	State s1(domain, 0);
 	State s2(domain, 1);
-	
+
 	StateSet ss(new _StateSet());
 	ss->insert(s1);
 	ss->insert(s2);
@@ -79,9 +79,9 @@ void testSTL() {
 }
 
 MDP makeMDP(Domain domain) {
-	
+
 	FMDP mdp(new _FMDP(domain));
-	
+
 //	time_t start_time = time_in_milli();
 	for (Size state_index=0; state_index<domain->getNumStates(); state_index++) {
 		State s(domain, state_index);
@@ -104,11 +104,11 @@ MDP makeMDP(Domain domain) {
 	}
 //	time_t end_time = time_in_milli();
 //	cout << "created mdp in " << end_time - start_time << "ms" << endl;
-	
+
 	return mdp;
 }
 MDP makeTerminatingMDP(Domain domain) {
-	
+
 	FMDP mdp = boost::shared_polymorphic_downcast<_FMDP>(makeMDP(domain));
 	State ts(domain, domain->getNumStates()-1);
 	for (Size action_index=0; action_index<domain->getNumActions(); action_index++) {
@@ -167,14 +167,14 @@ Action testHVI(MDP mdp, Domain domain) {
 Action testUCT(MDP mdp, Domain domain) {
 	cout << "UCT" << endl;
 //	long start_time = time_in_milli();
-	UCTPlanner planner(new _FactoredUCTPlanner(domain, mdp, 1, .9));
+	UCTPlanner planner(new _FlatUCTPlanner(domain, mdp, 1, .9, 0, 0, 0));
 	planner->setRunLimit(-1);
 	planner->setTimeLimit(5000);
 	planner->setConfidenceCoeff(1);
 	State s(domain, 0);
 	Action a = planner->getAction(s);
 //	long end_time = time_in_milli();
-	QTable qtable = planner->getQTable();
+	//QTable qtable = planner->getQTable();
 	//cout << "V(" << s << ") = " << qtable->getV(s) << endl;
 	cout << " best action = " << a << endl;
 //	cout << "UCT finished in " << end_time - start_time << endl;
@@ -193,23 +193,23 @@ void testSS(MDP mdp, Domain domain) {
 void testExperiment(Domain domain) {
 	MDP mdp = makeTerminatingMDP(domain);
 	State s(domain, 0);
-	
+
 	VIPlanner planner1(new _FactoredVIPlanner(domain, mdp, .0001, .9));
 	planner1->plan();
 	Agent agent1(new _Agent(planner1));
-	
-	
-	UCTPlanner planner2(new _FactoredUCTPlanner(domain, mdp, 1, .9));
+
+
+	UCTPlanner planner2(new _FlatUCTPlanner(domain, mdp, 1, .9, 0, 0, 0));
 	planner2->setRunLimit(-1);
 	planner2->setTimeLimit(100);
 	planner2->setConfidenceCoeff(1);
 	Agent agent2(new _Agent(planner2));
-	
+
 	Environment env(new _MDPEnvironment(mdp, s));
-	
+
 	Experiment exp1(new _Experiment(env, agent1, 5));
 	cout <<  exp1->runExperiment() << endl;
-	
+
 	Experiment exp2(new _Experiment(env, agent2, 5));
 	cout <<  exp2->runExperiment() << endl;
 }
@@ -232,7 +232,7 @@ void testState() {
 		long l1 = i;
 		l2 = l1;
 	}
-	
+
 	cout << mid_time-start_time << endl << time_in_milli()-mid_time << endl;
 }
 
@@ -250,14 +250,14 @@ void testHash(Domain domain) {
 		 << hsat.getValue(s1, a2) << endl
 		 << hsat.getValue(s2, a1) << endl
 		 << hsat.getValue(s2, a2) << endl;
-		 
+
 	_HQTable qt(domain);
 }
 
 int main(int argc, char** argv) {
 	try {
 		srand(0);
-		
+
 		Domain domain(new _Domain());
 		domain->addStateFactor(0, 299);
 		domain->addActionFactor(0, 4);
