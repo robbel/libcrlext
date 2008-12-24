@@ -137,7 +137,7 @@ Action testPS(MDP mdp, Domain domain) {
 	long start_time = time_in_milli();
 	cout << "FPS" << endl;
 	State s(domain, 0);
-	PSPlanner planner(new _FactoredPSPlanner(domain, mdp, .0001, .9));
+	PSPlanner planner(new _FlatPSPlanner(domain, mdp, .0001, .9));
 	planner->insert(s, 1);
 	int count = planner->sweep();
 	long end_time = time_in_milli();

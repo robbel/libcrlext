@@ -26,6 +26,9 @@
 
 namespace crl {
 
+/**
+ * An environment that samples from a given MDP and start state.
+ */
 class _MDPEnvironment : public _Environment {
 protected:
 	const MDP _mdp;

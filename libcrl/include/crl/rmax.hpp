@@ -26,6 +26,9 @@
 
 namespace crl {
 
+/**
+ * an interface to keep track of which state/action pairs are known
+ */
 class _KnownClassifier : public _Learner {
 public:
 	virtual ~_KnownClassifier() { }
@@ -34,9 +37,19 @@ public:
 };
 typedef boost::shared_ptr<_KnownClassifier> KnownClassifier;
 
+/**
+ * a class to keep track of which state/action pairs are known,
+ * using a flat table
+ */
 class _FKnownClassifier : public _KnownClassifier {
 protected:
+	/**
+	 * counts for each s,a
+	 */
 	FCounter _counter;
+	/**
+	 * the threshold after which a pair becomes known
+	 */
 	Size _m;
 public:
 	_FKnownClassifier(const Domain& domain, Size m);
@@ -46,11 +59,21 @@ public:
 };
 typedef boost::shared_ptr<_FKnownClassifier> FKnownClassifier;
 
+/**
+ * An MDP that uses a heuristic for the rewards from unknown state/actions,
+ * otherwise what is learned in the underlying model
+ */
 class _RMaxMDPLearner : public _MDPLearner {
 protected:
+	/**
+	 * the underlying model that gets updated with observations
+	 */
 	MDPLearner _learner;
 	KnownClassifier _classifier;
 	ActionIterator _action_iterator;
+	/**
+	 * The heuristic for unknown pairs
+	 */
 	Heuristic _heuristic;
 	EmptyStateDistribution _empty_dist;
 public:

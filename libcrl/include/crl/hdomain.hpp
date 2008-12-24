@@ -31,7 +31,7 @@
 
 
 #if defined(WIN32) || defined(WIN64)
-
+//the windows version of the setup for hash_maps
 #include <hash_map>
 #define std_hash_map stdext::hash_map
 template <class K, class V>
@@ -40,7 +40,7 @@ std_hash_map<K,V> alloc_hash_map(size_t num_buckets=100) {
 }
 
 #else
-
+//the linux version of the setup for hash_maps
 #include <ext/hash_map>
 #define std_hash_map __gnu_cxx::hash_map
 template <class K, class V>
@@ -53,6 +53,9 @@ std_hash_map<K,V> alloc_hash_map(size_t num_buckets=100) {
 
 namespace crl {
 
+/**
+ * A table that stores its data in a hash map
+ */
 template <class T>
 class _HashTable {
 	typedef std_hash_map<Size,T> hm_t;
@@ -72,7 +75,10 @@ public:
 	}
 };
 
-
+/**
+ * A state/action pair table that uses a hash map as
+ * its underlying data structure
+ */
 template <class T>
 class _HStateActionTable : public _StateActionTable<T> {
 	typedef std_hash_map<Size,std::vector<T> > hm_t;
@@ -106,7 +112,9 @@ public:
 	}
 };
 
-
+/**
+ * A Q-table that uses a hash map as its underlying data structure.
+ */
 class _HQTable : public _QTable, _HStateActionTable<Reward> {
 protected:
 	std_hash_map<Size,Action> _best_actions;

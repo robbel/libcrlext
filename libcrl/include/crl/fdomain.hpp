@@ -30,6 +30,9 @@
 
 namespace crl {
 
+/**
+ * A template for a vector table
+ */
 template <class T>
 class _FlatTable {
 protected:
@@ -46,8 +49,7 @@ public:
 	}
 	virtual ~_FlatTable() { }
 	virtual T& getValue(const RLType& r) {
-		T& t = _values[r.getIndex()];
-		return t;//_values[r.getIndex()];
+		return _values[r.getIndex()];
 	}
 	virtual void setValue(const RLType& r, T t) {
 		_values[r.getIndex()] = t;
@@ -57,6 +59,10 @@ public:
 	}
 };
 
+/**
+ * A flat table for actions, using the flat table template.
+ * Also keeps track of all actions that have values.
+ */
 template <class T>
 class _FActionTable : public _FlatTable<T>, public _ActionTable<T> {
 protected:
@@ -73,6 +79,10 @@ public:
 	virtual T& getValue(const Action& a) {
 		return _FlatTable<T>::getValue(a);
 	}
+	/**
+	 * Returns an iterator that goes through all actions that have
+	 * set values.
+	 */
 	virtual ActionIterator iterator() {
 		ActionIterator itr(new _ActionSetIterator(_set_actions));
 		return itr;
@@ -82,6 +92,10 @@ public:
 	}
 };
 
+/**
+ * A flat table for states, using the flat table template.
+ * Also keeps track of all states that have values.
+ */
 template <class T>
 class _FStateTable : public _FlatTable<T>, public _StateTable<T> {
 protected:
@@ -98,6 +112,10 @@ public:
 	virtual T& getValue(const State& s) {
 		return _FlatTable<T>::getValue(s);
 	}
+	/**
+	 * Returns an iterator that goes through all states that have
+	 * set values.
+	 */
 	virtual StateIterator iterator() {
 		StateIterator itr(new _StateSetIterator(_set_states));
 		return itr;
@@ -135,6 +153,10 @@ public:
 	}
 };
 
+/**
+ * A Q-table using vector tables. Keeps track of the best
+ * action and q-value for each state.
+ */
 class _FQTable : public _QTable, _FStateActionTable<Reward> {
 protected:
 	std::vector<Action> _best_actions;
@@ -164,7 +186,6 @@ class _FStateDistribution : public _Distribution<State> {
 	_StateSet _known_states;
 public:
 	_FStateDistribution(const Domain& domain);
-//	typedef boost::shared_ptr<cpputil::Iterator<State> > Iterator;
 	virtual StateIterator iterator() {
 		StateIterator itr(new _StateSetIterator(_known_states));
 		return itr;
@@ -178,6 +199,9 @@ public:
 };
 typedef boost::shared_ptr<_FStateDistribution> FStateDistribution;
 
+/**
+ * A flat MDP that can have its dynamics set explicitely.
+ */
 class _FMDP : public _MDP {
 protected: 
 	const Domain _domain;
@@ -213,6 +237,10 @@ inline FMDP getFMDP(const MDP& mdp) {
 	return boost::shared_polymorphic_downcast<_FMDP>(mdp);
 }
 
+/**
+ * A class that keeps track of times states/actions have 
+ * been observed.
+ */
 class _FCounter : public _Learner {
 protected:
 	Domain _domain;
@@ -221,6 +249,9 @@ protected:
 public:
 	_FCounter(const Domain& domain);
 	~_FCounter() { }
+	/**
+	 * returns an iterator over all observed next states to s,a
+	 */
 	virtual StateIterator iterator(const State& s, const Action& a);
 	virtual Size getCount(const State& s, const Action& a);
 	virtual Size getCount(const State& s, const Action& a, const State& n);
@@ -228,6 +259,9 @@ public:
 };
 typedef boost::shared_ptr<_FCounter> FCounter;
 
+/**
+ * An mdp learner that updates its dynamics based on experience.
+ */
 class _FMDPLearner : public _MDPLearner, public _FMDP {
 protected:
 	FCounter _counter;

@@ -29,12 +29,22 @@
 
 namespace crl {
 
+/**
+ * Describes the structure of the states and actions, as well
+ * as Rmax and Rmin.
+ */
 class _Domain {
 protected:
 	RewardRange _reward_range;
 	RangeVec _state_ranges;
 	RangeVec _action_ranges;
+	/**
+	 * The index factors used in RLType, when it is a State
+	 */
 	SizeVec _state_index_components;
+	/**
+	 * The index factors used in RLType, when it is an Action
+	 */
 	SizeVec _action_index_components;
 	Size _num_states;
 	Size _num_actions;
@@ -78,10 +88,29 @@ public:
 };
 typedef boost::shared_ptr<_Domain> Domain;
 
+/**
+ * A basic feature vector encapsulation type. Keeps track only of
+ * an index, and the setFactor/getFactor methods know how to deal
+ * with the index properly. This is so that copying states and
+ * actions around will be very fast. Getting and setting features
+ * happens very rarely compared to copying, so the extra overhead
+ * in those functions is justified.
+ */
 class RLType {
 protected:
+	/**
+	 * The range of each feature
+	 */
 	const RangeVec* _ranges;
+	/**
+	 * The multaplicative factor used to get at the right part of
+	 * the index for a given feature
+	 */
 	const SizeVec* _components;
+	/**
+	 * A single number that represents what the index into a
+	 * multidimensional array would be if it were flattened.
+	 */
 	Size _index;
 	
 	RLType()
@@ -113,10 +142,13 @@ public:
 		if (!_ranges) {
 			throw NullObjectException();
 		}
+		//shift _index until this feature is the lowest order
 		Size ret = _index / (*_components)[index];
 		if (index < size()-1) {
+			//if it isn't the last feature, use mod to chop off the others
 			ret = ret%(*_components)[index+1];
 		}
+		//offset the factor with the minimum
 		return (Factor)ret+(*_ranges)[index].getMin();
 	}
 	
@@ -126,6 +158,9 @@ public:
 	const Size& getIndex() const {
 		return _index;
 	}
+	/**
+	 * typecast operator for the type Size
+	 */
 	operator Size() const {
 		return _index;
 	}
@@ -136,6 +171,9 @@ public:
 	bool operator==(const RLType& r) const {
 		return getIndex() == r.getIndex();
 	}
+	/**
+	 * returns true if this is an actual state or action
+	 */
 	operator bool() const {
 		return _ranges != 0;
 	}
@@ -188,6 +226,9 @@ inline std::ostream& operator<<(std::ostream& os, const Action& a) {
 	return os;
 }
 
+/**
+ * A state iterator that increments an index to get the next state.
+ */
 class _StateIncrementIterator : public _StateIterator {
 protected:
 	const Domain _domain;
@@ -212,6 +253,9 @@ public:
 };
 typedef boost::shared_ptr<_StateIncrementIterator> StateIncrementIterator;
 
+/**
+ * An action iterator that increments an index to get the next state.
+ */
 class _ActionIncrementIterator : public _ActionIterator {
 protected:
 	const Domain _domain;
@@ -236,6 +280,9 @@ public:
 };
 typedef boost::shared_ptr<_ActionIncrementIterator> ActionIncrementIterator;
 
+/**
+ * An interface for a table that uses states as keys
+ */
 template <class T>
 class _StateTable {
 public:
@@ -249,6 +296,9 @@ public:
 typedef _StateTable<Index> _SCountTable;
 typedef boost::shared_ptr<_SCountTable> SCountTable;
 
+/**
+ * An interface for a table that uses actions as keys
+ */
 template <class T>
 class _ActionTable {
 public:
@@ -262,6 +312,10 @@ public:
 typedef _ActionTable<Size> _ACountTable;
 typedef boost::shared_ptr<_ACountTable> ACountTable;
 
+
+/**
+ * An interface for a table that uses state/action pairs as keys
+ */
 template <class T>
 class _StateActionTable {
 public:
@@ -280,14 +334,28 @@ typedef boost::shared_ptr<_SASCountTable> SASCountTable;
 typedef _StateActionTable<Reward> _SARTable;
 typedef boost::shared_ptr<_SARTable> SARTable;
 
+/**
+ * An interface for a distribution that can be sampled from
+ * and queried.
+ */
 template <class T>
 class _Distribution {
 public:
 	virtual ~_Distribution() { }
 	
 	typedef boost::shared_ptr<cpputil::Iterator<T> > Iterator;
+	
+	/**
+	 * Iterate through possible outcomes
+	 */
 	virtual Iterator iterator() = 0;
+	/**
+	 * The probability mass of a particular outcome
+	 */
 	virtual Probability P(const T& t) = 0;
+	/**
+	 * sample from this distribution
+	 */
 	virtual T sample() = 0;
 	virtual void print(std::ostream& os) {
 		os << "dist[";
@@ -306,6 +374,9 @@ typedef _Distribution<Action> _ActionDistribution;
 typedef boost::shared_ptr<_StateDistribution> StateDistribution;
 typedef boost::shared_ptr<_ActionDistribution> ActionDistribution;
 
+/**
+ * An empty distribution ready to go
+ */
 template <class T>
 class _EmptyDistribution : public _Distribution<T> {
 protected:

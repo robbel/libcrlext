@@ -32,6 +32,7 @@
 
 namespace crl {
 /**
+ * A pair of state,reward is referred to as an observation
  */
 class _Observation {
 protected:
@@ -101,12 +102,14 @@ public:
 typedef boost::shared_ptr<_Planner> Planner;
 
 /**
+ * Interface for something that learns from experience.
  */
 class _Learner {
 public:
 	virtual ~_Learner() { }
 	/**
-	 * Returns true if this observation changed what the learner knows.
+	 * Returns true if this observation changed what the learner knows. Allows
+	 * agents to only trigger the planner when necessary.
 	 */
 	virtual bool observe(const State& s, const Action& a, const Observation& o) = 0;
 };
@@ -123,6 +126,7 @@ public:
 typedef boost::shared_ptr<_Heuristic> Heuristic;
 
 /**
+ * All states have the same heuristic. eg. Rmax.
  */
 class _FlatHeuristic : public _Heuristic {
 protected:
@@ -187,6 +191,9 @@ public:
 typedef boost::shared_ptr<_Experiment> Experiment;
 
 /**
+ * Just a combination of the two classes.
+ * Created for the RMaxMDPLearner, so it could have an underlying MDP and
+ * learner be one thing without having to do runtime type checking to verify.
  */
 class _MDPLearner : public _MDP, public _Learner {
 public:

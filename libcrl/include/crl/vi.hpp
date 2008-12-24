@@ -33,22 +33,53 @@ HIETEKHRSD
 
 namespace crl {
 
+/**
+ * A planner that does value iteration and provides
+ * Bellman backup functionality
+ */
 class _VIPlanner : public _Planner {
 protected:
+	/**
+	 * the dynamics model
+	 */
 	const MDP _mdp;
+	/**
+	 * The q-table to store values in
+	 */
 	QTable _qtable;
+	/**
+	 * VI stops when all Bellman residuals drop below epsilon
+	 */
 	Reward _epsilon;
+	/**
+	 * discount factor
+	 */
 	float _gamma;
 
 	_VIPlanner(const MDP& mdp, Reward epsilon, float gamma);
 public:
 	_VIPlanner(const MDP& mdp, Reward epsilon, float gamma, QTable qtable);
+	/**
+	 * Do VI on some subset of the state and action space
+	 */
 	virtual int plan(StateIterator& sitr, ActionIterator& aitr);
+	/**
+	 * Do VI on _mdp->S(), _mdp->A()
+	 */
 	int plan();
 
+	/**
+	 * perform a Bellman backup on some state, for all actions provided
+	 */
 	virtual Reward backupState(const State& s, ActionIterator& aitr);
+	/**
+	 * Backup the value for a single state/action
+	 */
 	virtual Reward backupStateAction(const State& s, const Action& a);
 	
+	/**
+	 * Get the action that maximizes Q(s,a)
+	 */
 	virtual Action getAction(const State& s);
 	QTable getQTable();
 };
@@ -57,6 +88,9 @@ inline VIPlanner getVIPlanner(const Planner& planner) {
 	return boost::shared_polymorphic_downcast<_VIPlanner>(planner);
 }
 
+/**
+ * VI planner using a flat table
+ */
 class _FactoredVIPlanner : public _VIPlanner {
 public:
 	_FactoredVIPlanner(const Domain& domain, const MDP& mdp, Reward epsilon, float gamma)
@@ -66,6 +100,9 @@ public:
 };
 typedef boost::shared_ptr<_FactoredVIPlanner> FactoredVIPlanner;
 
+/**
+ * VI planner using a hash map
+ */
 class _HashedVIPlanner : public _VIPlanner {
 public:
 	_HashedVIPlanner(const Domain& domain, const MDP& mdp, Reward epsilon, float gamma)
@@ -75,6 +112,9 @@ public:
 };
 typedef boost::shared_ptr<_HashedVIPlanner> HashedVIPlanner;
 
+/**
+ * VI planner using a map
+ */
 class _MappedVIPlanner : public _VIPlanner {
 public:
 	_MappedVIPlanner(const MDP& mdp, Reward epsilon, float gamma)
