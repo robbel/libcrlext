@@ -90,7 +90,7 @@ const char* env_init()
 	this_reward_observation.terminal=0;
 
 	task_string = os.str();
-	cerr << task_string << endl;
+//	cerr << task_string << endl;
 	return (char*)(task_string.c_str());
 }
 
