@@ -37,7 +37,7 @@ Reward _RTDPPlanner::runSimulation(const State& s, Size depth) {
 	
 	//select an epsilon greedy action
 	Action a = _qtable->getBestAction(s);
-	if (randDouble() < _explore_epsilon) {
+	if (randDouble() < _epsilon) {
 		a = Action(_domain, random()%_domain->getNumActions());
 	}
 	
@@ -99,14 +99,12 @@ Action _RTDPPlanner::getAction(const State& s) {
  */
 _RTDPPlanner::_RTDPPlanner(Domain domain, MDP mdp, QTable qtable,
 						   SCountTable s_counts,
-				           Reward gamma, Reward epsilon, Index m,
-				           Probability explore_epsilon, Size max_depth)
+				           Reward gamma, Reward epsilon, Index m, Size max_depth)
 : _domain(domain), _mdp(mdp), _qtable(qtable), _s_counts(s_counts),
   _gamma(gamma), _epsilon(epsilon), _m(m),
-  _run_limit(0), _time_limit(0),
-  _explore_epsilon(explore_epsilon), _max_depth(max_depth),
+  _run_limit(0), _time_limit(0), _max_depth(max_depth),
   _vi_planner(new _VIPlanner(mdp, epsilon, gamma, _qtable)) {
-
+	_vi_planner->plan();
 }
 
 /**
@@ -115,10 +113,10 @@ _RTDPPlanner::_RTDPPlanner(Domain domain, MDP mdp, QTable qtable,
  */
 _FlatRTDPPlanner::_FlatRTDPPlanner(Domain domain, MDP mdp,
 					               Reward gamma, Reward epsilon, Index m, Reward h,
-					               Probability explore_epsilon, Size max_depth)
+					               Size max_depth)
 : _RTDPPlanner(domain, mdp, QTable(new _FQTable(domain, h)),
 			   SCountTable(new _FStateTable<Index>(domain, 0)),
-               gamma, epsilon, m, explore_epsilon, max_depth) {
+               gamma, epsilon, m, max_depth) {
 
 }
 

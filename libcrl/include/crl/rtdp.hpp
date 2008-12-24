@@ -58,10 +58,11 @@ protected:
 	 * discount rate
 	 */
 	Reward _gamma;
+	
 	/**
-	 * unused at the moment
+	 * Likelihood that a roll-out explores a random action
 	 */
-	Reward _epsilon;
+	Probability _epsilon;
 	
 	/**
 	 * Max number of times a state can be in a roll-out
@@ -76,11 +77,6 @@ protected:
 	 * Max number milliseconds per call to getAction
 	 */
 	time_t _time_limit;
-	
-	/**
-	 * Likelihood that a roll-out explores a random action
-	 */
-	Probability _explore_epsilon;
 	/**
 	 * Max depth for a roll-out
 	 */
@@ -98,8 +94,7 @@ protected:
 	Reward runSimulation(const State& s, Size depth=0);
 	
 	_RTDPPlanner(Domain domain, MDP mdp, QTable qtable, SCountTable s_counts,
-	             Reward gamma, Reward epsilon, Index m,
-	             Probability explore_epsilon, Size max_depth);
+	             Reward gamma, Reward epsilon, Index m, Size max_depth);
 public:
 	virtual ~_RTDPPlanner() { }
 	
@@ -120,8 +115,7 @@ typedef boost::shared_ptr<_RTDPPlanner> RTDPPlanner;
 class _FlatRTDPPlanner : public _RTDPPlanner {
 public:
 	_FlatRTDPPlanner(Domain domain, MDP mdp,
-		             Reward gamma, Reward epsilon, Index m, Reward h,
-		             Probability explore_epsilon, Size max_depth);
+		             Reward gamma, Reward epsilon, Index m, Reward h, Size max_depth);
 };
 
 }

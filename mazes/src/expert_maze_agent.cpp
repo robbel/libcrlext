@@ -53,8 +53,8 @@ Agent crl::getCRLAgent(Domain domain) {
 		sprintf(params, "planner=vi gamma=%f epsilon=%f", gamma, epsilon);
 		VIPlanner vi_planner = VIPlanner(new _FactoredVIPlanner(domain, mdp, epsilon, gamma));
 		
-		int c = vi_planner->plan();
-		cerr << "planned in " << c << " iterations" << endl;
+		vi_planner->plan();
+//		cerr << "planned in " << c << " iterations" << endl;
 		planner = vi_planner;
 	}
 	
@@ -69,8 +69,8 @@ Agent crl::getCRLAgent(Domain domain) {
 		PSPlanner ps_planner = PSPlanner(new _FlatPSPlanner(domain, mdp, epsilon, gamma));
 		StateIterator sitr = mdp->S();
 		ps_planner->insertThreshold(sitr, 0.1);
-		int c = ps_planner->sweep();
-		cerr << "planned in " << c << " updates" << endl;
+		ps_planner->sweep();
+//		cerr << "planned in " << c << " updates" << endl;
 		planner = ps_planner;
 	}
 	if (args[0] == "rtdp") {
@@ -86,7 +86,7 @@ Agent crl::getCRLAgent(Domain domain) {
 		int h = atoi(args[6].c_str());
 		sprintf(params, "planner=rtdp gamma=%f epsilon=%f m=%d runlimit=%d timelimit=%d", gamma, epsilon, m, run_limit, time_limit);
 		
-		RTDPPlanner rtdp_planner(new _FlatRTDPPlanner(domain, mdp, gamma, epsilon, m, h, .1, 50));
+		RTDPPlanner rtdp_planner(new _FlatRTDPPlanner(domain, mdp, gamma, epsilon, m, h, 50));
 		rtdp_planner->setRunLimit(run_limit);
 		rtdp_planner->setTimeLimit(time_limit);
 		planner = rtdp_planner;
