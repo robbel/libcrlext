@@ -167,7 +167,7 @@ Action testHVI(MDP mdp, Domain domain) {
 Action testUCT(MDP mdp, Domain domain) {
 	cout << "UCT" << endl;
 //	long start_time = time_in_milli();
-	UCTPlanner planner(new _FlatUCTPlanner(domain, mdp, 1, .9, 0, 0, 0));
+	UCTPlanner planner(new _FlatUCTPlanner(domain, mdp, 1));
 	planner->setRunLimit(-1);
 	planner->setTimeLimit(5000);
 	planner->setConfidenceCoeff(1);
@@ -199,7 +199,7 @@ void testExperiment(Domain domain) {
 	Agent agent1(new _Agent(planner1));
 
 
-	UCTPlanner planner2(new _FlatUCTPlanner(domain, mdp, 1, .9, 0, 0, 0));
+	UCTPlanner planner2(new _FlatUCTPlanner(domain, mdp, 1));
 	planner2->setRunLimit(-1);
 	planner2->setTimeLimit(100);
 	planner2->setConfidenceCoeff(1);
@@ -224,12 +224,12 @@ void testState() {
 	domain->addStateFactor(0, 1);
 	domain->addStateFactor(0, 1);
 	domain->setRewardRange(-1, 1);
-	
+
 	const vector<Size>& v = domain->getStateIndexComponents();
 	for (Size i=0; i<v.size(); i++)
 		cout << v[i] << " ";
 	cout << endl;
-		
+
 	State s(domain,0);
 	cout << s << " - " << s.getIndex() << endl;
 	s.setFactor(1,1);

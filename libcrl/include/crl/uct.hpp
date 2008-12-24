@@ -22,44 +22,109 @@
 #define UCT_HPP_
 
 #include <boost/shared_ptr.hpp>
+#include <boost/cstdint.hpp>
+#include <cassert>
 #include <sys/time.h>
+#if defined(__linux__) || defined(__CYGWIN__)
+#include <ext/hash_map>
+#define HASH_MAP hash_map
+#endif
 
 #include "crl/crl.hpp"
-#include "crl/vi.hpp"
 #include "crl/fdomain.hpp"
 #include "crl/hdomain.hpp"
 
-
 namespace uct {
 using namespace crl;
+#if defined(__linux__) || defined(__CYGWIN__)
+using namespace __gnu_cxx;
+#endif
+
+typedef  uint64_t hash_key_type;	// in this way we can easily change the type of the key.
+
 
 // --------------------------------------------------------------------------------------------
 // Data structures for the Q-table (tree).
 
-/// TODO: _UCTQTable should inherit form HASH_MAP<hash_key_type, CStateMBInfHash, KeyTypeHash>
-/// TODO: copy to this file classes to store UCT related infomration
+
+struct KeyTypeHash {
+	inline size_t operator()(const hash_key_type& s) const {
+		return size_t(s);
+	}
+};
+
+/// The class to store information related to a specific action in a state. For the use with the
+/// simplest UCT.
+struct _CActionInfoHash{
+public:
+	_CActionInfoHash(double Wi_=0, int Ni_=0){
+		Ni = Ni_;
+		Wi = Wi_;
+	}
+	~_CActionInfoHash(void){}
+	_CActionInfoHash& operator=(const _CActionInfoHash& entry){
+		this->Ni = entry.Ni;
+		this->Wi = entry.Wi;
+		return *this;
+	}
+	Reward getValue() const {
+		assert(Ni != 0 && "this should not happen");
+		return Wi/Ni;
+	}
+	/// The number of times an action has been attempted.
+	int Ni;
+	/// The sum of scores.
+	double Wi;
+};
+
+/// The value in the hash table related to one specific state. It contains a hash table with actions.
+class _CStateInfoHash: public HASH_MAP<hash_key_type, _CActionInfoHash, KeyTypeHash>{
+public:
+	_CStateInfoHash(int N_=0){
+		N = N_;
+	}
+	_CStateInfoHash& operator=(const _CStateInfoHash& entry){
+		this->N = entry.N;
+		// We have to call this operator also on the base class (TODO: can we do it in better way?).
+		HASH_MAP<hash_key_type, _CActionInfoHash, KeyTypeHash> *parent = static_cast<HASH_MAP<hash_key_type, _CActionInfoHash, KeyTypeHash>*>(this);
+		parent->operator = (entry);
+		return *this;
+	}
+	/// @return true if action hash_a is in the tree in the state this
+	bool inTree(hash_key_type hash_a) const{
+		if (this->find(hash_a) != this->end()) {
+			return true;
+		}
+		return false;
+	}
+	// The number of times the state has been visited.
+	int N;
+	// The value function.
+};
 
 /// Implementation of the Q-table in UCT planning.
-/// TODO: Keeps track of the best action and q-value for each state.
-/// The point to have this class is that it will contain also UCT related infomration: counters, variance, etc.
-class _UCTQTable : public _QTable, _StateActionTable<Reward> {
+/// The point to have this class is that it will contain also UCT related information: counters, variance, etc.
+class _UCTQTable : public /*_QTable, _StateActionTable<Reward>,*/ HASH_MAP<hash_key_type, _CStateInfoHash, KeyTypeHash> {
 protected:
 public:
-	_UCTQTable(const Domain& domain);
-	_UCTQTable(const Domain& domain, Reward initial);
+	_UCTQTable(const Domain& domain) {}
+	_UCTQTable(const Domain& domain, Reward initial) {}
 
-	virtual Reward getQ(const State& s, const Action& a) {
-		return _StateActionTable<Reward>::getValue(s, a);
+	/// @return the hash code of the best action (exploitation only, no bonuses are added)
+	virtual hash_key_type getBestActionHash(hash_key_type& hash_s) {
+		_CStateInfoHash& state_info = (*this)[hash_s];
+		Reward max = INT_MIN;
+		hash_key_type max_hash_a = 0;
+		assert(!state_info.empty() && "do not call this methods when there is no action of hash_s in the Q-table");
+		for (_CStateInfoHash::const_iterator iter = state_info.begin(); iter != state_info.end(); iter++) { // for all actions
+			 Reward current = iter->second.getValue();
+			 if (current > max) {
+				 max = current;
+				 max_hash_a = iter->first;
+			 }
+		}
+		return max_hash_a;
 	}
-/*	virtual void setQ(const State& s, const Action& a, Reward r);
-	virtual Reward getV(const State& s) {
-		return _best_qs[s.getIndex()];
-	}
-	virtual Action getBestAction(const State& fs) {
-		if (!_best_actions[fs.getIndex()])
-			return _best_actions[fs.getIndex()] = Action(_domain);
-		return _best_actions[fs.getIndex()];
-	}*/
 };
 typedef boost::shared_ptr<_UCTQTable> UCTQTable;
 
@@ -67,89 +132,48 @@ typedef boost::shared_ptr<_UCTQTable> UCTQTable;
 
 namespace crl {
 
+
 // -------------------------------------------------------------------------------
 // The UCT planner
 
-/**
- * The UCT planner.
- */
+
+/// The UCT planner.
 class _UCTPlanner : public _Planner {
-protected:
-	/**
-	 * The domain describes what valid states and actions are.
-	 */
-	Domain _domain;
-	/**
-	 * The MDP to plan with
-	 */
-	MDP _mdp;
-	/**
-	 * The q-table to store values in
-	 */
-	QTable _qtable;
-	/**
-	 * A table to keep track of how many times a state has gone through a roll-out
-	 */
-	SCountTable _s_counts;
-
-	/**
-	 * discount rate
-	 */
-	Reward _gamma;
-	/**
-	 * unused at the moment
-	 */
-	Reward _epsilon;
-
-	/**
-	 * Max number of times a state can be in a roll-out
-	 */
-	Index _m;
-
-	/**
-	 * Max number of roll-outs per call to getAction
-	 */
-	Size _run_limit;
-	/**
-	 * Max number milliseconds per call to getAction
-	 */
-	time_t _time_limit;
-
-	/**
-	 * Likelihood that a roll-out explores a random action
-	 */
-	Probability _explore_epsilon;
-	/**
-	 * Max depth for a roll-out
-	 */
-	Size _max_depth;
-
-	/**
-	 * used for its ability to perform Bellman backups
-	 */
-	VIPlanner _vi_planner;
-
-	/**
-	 * Perform a simulation/roll-out starting at s. Returns the biggest
-	 * Bellman residual.
-	 */
-	Reward runSimulation(const State& s, Size depth=0);
-
-	_UCTPlanner(Domain domain, MDP mdp, QTable qtable, SCountTable s_counts,
-	             Reward gamma, Reward epsilon, Index m,
-	             Probability explore_epsilon, Size max_depth);
 public:
-	virtual ~_UCTPlanner() { }
+	virtual ~_UCTPlanner(){}
 
 	void setRunLimit(Size run_limit) {_run_limit=run_limit;}
 	void setTimeLimit(time_t time_limit) {_time_limit=time_limit;}
 	void setConfidenceCoeff(float confidence_coeff){}
 
-	/**
-	 * from _Planner
-	 */
+	/// from _Planner
 	virtual Action getAction(const State& s);
+
+protected:
+	/// The domain describes what valid states and actions are.
+	Domain _domain;
+
+	/// UCT Q-table
+	uct::_UCTQTable _qtable;
+
+	/// The MDP to plan with
+	MDP _mdp;
+
+	/// discount rate
+	Reward _gamma;
+
+	/// Max number of roll-outs per call to getAction
+	Size _run_limit;
+
+	/// Max number milliseconds per call to getAction
+	time_t _time_limit;
+
+	/// Performs one, complete UCT simulation.
+	void runSimulation(const State& s);
+
+	_UCTPlanner(Domain domain, MDP mdp, Reward gamma);
 };
+
 typedef boost::shared_ptr<_UCTPlanner> UCTPlanner;
 
 /**
@@ -158,9 +182,7 @@ typedef boost::shared_ptr<_UCTPlanner> UCTPlanner;
  */
 class _FlatUCTPlanner : public _UCTPlanner {
 public:
-	_FlatUCTPlanner(Domain domain, MDP mdp,
-		             Reward gamma, Reward epsilon, Index m,
-		             Probability explore_epsilon, Size max_depth);
+	_FlatUCTPlanner(Domain domain, MDP mdp, Reward gamma);
 };
 
 }

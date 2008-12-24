@@ -17,23 +17,8 @@ namespace uct{
 // -------------------------------------------------------------------------------
 // The UCT planner
 
-Reward _UCTPlanner::runSimulation(const State& s, Size depth) {
-	if (depth >= _max_depth)
-		return 0;
-
-	//if we've simulated this state too often, terminate the roll-out
-	Index count = _s_counts->getValue(s);
-	if (count >= _m)
-		return 0;
-
-	//select an epsilon greedy action
-	Action a = _qtable->getBestAction(s);
-	if (randDouble() < _explore_epsilon) {
-		a = Action(_domain, random()%_domain->getNumActions());
-	}
-
-	Reward error = 0;
-
+void _UCTPlanner::runSimulation(const State& s) {
+/*
 	try {
 		//sample from the MDP
 		State n = _mdp->T(s, a)->sample();
@@ -50,67 +35,46 @@ Reward _UCTPlanner::runSimulation(const State& s, Size depth) {
 			error = next_error;
 	}
 	catch (DistributionException e) {
-		/* reached terminal state.
-		 * sampling throws an exception if all next states have probability 0.
-		 */
+		// reached terminal state.
+		// sampling throws an exception if all next states have probability 0.
 	}
-	return error;
+*/
 }
 
 Action _UCTPlanner::getAction(const State& s) {
+	// (*) initialise
 	Size num_runs = 0;
 	time_t start_time = time_in_milli();
 	time_t time_total = 0;
 
-	while (_s_counts->getValue(s) < _m &&
-          (_run_limit==0 || num_runs<_run_limit) && //0 for limit means unlimited
+	// (*) loop over simulations
+	while ((_run_limit==0 || num_runs<_run_limit) && //0 for limit means unlimited
           (_time_limit==0 || time_total<_time_limit)) {
 
-		Reward error = runSimulation(s);
+		runSimulation(s);
 
 		time_total = time_in_milli()-start_time;
 		num_runs++;
-
-		if (error < _epsilon) {
-//			break;
-		}
 	}
 
-	//always back up the queried state
-	ActionIterator aitr = _mdp->A();
-	_vi_planner->backupState(s, aitr);
-
-	Action a = _qtable->getBestAction(s);
-	return a;
+	// (*) return the best action without bonuses
+	uct::hash_key_type hash_a = _qtable.getBestActionHash((uct::hash_key_type&)(s.getIndex()));
+	ActionIterator aitr = _mdp->A(s);
+	while (aitr->hasNext()) {
+		Action fa = aitr->next();
+		if (fa.getIndex() == hash_a) {
+			return fa;
+		}
+	}
+	assert(!"ERROR: we can not be here, there is no action with selected hash_a");
 }
 
-/**
- * Initialize parameters, as well as created a VI planner using the
- * provided q-table.
- */
-_UCTPlanner::_UCTPlanner(Domain domain, MDP mdp, QTable qtable,
-						   SCountTable s_counts,
-				           Reward gamma, Reward epsilon, Index m,
-				           Probability explore_epsilon, Size max_depth)
-: _domain(domain), _mdp(mdp), _qtable(qtable), _s_counts(s_counts),
-  _gamma(gamma), _epsilon(epsilon), _m(m),
-  _run_limit(0), _time_limit(0),
-  _explore_epsilon(explore_epsilon), _max_depth(max_depth),
-  _vi_planner(new _VIPlanner(mdp, epsilon, gamma, _qtable)) {
-
+_UCTPlanner::_UCTPlanner(Domain domain, MDP mdp, Reward gamma)
+	: _domain(domain), _qtable(domain), _mdp(mdp), _gamma(gamma), _run_limit(0), _time_limit(0) {
 }
 
-/**
- * This constructor initializes flat q-table and count table, as well
- * as sending up the planner parameters.
- */
-_FlatUCTPlanner::_FlatUCTPlanner(Domain domain, MDP mdp,
-					               Reward gamma, Reward epsilon, Index m,
-					               Probability explore_epsilon, Size max_depth)
-: _UCTPlanner(domain, mdp, QTable(new _FQTable(domain, 0)),
-			   SCountTable(new _FStateTable<Index>(domain, 0)),
-               gamma, epsilon, m, explore_epsilon, max_depth) {
-
+_FlatUCTPlanner::_FlatUCTPlanner(Domain domain, MDP mdp, Reward gamma)
+	: _UCTPlanner(domain, mdp, gamma) {
 }
 
 
