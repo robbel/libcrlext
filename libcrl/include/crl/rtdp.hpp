@@ -17,9 +17,12 @@ protected:
 	Domain _domain;
 	MDP _mdp;
 	QTable _qtable;
+	SCountTable _s_counts;
 	
 	Reward _gamma;
 	Reward _epsilon;
+	
+	Index _m;
 	
 	Size _run_limit;
 	time_t _time_limit;
@@ -29,11 +32,11 @@ protected:
 	
 	VIPlanner _vi_planner;
 	
-	void runSimulation(const State& s, StateSet ss, Size depth=0);
+	Reward runSimulation(const State& s, StateSet ss, Size depth=0);
 	
 	
-	_RTDPPlanner(Domain domain, MDP mdp, QTable qtable,
-	             Reward gamma, Reward epsilon,
+	_RTDPPlanner(Domain domain, MDP mdp, QTable qtable, SCountTable s_counts,
+	             Reward gamma, Reward epsilon, Index m,
 	             Probability explore_epsilon, Size max_depth);
 public:
 	virtual ~_RTDPPlanner() { }
@@ -48,7 +51,7 @@ typedef boost::shared_ptr<_RTDPPlanner> RTDPPlanner;
 class _FlatRTDPPlanner : public _RTDPPlanner {
 public:
 	_FlatRTDPPlanner(Domain domain, MDP mdp,
-		             Reward gamma, Reward epsilon,
+		             Reward gamma, Reward epsilon, Index m,
 		             Probability explore_epsilon, Size max_depth);
 };
 

@@ -67,23 +67,24 @@ Agent crl::getCRLAgent(Domain domain) {
 		sprintf(params, "planner=ps gamma=%f epsilon=%f", gamma, epsilon);
 		PSPlanner ps_planner = PSPlanner(new _FactoredPSPlanner(domain, mdp, epsilon, gamma));
 		StateIterator sitr = mdp->S();
-		ps_planner->insert(sitr);
+		ps_planner->insertThreshold(sitr, 0.1);
 		int c = ps_planner->sweep();
 		cerr << "planned in " << c << " updates" << endl;
 		planner = ps_planner;
 	}
 	if (args[0] == "rtdp") {
-		if (args.size() != 5) {
-			cerr << "rtdp parameters: <gamma> <epsilon> <runlimit> <timelimit>" << endl;
+		if (args.size() != 6) {
+			cerr << "rtdp parameters: <gamma> <epsilon> <m> <runlimit> <timelimit>" << endl;
 			exit(1);	
 		}
 		float gamma = atof(args[1].c_str());
 		Reward epsilon = atof(args[2].c_str());
-		int run_limit = atoi(args[3].c_str());
-		int time_limit = atoi(args[4].c_str());
-		sprintf(params, "planner=rtdp gamma=%f epsilon=%f runlimit=%d timelimit=%d", gamma, epsilon, run_limit, time_limit);
+		int m = atoi(args[3].c_str());
+		int run_limit = atoi(args[4].c_str());
+		int time_limit = atoi(args[5].c_str());
+		sprintf(params, "planner=rtdp gamma=%f epsilon=%f m=%d runlimit=%d timelimit=%d", gamma, epsilon, m, run_limit, time_limit);
 		
-		RTDPPlanner rtdp_planner(new _FlatRTDPPlanner(domain, mdp, gamma, epsilon, .1, 50));
+		RTDPPlanner rtdp_planner(new _FlatRTDPPlanner(domain, mdp, gamma, epsilon, m, .1, 50));
 		rtdp_planner->setRunLimit(run_limit);
 		rtdp_planner->setTimeLimit(time_limit);
 		planner = rtdp_planner;
@@ -154,7 +155,6 @@ int main(int argc, char** argv) {
 		SlipMaze _slip_maze = SlipMaze(new _SlipMaze(m, cfg));
 		mdp = _slip_maze->getMDP();
 		domain = _slip_maze->getDomain();
-		cerr << "slip maze" << endl;
 	}
 	else {
 		FlagMaze _flag_maze = FlagMaze(new _FlagMaze(m, cfg));

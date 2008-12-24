@@ -73,6 +73,7 @@ public:
 	void insert(State s, Reward priority);
 	void insert(State s);
 	void insert(StateIterator& sitr);
+	void insertThreshold(StateIterator& sitr, Reward theshold);
 	virtual Action getAction(const State& s);
 };
 typedef boost::shared_ptr<_PSPlanner> PSPlanner;

@@ -31,7 +31,8 @@
 #include "crl/common.hpp"
 
 namespace crl {
-
+/**
+ */
 class _Observation {
 protected:
 	State _s;
@@ -50,6 +51,8 @@ inline std::ostream& operator<<(std::ostream& os, const Observation& o) {
 	return os;
 }
 
+/**
+ */
 class _MDP {
 public:
 	virtual ~_MDP() { }
@@ -71,6 +74,8 @@ public:
 };
 typedef boost::shared_ptr<_MDP> MDP;
 
+/**
+ */
 class _QTable {
 public:
 	virtual ~_QTable() { }
@@ -95,6 +100,8 @@ public:
 };
 typedef boost::shared_ptr<_Planner> Planner;
 
+/**
+ */
 class _Learner {
 public:
 	virtual ~_Learner() { }
@@ -105,6 +112,8 @@ public:
 };
 typedef boost::shared_ptr<_Learner> Learner; 
 
+/**
+ */
 class _Heuristic {
 public:
 	virtual ~_Heuristic() { }
@@ -113,6 +122,8 @@ public:
 };
 typedef boost::shared_ptr<_Heuristic> Heuristic;
 
+/**
+ */
 class _FlatHeuristic : public _Heuristic {
 protected:
 	Reward _v;
@@ -150,6 +161,8 @@ public:
 };
 typedef boost::shared_ptr<_Agent> Agent;
 
+/**
+ */
 class _Environment {
 public:
 	virtual ~_Environment() { }
@@ -160,6 +173,8 @@ public:
 };
 typedef boost::shared_ptr<_Environment> Environment;
 
+/**
+ */
 class _Experiment {
 protected:
 	Environment _environment;
@@ -171,6 +186,8 @@ public:
 };
 typedef boost::shared_ptr<_Experiment> Experiment;
 
+/**
+ */
 class _MDPLearner : public _MDP, public _Learner {
 public:
 	virtual ~_MDPLearner() { }

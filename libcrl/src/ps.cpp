@@ -127,6 +127,19 @@ void _PSPlanner::insert(StateIterator& sitr) {
 		insert(sitr->next());	
 	}
 }
+void _PSPlanner::insertThreshold(StateIterator& sitr, Reward threshold) {
+	ActionIterator aitr = _mdp->A();
+	while (sitr->hasNext()) {
+		State s = sitr->next();
+		aitr->reset();
+		while (aitr->hasNext()) {
+			Action a = aitr->next();
+			Reward r = _mdp->R(s, a);
+			if (fabs(r)>threshold)
+				_pqueue->insert(s, r);
+		}
+	}
+}
 
 Action _PSPlanner::getAction(const State& s) {
 	sweep();
