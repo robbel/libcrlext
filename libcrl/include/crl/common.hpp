@@ -146,7 +146,7 @@ public:
 		Size ret = _index / (*_components)[index];
 		if (index < size()-1) {
 			//if it isn't the last feature, use mod to chop off the others
-			ret = ret%(*_components)[index+1];
+			ret = ret%((*_ranges)[index].getSpan()+1);
 		}
 		//offset the factor with the minimum
 		return (Factor)ret+(*_ranges)[index].getMin();

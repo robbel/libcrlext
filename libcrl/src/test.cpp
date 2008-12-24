@@ -216,24 +216,30 @@ void testExperiment(Domain domain) {
 
 void testState() {
 	Domain domain(new _Domain());
-	domain->addStateFactor(0, 4);
-	domain->addStateFactor(0, 4);
-	domain->addStateFactor(0, 4);
-	domain->addActionFactor(0, 4);
-	domain->setRewardRange(-1, 0);
-	time_t start_time = time_in_milli();
-	for (Size i=0; i<1000000; i++) {
-		State s(domain);
-		State p = s;
-	}
-	time_t mid_time = time_in_milli();
-	long l2;
-	for (Size i=0; i<1000000; i++) {
-		long l1 = i;
-		l2 = l1;
-	}
-
-	cout << mid_time-start_time << endl << time_in_milli()-mid_time << endl;
+	domain->addStateFactor(0, 1);
+	domain->addStateFactor(0, 3);
+	domain->addStateFactor(0, 3);
+	domain->addStateFactor(0, 3);
+	domain->addStateFactor(0, 3);
+	domain->addStateFactor(0, 1);
+	domain->addStateFactor(0, 1);
+	domain->setRewardRange(-1, 1);
+	
+	const vector<Size>& v = domain->getStateIndexComponents();
+	for (Size i=0; i<v.size(); i++)
+		cout << v[i] << " ";
+	cout << endl;
+		
+	State s(domain,0);
+	cout << s << " - " << s.getIndex() << endl;
+	s.setFactor(1,1);
+	cout << s << " - " << s.getIndex() << endl;
+	s.setFactor(2,1);
+	cout << s << " - " << s.getIndex() << endl;
+	s.setFactor(3,2);
+	cout << s << " - " << s.getIndex() << endl;
+	s.setFactor(4,2);
+	cout << s << " - " << s.getIndex() << endl;
 }
 
 void testHash(Domain domain) {
@@ -262,8 +268,9 @@ int main(int argc, char** argv) {
 		domain->addStateFactor(0, 299);
 		domain->addActionFactor(0, 4);
 		domain->setRewardRange(-1, 0);
-		MDP mdp = makeMDP(domain);
-		testVI(mdp, domain);
+//		MDP mdp = makeMDP(domain);
+		testState();
+//		testVI(mdp, domain);
 //		testPS(mdp, domain);
 		//mdp->printXML(cout);
 //		testState();

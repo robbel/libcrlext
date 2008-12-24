@@ -90,6 +90,7 @@ Action _RTDPPlanner::getAction(const State& s) {
 	_vi_planner->backupState(s, aitr);
 	
 	Action a = _qtable->getBestAction(s);
+//	cerr << s << " -> " << a << endl;
 	return a;
 }
 
@@ -104,7 +105,7 @@ _RTDPPlanner::_RTDPPlanner(Domain domain, MDP mdp, QTable qtable,
   _gamma(gamma), _epsilon(epsilon), _m(m),
   _run_limit(0), _time_limit(0), _max_depth(max_depth),
   _vi_planner(new _VIPlanner(mdp, epsilon, gamma, _qtable)) {
-	_vi_planner->plan();
+  	
 }
 
 /**
