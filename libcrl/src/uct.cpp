@@ -1,3 +1,119 @@
+#include <iostream>
+#include "cpputil.hpp"
+#include "crl/uct.hpp"
+
+using namespace std;
+using namespace cpputil;
+using namespace crl;
+
+namespace uct{
+
+// -------------------------------------------------------------------------------
+// Data structures for the Q-table (tree).
+
+
+}
+
+// -------------------------------------------------------------------------------
+// The UCT planner
+
+Reward _UCTPlanner::runSimulation(const State& s, Size depth) {
+	if (depth >= _max_depth)
+		return 0;
+
+	//if we've simulated this state too often, terminate the roll-out
+	Index count = _s_counts->getValue(s);
+	if (count >= _m)
+		return 0;
+
+	//select an epsilon greedy action
+	Action a = _qtable->getBestAction(s);
+	if (randDouble() < _explore_epsilon) {
+		a = Action(_domain, random()%_domain->getNumActions());
+	}
+
+	Reward error = 0;
+
+	try {
+		//sample from the MDP
+		State n = _mdp->T(s, a)->sample();
+
+		Reward next_error = runSimulation(n, depth+1);
+
+		//use the VI planner to perform a backup on s
+		ActionIterator aitr = _mdp->A();
+		error = _vi_planner->backupState(s, aitr);
+		//update the simulation count for this state
+		_s_counts->setValue(s, count+1);
+
+		if (next_error > error)
+			error = next_error;
+	}
+	catch (DistributionException e) {
+		/* reached terminal state.
+		 * sampling throws an exception if all next states have probability 0.
+		 */
+	}
+	return error;
+}
+
+Action _UCTPlanner::getAction(const State& s) {
+	Size num_runs = 0;
+	time_t start_time = time_in_milli();
+	time_t time_total = 0;
+
+	while (_s_counts->getValue(s) < _m &&
+          (_run_limit==0 || num_runs<_run_limit) && //0 for limit means unlimited
+          (_time_limit==0 || time_total<_time_limit)) {
+
+		Reward error = runSimulation(s);
+
+		time_total = time_in_milli()-start_time;
+		num_runs++;
+
+		if (error < _epsilon) {
+//			break;
+		}
+	}
+
+	//always back up the queried state
+	ActionIterator aitr = _mdp->A();
+	_vi_planner->backupState(s, aitr);
+
+	Action a = _qtable->getBestAction(s);
+	return a;
+}
+
+/**
+ * Initialize parameters, as well as created a VI planner using the
+ * provided q-table.
+ */
+_UCTPlanner::_UCTPlanner(Domain domain, MDP mdp, QTable qtable,
+						   SCountTable s_counts,
+				           Reward gamma, Reward epsilon, Index m,
+				           Probability explore_epsilon, Size max_depth)
+: _domain(domain), _mdp(mdp), _qtable(qtable), _s_counts(s_counts),
+  _gamma(gamma), _epsilon(epsilon), _m(m),
+  _run_limit(0), _time_limit(0),
+  _explore_epsilon(explore_epsilon), _max_depth(max_depth),
+  _vi_planner(new _VIPlanner(mdp, epsilon, gamma, _qtable)) {
+
+}
+
+/**
+ * This constructor initializes flat q-table and count table, as well
+ * as sending up the planner parameters.
+ */
+_FlatUCTPlanner::_FlatUCTPlanner(Domain domain, MDP mdp,
+					               Reward gamma, Reward epsilon, Index m,
+					               Probability explore_epsilon, Size max_depth)
+: _UCTPlanner(domain, mdp, QTable(new _FQTable(domain, 0)),
+			   SCountTable(new _FStateTable<Index>(domain, 0)),
+               gamma, epsilon, m, explore_epsilon, max_depth) {
+
+}
+
+
 /*
     Copyright 2008 Rutgers University
     Copyright 2008 John Asmuth
@@ -17,7 +133,9 @@
     You should have received a copy of the GNU Lesser General Public License
     along with CRL.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
+/*
+
 #include <math.h>
 #include <iostream>
 #include <cpputil.hpp>
@@ -31,7 +149,7 @@ _UCTPlanner::_UCTPlanner(const MDP& mdp, float confidence_coeff, float gamma)
 : _mdp(mdp), _confidence_coeff(confidence_coeff), _gamma(gamma),
   _time_limit(-1), _run_limit(10), _learning_rate(0),
   _frequent_states(new _StateSet()) {
-  	
+
 }
 
 Reward _UCTPlanner::getConfidence(const State& s, const Action& a, Size depth) {
@@ -46,11 +164,11 @@ Action _UCTPlanner::selectAction(ActionIterator& aitr, const State& s, Size dept
 	Reward selected_qc_val = -1*std::numeric_limits<float>::max();
 	while (aitr->hasNext()) {
 		Action a = aitr->next();
-		
+
 		Reward q = getQ(s, a, depth);
 		Reward c = getConfidence(s, a, depth);
 		Reward qc_val = q+c;
-		
+
 		if (qc_val>selected_qc_val) {
 			selected_qc_val = qc_val;
 			selected_action = a;
@@ -64,12 +182,12 @@ Reward _UCTPlanner::runSimulation(const State& s, Size depth) {
 		cerr << "terminal depth = " << depth << endl;
 		return 0;
 	}
-	
+
 	ActionIterator aitr = _mdp->A(s);
 	if (!aitr->hasNext()) {
 		return 0;
 	}
-		
+
 	Action selected_action = selectAction(aitr, s, depth);
 	incrVisits(s, selected_action, depth);
 
@@ -86,12 +204,12 @@ Reward _UCTPlanner::runSimulation(const State& s, Size depth) {
 
 	Reward tail_val = runSimulation(n, depth+1);
 	Reward q = r + _gamma*tail_val;
-	
+
 	if (s_visits >= frequency_threshold) {
 		Reward error = 0;
 		if (_learning_rate == 0) {
-			error = fabs(getQ(s, selected_action, depth)-q); 
-			avgQ(s, selected_action, q, depth);	
+			error = fabs(getQ(s, selected_action, depth)-q);
+			avgQ(s, selected_action, q, depth);
 		}
 		else {
 			Reward old_q = getQ(s, selected_action, depth);
@@ -99,7 +217,7 @@ Reward _UCTPlanner::runSimulation(const State& s, Size depth) {
 			setQ(s, selected_action, new_q, depth);
 			error = fabs(old_q-new_q);
 		}
-		
+
 		_ps_planner->insert(s, error);
 	}
 
@@ -115,7 +233,7 @@ void _UCTPlanner::avgQ(const State& s, const Action& a, Reward q, Size depth) {
 Action _UCTPlanner::getAction(const State& s) {
 	int runs = 0;
 	time_t start_time = time_in_milli();
-	time_t time_total = 0; 
+	time_t time_total = 0;
 	while ((_run_limit==-1 || runs<_run_limit) &&
 	       (_time_limit==-1 || time_total<_time_limit)) {
 		runSimulation(s);
@@ -129,7 +247,7 @@ Action _UCTPlanner::getAction(const State& s) {
 		_ps_planner->sweep();
 //		cerr << time_in_milli() - vi_start_time << endl;
 	}
-	
+
 	Action a = getQTable()->getBestAction(s);
 	cerr << s << " -> " << a << endl;
 	return a;
@@ -211,9 +329,10 @@ void _FactoredUCTPlanner::incrVisits(const State& s, const Action& a, Size depth
 	if (sv.size() <= depth)
 		sv.resize(depth+1);
 	sv[depth] = getVisits(s, depth)+1;
-	
+
 	vector<Size>& sav = _sa_visits.getValue(s, a);
 	if (sav.size() <= depth)
 		sav.resize(depth+1);
 	sav[depth] = getVisits(s, a, depth)+1;
 }
+*/
