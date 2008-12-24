@@ -54,9 +54,6 @@ public:
 	virtual void setValue(const RLType& r, T t) {
 		_values[r.getIndex()] = t;
 	}
-	virtual void fill(T t) {
-		_values = std::vector<T>(_size, t);
-	}
 };
 
 /**
@@ -86,9 +83,6 @@ public:
 	virtual ActionIterator iterator() {
 		ActionIterator itr(new _ActionSetIterator(_set_actions));
 		return itr;
-	}
-	virtual void fill(T t) {
-		_FlatTable<T>::fill(t);
 	}
 };
 
@@ -120,9 +114,6 @@ public:
 		StateIterator itr(new _StateSetIterator(_set_states));
 		return itr;
 	}
-	virtual void fill(T t) {
-		_FlatTable<T>::fill(t);
-	}
 };
 
 template <class T>
@@ -146,10 +137,6 @@ public:
 	}
 	virtual void setValue(const State& s, const Action& a, T t) {
 		_sa_values[s.getIndex()][a.getIndex()] = t;
-	}
-	virtual void fill(T t) {
-		_sa_values = std::vector<std::vector<T> >(_domain->getNumStates(),
-		               std::vector<T>(_domain->getNumActions(), t));
 	}
 };
 

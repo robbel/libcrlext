@@ -107,9 +107,6 @@ public:
 			a_v = std::vector<T>(_domain->getNumActions(), _initial);
 		a_v[a.getIndex()] = t;
 	}
-	virtual void fill(T t) {
-		//not implemented
-	}
 };
 
 /**
