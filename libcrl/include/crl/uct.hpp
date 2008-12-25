@@ -25,7 +25,7 @@
 #include <boost/cstdint.hpp>
 #include <cassert>
 #include <sys/time.h>
-#if defined(__linux__) || defined(__CYGWIN__)
+#if defined(__MACH__) || defined(__linux__) || defined(__CYGWIN__)
 #include <ext/hash_map>
 #define HASH_MAP hash_map
 #endif
@@ -35,7 +35,7 @@
 #include "crl/hdomain.hpp"
 
 namespace crl {
-#if defined(__linux__) || defined(__CYGWIN__)
+#if defined(__MACH__) || defined(__linux__) || defined(__CYGWIN__)
 using namespace __gnu_cxx;
 #endif
 
@@ -108,7 +108,7 @@ protected:
 public:
 	_UCTQTable(const Domain& domain) {}
 	_UCTQTable(const Domain& domain, Reward initial) {}
-
+        virtual ~_UCTQTable() {}
 	/// Add state action pair (s,a) to the three (to the hash map).
 	virtual void Add2Tree(hash_key_type hash_s, hash_key_type hash_a);
 
