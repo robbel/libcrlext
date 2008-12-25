@@ -205,6 +205,9 @@ protected:
 	/// Max value of reward (to be used to find the scaling factor C for UCT exploration bonus.
 	Reward _rmax;
 
+	/// maximum number of steps for single trajectory (0, means unlimited trajectory until the goal is reached)
+	int _maxSteps;
+
 	/// Performs one, complete UCT simulation.
 	void runSimulation(const State& s);
 

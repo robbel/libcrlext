@@ -61,28 +61,7 @@ hash_key_type _UCTQTable::getBestActionHash(hash_key_type& hash_s) {
 // The UCT planner
 
 void _UCTPlanner::runSimulation(const State& s) {
-/*
-	try {
-		//sample from the MDP
-		State n = _mdp->T(s, a)->sample();
-
-		Reward next_error = runSimulation(n, depth+1);
-
-		//use the VI planner to perform a backup on s
-		ActionIterator aitr = _mdp->A();
-		error = _vi_planner->backupState(s, aitr);
-		//update the simulation count for this state
-		_s_counts->setValue(s, count+1);
-
-		if (next_error > error)
-			error = next_error;
-	}
-	catch (DistributionException e) {
-		// reached terminal state.
-		// sampling throws an exception if all next states have probability 0.
-	}
-*/
-/*	CTraceList<CTraceData> trace; // trace
+	CTraceList trace; // trace
 	int steps=0;
 	Reward start_metric = 0;	// Reward metric when we start (we start with 0 here and add up everything encountered on the trace  during sampling).
 	Reward current_metric = 0;	// Reward metric when we start (we start with 0 here and add up everything encountered on the trace  during sampling).
@@ -92,41 +71,46 @@ void _UCTPlanner::runSimulation(const State& s) {
 	bool goal_is_reached = false;
 	do{
 		hash_key_type current_state_hash = current_state.getIndex();
-		ActionIterator curr_actions = _mdp->A(current_state);
+		ActionIterator curr_actions_iter = _mdp->A(current_state);
+		ActionList curr_actions(curr_actions_iter);
 		hash_key_type selected_action;
 		Action action;
-		if (!_qtable->inTree(current_state_hash)) { // If not in the tree just pick up one action heuristically.
+		if (!_qtable.inTree(current_state_hash)) { // If not in the tree just pick up one action heuristically.
 			action = GetHuristicAction(curr_actions);
 			selected_action = action.getIndex();
 		} else {
-			Size an = iterator_size(curr_actions);
+			size_t an = curr_actions.size();
 			vector<hash_key_type> temp_hashes;
 			temp_hashes.resize(an);
-			Size ai=0;
-			actions->reset();
-			while(curr_actions->hasNext()){
-				Action& action = curr_actions->next();
-				temp_hashes[ai] = action.getIndex();
-				ai++;
+			for(size_t ai=0; ai<an; ai++){
+				temp_hashes[ai] = curr_actions[ai].getIndex();
 			}
 			action = GetUCTAction(current_state_hash , curr_actions, temp_hashes, selected_action);
 		}
 
-		Reward step_reward = m_game->action(action, goal_is_reached);
+		State new_state;
+		try{
+			new_state = _mdp->T(current_state,action)->sample();
+		}
+		catch (DistributionException e) {
+			// sampling throws an exception if all next states have probability 0.
+			goal_is_reached = true;
+		}
+		Reward step_reward = _mdp->R(current_state,action);
 
-		hash_key_type new_state_hash = m_game->state_curr_hash();
+		hash_key_type new_state_hash = new_state.getIndex();
 		if (!goal_is_reached) {
-			trace.push_back( CTraceData(current_state_hash, selected_action) );
+			trace.push_back( CTraceData(current_state_hash, selected_action, step_reward) );
 		}
 
 		Reward new_metric = current_metric + step_reward;
 		current_metric = new_metric;
 		if (_fullTree && !goal_is_reached) {
 			// Add immediately so it can influence exploration within this episode.
-			Add2Tree(current_state_hash, selected_action);
+			_qtable.Add2Tree(current_state_hash, selected_action);
 			UpdateModel(current_state_hash, selected_action, new_state_hash, step_reward);
 		}
-	}while(steps++<m_nSteps && !goal_is_reached);
+	}while( (steps++ < _maxSteps || _maxSteps == 0) && !goal_is_reached);
 
 	Reward cumulative_reward = current_metric - start_metric; // Cumulative reward.
 	if (!goal_is_reached) {
@@ -134,7 +118,7 @@ void _UCTPlanner::runSimulation(const State& s) {
 		cumulative_reward += -100; // if the steps limit exceeded then penalise this trajectory.
 	}
 
-	DoBackups(trace, cumulative_reward);*/
+	DoBackups(trace, cumulative_reward);
 }
 
 Action _UCTPlanner::GetUCTAction(hash_key_type state_hash, ActionList& actions, vector<hash_key_type>& hash_list, hash_key_type& hash_a, bool explore) {
@@ -221,7 +205,11 @@ Action _UCTPlanner::getAction(const State& s) {
 		ClearTree();
 	}
 	ActionIterator aitr = _mdp->A(s);
-	// TODO: if there is only one action, return this action (no planning needed)!!!
+	ActionList alist(aitr);
+	assert(!alist.empty() && "there are no more actions in current state");
+	if (alist.size() == 1) {
+		return alist.front(); // do not plan if there is only one action available.
+	}
 
 	// (*) loop over simulations
 	while ((_run_limit==0 || num_runs<_run_limit) && //0 for limit means unlimited
@@ -301,6 +289,7 @@ _UCTPlanner::_UCTPlanner(Domain domain, MDP mdp, Reward gamma)
 	_fullTree = true;
 	_reward_type = 1;
 	_rmax = 100; // TODO: we need to be able to get this information from _mdp
+	_maxSteps = 0;
 }
 
 _FlatUCTPlanner::_FlatUCTPlanner(Domain domain, MDP mdp, Reward gamma)
