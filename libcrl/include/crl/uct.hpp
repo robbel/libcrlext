@@ -34,8 +34,7 @@
 #include "crl/fdomain.hpp"
 #include "crl/hdomain.hpp"
 
-namespace uct {
-using namespace crl;
+namespace crl {
 #if defined(__linux__) || defined(__CYGWIN__)
 using namespace __gnu_cxx;
 #endif
@@ -125,14 +124,41 @@ public:
 };
 typedef boost::shared_ptr<_UCTQTable> UCTQTable;
 
-}
+/* ====================================================================== */
+/* Trace data structure for storing the trace */
 
-namespace crl {
+/// What we store along the trace.
+struct CTraceData{
+	CTraceData(hash_key_type hash_s_, hash_key_type hash_a_, Reward reward_): hash_s(hash_s_), hash_a(hash_a_), reward(reward_){}
+	CTraceData& operator=(const CTraceData& entry){
+		hash_s = entry.hash_s;
+		hash_a = entry.hash_a;
+		reward = entry.reward;
+		return *this;
+	}
+	/// hash of this state
+	hash_key_type hash_s;
+	/// hash of the action
+	hash_key_type hash_a;
+	/// reward obtained in this transition
+	Reward reward;
+};
+struct CTraceList: public vector<CTraceData>{};
 
 
 // -------------------------------------------------------------------------------
 // The UCT planner
 
+/// typedef vector<Action> ActionList;
+struct ActionList: public vector<Action>{
+	/// Intialise this object with ActionIterator data.
+	ActionList(ActionIterator& actions){
+		actions->reset();
+		while (actions->hasNext()) {
+			this->push_back(actions->next());
+		}
+	}
+};
 
 /// The UCT planner.
 class _UCTPlanner : public _Planner {
@@ -147,11 +173,13 @@ public:
 	virtual Action getAction(const State& s);
 
 protected:
+	_UCTPlanner(Domain domain, MDP mdp, Reward gamma);
+
 	/// The domain describes what valid states and actions are.
 	Domain _domain;
 
 	/// UCT Q-table
-	uct::_UCTQTable _qtable;
+	_UCTQTable _qtable;
 
 	/// The MDP to plan with
 	MDP _mdp;
@@ -168,6 +196,15 @@ protected:
 	/// when true, there is no reuse of the qtable.
 	bool _clear_tree;
 
+	/// If true than the full tree is created for each state visited during sampling.
+	bool _fullTree;
+
+	/// 0 - the final game reward, 1 - the sum of step rewards from a given state.
+	int _reward_type;
+
+	/// Max value of reward (to be used to find the scaling factor C for UCT exploration bonus.
+	Reward _rmax;
+
 	/// Performs one, complete UCT simulation.
 	void runSimulation(const State& s);
 
@@ -175,8 +212,26 @@ protected:
 	virtual void ClearTree() {
 		_qtable.clear();
 	}
+	/// @return an action heuristically
+	/// @return returns an action heuristically (in this implementation randomly selected).
+	Action GetHuristicAction(ActionList& actions) const {
+		return actions[size_t(  (double(rand())/(double(RAND_MAX)+double(1.0)))  *  double(actions.size())  )];
+	}
 
-	_UCTPlanner(Domain domain, MDP mdp, Reward gamma);
+	/// Update counter N and Ni.
+	/// Parameters like V or Wi are not updated here (DoBackups does updates of those parameters).
+	virtual void UpdateModel(hash_key_type hash_s, hash_key_type hash_a, hash_key_type hash_sprime, double reward);
+
+	/// Update Wi for state in the trajectory.
+	virtual void DoBackups(CTraceList& trace, double cumulative_reward);
+
+	/// @return action
+	/// @param state_hash - the hash code of the state for which we want to have an action.
+	/// @param actions - the list of actions
+	/// @param hash_list - hashes of actions in state state_hash.
+	/// @param[out] hash_a - the hash code of the action which is returned by this function
+	/// @param explore - if true do exploration, false exploitation
+	virtual Action GetUCTAction(hash_key_type state_hash, ActionList& actions, vector<hash_key_type>& hash_list, hash_key_type& hash_a, bool explore=true);
 };
 
 typedef boost::shared_ptr<_UCTPlanner> UCTPlanner;
@@ -190,7 +245,9 @@ public:
 	_FlatUCTPlanner(Domain domain, MDP mdp, Reward gamma);
 };
 
-}
+Size iterator_size(ActionIterator& actions);
+
+} // crl
 
 
 /*

@@ -1,3 +1,4 @@
+#include <cmath>
 #include <iostream>
 #include "cpputil.hpp"
 #include "crl/uct.hpp"
@@ -6,7 +7,7 @@ using namespace std;
 using namespace cpputil;
 using namespace crl;
 
-namespace uct{
+#define LOGUCT 0
 
 // -------------------------------------------------------------------------------
 // Data structures for the Q-table (tree).
@@ -56,8 +57,6 @@ hash_key_type _UCTQTable::getBestActionHash(hash_key_type& hash_s) {
 	return max_hash_a;
 }
 
-}
-
 // -------------------------------------------------------------------------------
 // The UCT planner
 
@@ -83,6 +82,134 @@ void _UCTPlanner::runSimulation(const State& s) {
 		// sampling throws an exception if all next states have probability 0.
 	}
 */
+/*	CTraceList<CTraceData> trace; // trace
+	int steps=0;
+	Reward start_metric = 0;	// Reward metric when we start (we start with 0 here and add up everything encountered on the trace  during sampling).
+	Reward current_metric = 0;	// Reward metric when we start (we start with 0 here and add up everything encountered on the trace  during sampling).
+	const State& current_state = s;
+
+	// Sampling one trajectory until the goal state is reached.
+	bool goal_is_reached = false;
+	do{
+		hash_key_type current_state_hash = current_state.getIndex();
+		ActionIterator curr_actions = _mdp->A(current_state);
+		hash_key_type selected_action;
+		Action action;
+		if (!_qtable->inTree(current_state_hash)) { // If not in the tree just pick up one action heuristically.
+			action = GetHuristicAction(curr_actions);
+			selected_action = action.getIndex();
+		} else {
+			Size an = iterator_size(curr_actions);
+			vector<hash_key_type> temp_hashes;
+			temp_hashes.resize(an);
+			Size ai=0;
+			actions->reset();
+			while(curr_actions->hasNext()){
+				Action& action = curr_actions->next();
+				temp_hashes[ai] = action.getIndex();
+				ai++;
+			}
+			action = GetUCTAction(current_state_hash , curr_actions, temp_hashes, selected_action);
+		}
+
+		Reward step_reward = m_game->action(action, goal_is_reached);
+
+		hash_key_type new_state_hash = m_game->state_curr_hash();
+		if (!goal_is_reached) {
+			trace.push_back( CTraceData(current_state_hash, selected_action) );
+		}
+
+		Reward new_metric = current_metric + step_reward;
+		current_metric = new_metric;
+		if (_fullTree && !goal_is_reached) {
+			// Add immediately so it can influence exploration within this episode.
+			Add2Tree(current_state_hash, selected_action);
+			UpdateModel(current_state_hash, selected_action, new_state_hash, step_reward);
+		}
+	}while(steps++<m_nSteps && !goal_is_reached);
+
+	Reward cumulative_reward = current_metric - start_metric; // Cumulative reward.
+	if (!goal_is_reached) {
+		cout << "the goal state has not been reached, penalising the trace !!!" << endl;
+		cumulative_reward += -100; // if the steps limit exceeded then penalise this trajectory.
+	}
+
+	DoBackups(trace, cumulative_reward);*/
+}
+
+Action _UCTPlanner::GetUCTAction(hash_key_type state_hash, ActionList& actions, vector<hash_key_type>& hash_list, hash_key_type& hash_a, bool explore) {
+	assert(actions.size() == hash_list.size());
+	if (!_qtable.inTree(state_hash)) { // State not in the tree, choose random action.
+		size_t i = size_t(rand()/(RAND_MAX + 1.0)*actions.size());
+		hash_a = hash_list[i];
+		return actions[i];
+	}
+	_CStateInfoHash& state_info = _qtable[state_hash]; // we are sure here that state exists in the map.
+	double logN = log(double(state_info.N));
+	size_t an = hash_list.size();
+	multimap<double,hash_key_type> pq; // pq of pairs <Vi, action's id in the list>
+	for (size_t t=0; t<an; t++){
+		if (!state_info.inTree(hash_list[t])) {
+			if (explore) {
+				pq.insert(pair<double,hash_key_type>(INT_MAX, hash_list[t]));	// not attempted actions have very high valus.
+			}
+		}else{
+			_CActionInfoHash& action_info = state_info[hash_list[t]]; // for sure action t is in the tree
+			if (action_info.Ni>0) {
+				double Vi;
+				Vi = double(action_info.Wi) / (double)action_info.Ni;
+				if (explore) { // we do not add interval to during exploitation for the final action choice.
+					double conf_interv = (2 * _rmax) * sqrt(logN / double(action_info.Ni)); // C=2*Rmax
+					Vi += conf_interv;
+				}
+				pq.insert(pair<double,hash_key_type>(Vi,hash_list[t]));
+			}else{
+				if (explore) {
+					pq.insert(pair<double,hash_key_type>(INT_MAX,hash_list[t]));
+				}
+			}
+		}
+	}
+	if (LOGUCT > 0) {// || state_hash==575785) {
+		cout << "making decision:" << endl;
+		for (multimap<double,hash_key_type>::const_iterator citer=pq.begin(); citer!=pq.end(); citer++) {
+			int j;
+			for (int i=0; i<int(actions.size()); i++) {
+				if (actions[i].getIndex() == (*citer).second) {
+					j=i;
+					break;
+				}
+			}
+			cout << (*citer).first << " " << (*citer).second << " "<< actions[j] << "," << actions[j] << endl;
+		}
+		cout << endl;
+	}
+	multimap<double,hash_key_type>::iterator last = pq.end(); last--;
+	double max = last->first;
+	double n = pq.count(max); // how many elements in pq is equal to the max
+	if(n==1){ // only one max
+		int a_index = -1;
+		for(int ah = 0; ah < int(hash_list.size()); ah++) {
+			if (hash_list[ah] == last->second) {
+				a_index = ah;
+				break;
+			}
+		}
+		hash_a = hash_list[a_index];
+		return actions[a_index];
+	}
+	multimap<double,hash_key_type>::iterator itlow	=	pq.lower_bound(max);
+	//multimap<int,int>::iterator itup	=	pq.upper_bound (max);
+	int i = int( double(rand()) / (double(RAND_MAX) + 1.0) * n );
+	int a_index=-1;
+	for (int t=0; t<n; t++, itlow++){
+		if (t==i){
+			a_index = t;
+			hash_a = itlow->second;
+			break;
+		}
+	}
+	return actions[a_index];
 }
 
 Action _UCTPlanner::getAction(const State& s) {
@@ -107,7 +234,7 @@ Action _UCTPlanner::getAction(const State& s) {
 	}
 
 	// (*) return the best action without bonuses
-	uct::hash_key_type hash_a = _qtable.getBestActionHash((uct::hash_key_type&)(s.getIndex()));
+	hash_key_type hash_a = _qtable.getBestActionHash((hash_key_type&)(s.getIndex()));
 	aitr->reset();
 	while (aitr->hasNext()) {
 		Action fa = aitr->next();
@@ -118,13 +245,78 @@ Action _UCTPlanner::getAction(const State& s) {
 	assert(!"ERROR: we cannot be here, there is no action with selected hash_a");
 }
 
+void _UCTPlanner::UpdateModel(hash_key_type hash_s, hash_key_type hash_a, hash_key_type hash_sprime, double reward){
+	if (_qtable.inTree(hash_s,hash_a)) {
+		_qtable[hash_s].N++;
+		_CActionInfoHash& qsa = _qtable[hash_s][hash_a];
+		qsa.Ni++;
+	}
+}
+
+void _UCTPlanner::DoBackups(CTraceList& trace, double cumulative_reward) {
+	// (*)
+	if (_reward_type == 1) { // compute MC reward from each state
+		for( int i = int(trace.size() - 2); i >= 0; i-- ) {
+			trace[i].reward += trace[i+1].reward;
+		}
+	}
+
+	// (*)
+	if (_fullTree) { // here the entire trace is in the Q-table
+		for( int i = 0; i < int(trace.size()); i++ ) { /// The goal state is not in the trace.
+			_CActionInfoHash &qsa = _qtable[trace[i].hash_s][trace[i].hash_a];
+			if (_reward_type == 0) {
+				qsa.Wi += cumulative_reward;	// final game reward
+			} else {
+				qsa.Wi += trace[i].reward;	// cost to go reward
+			}
+		}
+	} else { // extending the tree by one state form the trace.
+		for( int i = 0; i < int(trace.size()); i++ ) { /// The goal state is not in the trace.
+			if ( _qtable.inTree(trace[i].hash_s, trace[i].hash_a) ) {
+				_CActionInfoHash &qsa = _qtable[trace[i].hash_s][trace[i].hash_a];
+				if (_reward_type == 0) {
+					qsa.Wi += cumulative_reward;	// final game reward
+				} else {
+					qsa.Wi += trace[i].reward;	// cost to go reward
+				}
+			} else { // add one and break
+				_qtable.Add2Tree(trace[i].hash_s, trace[i].hash_a);
+				UpdateModel(trace[i].hash_s, trace[i].hash_a, 0, trace[i].reward);
+				_CActionInfoHash &action_info = _qtable[trace[i].hash_s][trace[i].hash_a];
+				if (_reward_type == 0) {
+					action_info.Wi = cumulative_reward;
+				} else {
+					action_info.Wi = trace[i].reward;
+				}
+				return;
+			}
+		}
+	}
+}
+
 _UCTPlanner::_UCTPlanner(Domain domain, MDP mdp, Reward gamma)
 	: _domain(domain), _qtable(domain), _mdp(mdp), _gamma(gamma), _run_limit(0), _time_limit(0) {
+	_clear_tree = false;
+	_fullTree = true;
+	_reward_type = 1;
+	_rmax = 100; // TODO: we need to be able to get this information from _mdp
 }
 
 _FlatUCTPlanner::_FlatUCTPlanner(Domain domain, MDP mdp, Reward gamma)
 	: _UCTPlanner(domain, mdp, gamma) {
 }
+
+Size iterator_size(ActionIterator& actions) {
+	actions->reset();
+	Size n = 0;
+	while (actions->hasNext()) {
+		actions->next();
+		n++;
+	}
+	return n;
+}
+
 
 
 /*
