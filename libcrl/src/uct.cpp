@@ -11,6 +11,50 @@ namespace uct{
 // -------------------------------------------------------------------------------
 // Data structures for the Q-table (tree).
 
+void _UCTQTable::Add2Tree(hash_key_type hash_s, hash_key_type hash_a){
+	if( !inTree(hash_s)) {
+		// After the first access the default constructor will be called.
+		(*this)[hash_s].N = 0; // We do not update anything here (Call UpdateModel).
+	}
+	if ( !inTree(hash_s, hash_a)) {
+		// The same for action entry, after the first call the default object will be created for given key.
+		(*this)[hash_s][hash_a].Ni = 0; // also no data updates
+	}
+}
+
+bool _UCTQTable::inTree(hash_key_type hash_s, hash_key_type hash_a) const {
+	_UCTQTable::const_iterator state = this->find(hash_s);
+	if(state != this->end()){
+		_CStateInfoHash::const_iterator action = state->second.find(hash_a);
+		if(action != state->second.end()){
+			return true;
+		}
+	}
+	return false;
+}
+
+bool _UCTQTable::inTree(hash_key_type hash_s) const {
+	_UCTQTable::const_iterator state = this->find(hash_s);
+	if(state != this->end()){
+		return true;
+	}
+	return false;
+}
+
+hash_key_type _UCTQTable::getBestActionHash(hash_key_type& hash_s) {
+	_CStateInfoHash& state_info = (*this)[hash_s];
+	Reward max = INT_MIN;
+	hash_key_type max_hash_a = 0;
+	assert(!state_info.empty() && "do not call this methods when there is no action of hash_s in the Q-table");
+	for (_CStateInfoHash::const_iterator iter = state_info.begin(); iter != state_info.end(); iter++) { // for all actions
+		 Reward current = iter->second.getValue();
+		 if (current > max) {
+			 max = current;
+			 max_hash_a = iter->first;
+		 }
+	}
+	return max_hash_a;
+}
 
 }
 
@@ -46,6 +90,11 @@ Action _UCTPlanner::getAction(const State& s) {
 	Size num_runs = 0;
 	time_t start_time = time_in_milli();
 	time_t time_total = 0;
+	if (_clear_tree) {
+		ClearTree();
+	}
+	ActionIterator aitr = _mdp->A(s);
+	// TODO: if there is only one action, return this action (no planning needed)!!!
 
 	// (*) loop over simulations
 	while ((_run_limit==0 || num_runs<_run_limit) && //0 for limit means unlimited
@@ -59,14 +108,14 @@ Action _UCTPlanner::getAction(const State& s) {
 
 	// (*) return the best action without bonuses
 	uct::hash_key_type hash_a = _qtable.getBestActionHash((uct::hash_key_type&)(s.getIndex()));
-	ActionIterator aitr = _mdp->A(s);
+	aitr->reset();
 	while (aitr->hasNext()) {
 		Action fa = aitr->next();
 		if (fa.getIndex() == hash_a) {
 			return fa;
 		}
 	}
-	assert(!"ERROR: we can not be here, there is no action with selected hash_a");
+	assert(!"ERROR: we cannot be here, there is no action with selected hash_a");
 }
 
 _UCTPlanner::_UCTPlanner(Domain domain, MDP mdp, Reward gamma)

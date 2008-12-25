@@ -110,21 +110,18 @@ public:
 	_UCTQTable(const Domain& domain) {}
 	_UCTQTable(const Domain& domain, Reward initial) {}
 
+	/// Add state action pair (s,a) to the three (to the hash map).
+	virtual void Add2Tree(hash_key_type hash_s, hash_key_type hash_a);
+
 	/// @return the hash code of the best action (exploitation only, no bonuses are added)
-	virtual hash_key_type getBestActionHash(hash_key_type& hash_s) {
-		_CStateInfoHash& state_info = (*this)[hash_s];
-		Reward max = INT_MIN;
-		hash_key_type max_hash_a = 0;
-		assert(!state_info.empty() && "do not call this methods when there is no action of hash_s in the Q-table");
-		for (_CStateInfoHash::const_iterator iter = state_info.begin(); iter != state_info.end(); iter++) { // for all actions
-			 Reward current = iter->second.getValue();
-			 if (current > max) {
-				 max = current;
-				 max_hash_a = iter->first;
-			 }
-		}
-		return max_hash_a;
-	}
+	virtual hash_key_type getBestActionHash(hash_key_type& hash_s);
+
+	/// @return true if pair (s,a) is in the tree (in the hash map).
+	virtual bool inTree(hash_key_type hash_s, hash_key_type hash_a) const;
+
+	/// @return true if state s is in the tree
+	virtual bool inTree(hash_key_type hash_s) const;
+
 };
 typedef boost::shared_ptr<_UCTQTable> UCTQTable;
 
@@ -168,8 +165,16 @@ protected:
 	/// Max number milliseconds per call to getAction
 	time_t _time_limit;
 
+	/// when true, there is no reuse of the qtable.
+	bool _clear_tree;
+
 	/// Performs one, complete UCT simulation.
 	void runSimulation(const State& s);
+
+	/// Removes all the entries from the tree.
+	virtual void ClearTree() {
+		_qtable.clear();
+	}
 
 	_UCTPlanner(Domain domain, MDP mdp, Reward gamma);
 };
