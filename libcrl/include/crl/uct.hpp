@@ -31,20 +31,6 @@
 namespace crl {
 
 // -------------------------------------------------------------------------------
-// TEMPORARY STRUCT
-
-/// This should be removed, once ActionIterator will allow for random accees!!!
-struct ActionList: public vector<Action>{
-	/// Intialise this object with ActionIterator data.
-	ActionList(ActionIterator& actions){
-		actions->reset();
-		while (actions->hasNext()) {
-			this->push_back(actions->next());
-		}
-	}
-};
-
-// -------------------------------------------------------------------------------
 // The UCT planner
 
 /// The interface for UCT-based planners.
@@ -91,8 +77,8 @@ protected:
 		_qtable->Clear();
 	}
 	/// @return an action heuristically
-	Action GetHuristicAction(ActionList& actions) const {
-		return actions[size_t(  (double(rand())/(double(RAND_MAX)+double(1.0)))  *  double(actions.size())  )];
+	Action GetHuristicAction() const {
+		return Action( _domain, Size((double(rand())/(double(RAND_MAX)+double(1.0)))  *  double(_domain->getNumActions())) );
 	}
 };
 
@@ -115,10 +101,6 @@ public:
 	_FlatUCTPlanner(Domain domain, MDP mdp, Reward gamma)
 		: _UCTPlanner(domain, mdp, gamma){}
 };
-
-
-/// TODO: remove this.
-Size iterator_size(ActionIterator& actions);
 
 } // crl
 

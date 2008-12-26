@@ -20,12 +20,6 @@ Action _IUCTPlanner::getAction(const State& s) {
 	if (_clear_tree) {
 		ClearTree();
 	}
-	ActionIterator aitr = _mdp->A(s);
-	ActionList alist(aitr);
-	assert(!alist.empty() && "there are no more actions in current state");
-	if (alist.size() == 1) {
-		return alist.front(); // do not plan if there is only one action available.
-	}
 
 	// (*) loop over simulations
 	while ((_run_limit==0 || num_runs<_run_limit) && //0 for limit means unlimited
@@ -51,22 +45,14 @@ void _IUCTPlanner::runSimulation(const State& s) {
 	// Sampling one trajectory until the goal state is reached.
 	bool goal_is_reached = false;
 	do{
-		hash_key_type current_state_hash = current_state.getIndex();
 		ActionIterator curr_actions_iter = _mdp->A(current_state);
-		ActionList curr_actions(curr_actions_iter);
-		hash_key_type selected_action;
+		Size selected_action;
 		Action action;
-		if (!_qtable->inTree(current_state_hash)) { // If not in the tree just pick up one action heuristically.
-			action = GetHuristicAction(curr_actions);
+		if (!_qtable->inTree(current_state.getIndex())) { // If not in the tree just pick up one action heuristically.
+			action = GetHuristicAction();
 			selected_action = action.getIndex();
 		} else {
-			size_t an = curr_actions.size();
-			vector<hash_key_type> temp_hashes;
-			temp_hashes.resize(an);
-			for(size_t ai=0; ai<an; ai++){
-				temp_hashes[ai] = curr_actions[ai].getIndex();
-			}
-			action =_qtable->GetUCTAction(current_state_hash , temp_hashes, selected_action);
+			action =_qtable->GetUCTAction(current_state.getIndex(), selected_action);
 		}
 
 		State new_state;
@@ -79,18 +65,16 @@ void _IUCTPlanner::runSimulation(const State& s) {
 		}
 		Reward step_reward = _mdp->R(current_state,action);
 
-		hash_key_type new_state_hash = new_state.getIndex();
 		if (!goal_is_reached) {
-			CTraceData temp(new _CTraceData(current_state_hash, selected_action, new_state_hash, step_reward));
+			CTraceData temp(new _CTraceData(current_state.getIndex(), selected_action, new_state.getIndex(), step_reward));
 			trace.push_back(temp);
-			//trace.back()
 		}
 
 		Reward new_metric = current_metric + step_reward;
 		current_metric = new_metric;
 		if (_fullTree && !goal_is_reached) {
 			// Add immediately so it can influence exploration within this episode.
-			_qtable->Visit(current_state_hash, selected_action, current_state, action);
+			_qtable->Visit(current_state.getIndex(), selected_action);
 		}
 
 		current_state = new_state;
@@ -105,17 +89,3 @@ void _IUCTPlanner::runSimulation(const State& s) {
 
 	_qtable->DoBackups(trace, cumulative_reward, _fullTree);
 }
-
-// -------------------------------------------------------------------------------
-// TEMPORARY: TODO: remove this
-
-Size iterator_size(ActionIterator& actions) {
-	actions->reset();
-	Size n = 0;
-	while (actions->hasNext()) {
-		actions->next();
-		n++;
-	}
-	return n;
-}
-

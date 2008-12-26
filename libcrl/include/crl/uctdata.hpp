@@ -22,11 +22,9 @@
 
 #include "crl/crl.hpp"
 
-#if defined(__linux__) || defined(__CYGWIN__)
+#if defined(__MACH__) ||  defined(__linux__) || defined(__CYGWIN__)
 using namespace __gnu_cxx;
 #endif
-
-typedef  uint64_t hash_key_type;	// in this way we can easily change the type of the key.
 
 namespace crl{
 
@@ -35,17 +33,15 @@ namespace crl{
 
 /// What we store along the trace.
 struct _CTraceData{
-	_CTraceData(hash_key_type hash_s_, hash_key_type hash_a_, hash_key_type hash_next_s_, double reward_): hash_s(hash_s_), hash_a(hash_a_), hash_next_s(hash_next_s_), reward(reward_){}
+	_CTraceData(Size hash_s_, Size hash_a_, Size hash_next_s_, double reward_): hash_s(hash_s_), hash_a(hash_a_), hash_next_s(hash_next_s_), reward(reward_){}
 	/// hash of this state
-	hash_key_type hash_s;
+	Size hash_s;
 	/// hash of the action
-	hash_key_type hash_a;
+	Size hash_a;
 	// hash of the next state
-	hash_key_type hash_next_s;
+	Size hash_next_s;
 	/// reward in this transition
 	double reward;
-	State _state;	// TODO: would be better to store shared pointers only
-	Action _action; // TODO: would be better to store shared pointers only
 };
 typedef boost::shared_ptr<_CTraceData> CTraceData;
 
@@ -57,7 +53,7 @@ struct _CTraceList: public vector<CTraceData>{};
 
 /// The hash function for keys in the Q-table
 struct KeyTypeHash {
-	inline size_t operator()(const hash_key_type& s) const {
+	inline size_t operator()(const Size& s) const {
 		return size_t(s);
 	}
 };
@@ -75,8 +71,6 @@ public:
 	int Ni;
 	/// The sum of scores in standard UCT or Value of this action in model-based planning.
 	double Vi;
-	/// The actual action object. // TODO: can store here only a pointer to this object (without making a copy)?
-	Action _action;
 };
 typedef boost::shared_ptr<_CActionInfoHash> CActionInfoHash;
 
@@ -110,7 +104,7 @@ protected:
 	int NMeani;
 };
 typedef boost::shared_ptr<_CActionInfoVHash> CActionInfoVHash;
-typedef HASH_MAP<hash_key_type, CActionInfoHash, KeyTypeHash> HASH_MAP_ACTIONS_INFO;
+typedef HASH_MAP<Size, CActionInfoHash, KeyTypeHash> HASH_MAP_ACTIONS_INFO;
 
 /// The value in the hash table related to one specific state. It contains a hash table with actions.
 class _CStateInfoHash{
@@ -122,8 +116,6 @@ public:
 	HASH_MAP_ACTIONS_INFO _actions;
 	/// The number of times the state has been visited.
 	int N;
-	/// The actual state object. // TODO: can store here only a pointer to this object (without making a copy)?
-	State _state;
 };
 typedef boost::shared_ptr<_CStateInfoHash> CStateInfoHash;
 
@@ -137,7 +129,7 @@ public:
 	double V;
 };
 typedef boost::shared_ptr<_CStateInfoMBHash> CStateInfoMBHash;
-typedef HASH_MAP<hash_key_type, CStateInfoHash, KeyTypeHash> HASH_MAP_STATE_INFO;
+typedef HASH_MAP<Size, CStateInfoHash, KeyTypeHash> HASH_MAP_STATE_INFO;
 
 // -----------------------------------------------------------------------------------
 // UCT Q-tables
@@ -145,19 +137,27 @@ typedef HASH_MAP<hash_key_type, CStateInfoHash, KeyTypeHash> HASH_MAP_STATE_INFO
 /// The basic interface for Q-tables for UCT algorithms.
 class _IUCTQTable : public _QTable {
 protected:
-	HASH_MAP<hash_key_type, CStateInfoHash, KeyTypeHash> _qdata;
+	HASH_MAP<Size, CStateInfoHash, KeyTypeHash> _qdata;
 	/// Max value of reward (to be used to find the scaling factor C for UCT exploration bonus.
 	Reward _rmax;
 	/// 0 - the final game reward, 1 - the sum of step rewards from a given state.
 	int _reward_type;
+	/// Shrared pointer to the domain (for two direction action <-> hash and state <-> hash mappings).
+	Domain _domain;
+	/// The number of acgtions (the same for all states !!!).
+	Size _num_actions;
 
 public:
 	_IUCTQTable(const Domain& domain){
-		_rmax = 100; // TODO: get this from _mdp
+		_domain = domain;
+		_rmax = domain->getRewardRange().getMax();
+		_num_actions = domain->getNumActions();
 		_reward_type = 1;
 	}
 	_IUCTQTable(const Domain& domain, Reward initial) {
-		_rmax = 100; // TODO: get this from _mdp
+		_domain = domain;
+		_rmax = domain->getRewardRange().getMax();
+		_num_actions = domain->getNumActions();
 		_reward_type = 1;
 	}
 	virtual ~_IUCTQTable(){}
@@ -169,20 +169,20 @@ public:
 
 	/// Increase counters and add to the tree if state is not there.
 	template <class S, class _S, class A, class _A>
-	void Visit(hash_key_type hash_s, hash_key_type hash_a, const State& s, const Action& a);
+	void Visit(Size hash_s, Size hash_a);
 	/// Implementation of this methods should call propertly parametrised template above.
-	virtual void Visit(hash_key_type hash_s, hash_key_type hash_a, const State& s, const Action& a) = 0;
+	virtual void Visit(Size hash_s, Size hash_a) = 0;
 
 	/// @return true if pair (s,a) is in the tree (in the hash map).
-	virtual bool inTree(hash_key_type hash_s, hash_key_type hash_a) const;
+	virtual bool inTree(Size hash_s, Size hash_a) const;
 	virtual bool inTree(const State& s, const Action& a) const {
-		return inTree(hash_key_type(s.getIndex()), hash_key_type(a.getIndex()));
+		return inTree(Size(s.getIndex()), Size(a.getIndex()));
 	}
 
 	/// @return true if state s is in the tree
-	virtual bool inTree(hash_key_type hash_s) const;
+	virtual bool inTree(Size hash_s) const;
 	virtual bool inTree(const State& s) const {
-		return inTree(hash_key_type(s.getIndex()));
+		return inTree(Size(s.getIndex()));
 	}
 
 	/// @return action
@@ -190,7 +190,7 @@ public:
 	/// @param hash_list - hashes of actions in state state_hash.
 	/// @param[out] hash_a - the hash code of the action which is returned by this function
 	/// @param explore - if true do exploration
-	virtual Action GetUCTAction(hash_key_type state_hash, vector<hash_key_type>& hash_list, hash_key_type& hash_a, bool explore=true) = 0;
+	virtual Action GetUCTAction(Size state_hash, Size& hash_a, bool explore=true) = 0;
 
 	/// Update learned parameters for states which are in the trace.
 	/// @param cumulative_reward - a final score at the end of the game.
@@ -209,11 +209,11 @@ class _UCTQTable : public _IUCTQTable {
 public:
 	_UCTQTable(const Domain& domain): _IUCTQTable(domain){}
 
-	virtual void Visit(hash_key_type hash_s, hash_key_type hash_a, const State& s, const Action& a){
-		_IUCTQTable::Visit<CStateInfoHash, _CStateInfoHash, CActionInfoHash, _CActionInfoHash>(hash_s, hash_a, s, a);
+	virtual void Visit(Size hash_s, Size hash_a){
+		_IUCTQTable::Visit<CStateInfoHash, _CStateInfoHash, CActionInfoHash, _CActionInfoHash>(hash_s, hash_a);
 	}
 
-	virtual Action GetUCTAction(hash_key_type state_hash, vector<hash_key_type>& hash_list, hash_key_type& hash_a, bool explore=true);
+	virtual Action GetUCTAction(Size state_hash, Size& hash_a, bool explore=true);
 
 	virtual void DoBackups(_CTraceList& trace, double cumulative_reward, bool full_tree);
 
