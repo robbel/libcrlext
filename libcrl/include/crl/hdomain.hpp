@@ -29,23 +29,28 @@
 #include <cpputil.hpp>
 #include "crl/crl.hpp"
 
+struct SizeHash {
+	inline size_t operator()(const crl::Size& s) const {
+		return (size_t)s;
+	}
+};
 
 #if defined(WIN32) || defined(WIN64)
 //the windows version of the setup for hash_maps
 #include <hash_map>
 #define std_hash_map stdext::hash_map
-template <class K, class V>
-std_hash_map<K,V> alloc_hash_map(size_t num_buckets=100) {
-	return std_hash_map<K,V>();
+template <class K, class V, class H>
+std_hash_map<K,V,H> alloc_hash_map(size_t num_buckets=100) {
+	return std_hash_map<K,V,H>();
 }
 
 #else
 //the linux version of the setup for hash_maps
 #include <ext/hash_map>
 #define std_hash_map __gnu_cxx::hash_map
-template <class K, class V>
-std_hash_map<K,V> alloc_hash_map(size_t num_buckets=100) {
-	return std_hash_map<K,V>(num_buckets);
+template <class K, class V, class H>
+std_hash_map<K,V,H> alloc_hash_map(size_t num_buckets=100) {
+	return std_hash_map<K,V,H>(num_buckets);
 }
 
 #endif
@@ -81,16 +86,16 @@ public:
  */
 template <class T>
 class _HStateActionTable : public _StateActionTable<T> {
-	typedef std_hash_map<Size,std::vector<T> > hm_t;
+	typedef std_hash_map<Size,std::vector<T>,SizeHash> hm_t;
 protected:
 	const Domain _domain;
 	hm_t _sa_values;
 	T _initial;
 public:
 	_HStateActionTable(const Domain& domain, Size num_buckets=1000)
-	: _domain(domain), _sa_values(alloc_hash_map<Size,std::vector<T> >(num_buckets)) { }
+	: _domain(domain), _sa_values(alloc_hash_map<Size,std::vector<T>,SizeHash>(num_buckets)) { }
 	_HStateActionTable(const Domain& domain, T initial, Size num_buckets=1000)
-	: _domain(domain), _sa_values(alloc_hash_map<Size,std::vector<T> >(num_buckets)), _initial(initial) { }
+	: _domain(domain), _sa_values(alloc_hash_map<Size,std::vector<T>,SizeHash>(num_buckets)), _initial(initial) { }
 	virtual void clear() {
 		_sa_values.clear();	
 	}
@@ -114,8 +119,8 @@ public:
  */
 class _HQTable : public _QTable, _HStateActionTable<Reward> {
 protected:
-	std_hash_map<Size,Action> _best_actions;
-	std_hash_map<Size,Reward> _best_qs;
+	std_hash_map<Size,Action,SizeHash> _best_actions;
+	std_hash_map<Size,Reward,SizeHash> _best_qs;
 	Reward _initial;
 public:
 	_HQTable(const Domain& domain, Size num_buckets=1000);
