@@ -12,7 +12,7 @@ prefix_bin = prefix.Dir('bin')
 import os
 cpath = os.environ.get('CPATH', "")
 ld_library_path = os.environ.get('LD_LIBRARY_PATH', "")
-cpp_paths = [cp for cp in cpath.split(':')]+[prefix_inc, inc]
+cpp_paths = [cp for cp in cpath.split(':')]+[inc, prefix_inc]
 lib_paths = [lp for lp in ld_library_path.split(':')]+[lib, prefix_lib]
 
 ccflags = ['-Wall', '-Werror', '-ansi']
