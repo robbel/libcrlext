@@ -22,13 +22,14 @@
 #define TYPES_HPP_
 
 #include <set>
+#include <boost/cstdint.hpp>
 
 namespace crl {
 
 typedef float Reward;
 typedef float Probability;
 typedef short Factor;
-typedef unsigned long Size;
+typedef uint64_t Size;
 typedef long Index;
 
 typedef cpputil::Range<Reward> RewardRange;
