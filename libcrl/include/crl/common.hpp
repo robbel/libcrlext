@@ -280,6 +280,49 @@ public:
 };
 typedef boost::shared_ptr<_ActionIncrementIterator> ActionIncrementIterator;
 
+class _StateRandomIterator : public _StateIterator {
+protected:
+	const Domain _domain;
+	State _last;
+public:
+	_StateRandomIterator(const Domain& domain)
+	: _domain(domain), _last(domain) {
+		
+	}
+	const State& next() {
+		_last = State(_domain, random()%_domain->getNumStates());
+		return _last;
+	}
+	bool hasNext() {
+		return true;
+	}
+	void reset() {
+		
+	}
+};
+typedef boost::shared_ptr<_StateRandomIterator> StateRandomIterator;
+
+class _ActionRandomIterator : public _ActionIterator {
+protected:
+	const Domain _domain;
+	Action _last;
+public:
+	_ActionRandomIterator(const Domain& domain)
+	: _domain(domain), _last(domain) {
+		
+	}
+	const Action& next() {
+		_last = Action(_domain, random()%_domain->getNumActions());
+		return _last;
+	}
+	bool hasNext() {
+		return true;
+	}
+	void reset() {
+		
+	}
+};
+typedef boost::shared_ptr<_ActionRandomIterator> ActionRandomIterator;
 /**
  * An interface for a table that uses states as keys
  */
