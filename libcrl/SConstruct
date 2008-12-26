@@ -20,7 +20,7 @@ ccflags = ['-Wall', '-Werror', '-ansi']
 if 'debug' in COMMAND_LINE_TARGETS:
 	ccflags += ['-g']
 else:
-	ccflags += ['-DBOOST_DISABLE_ASSERTS']
+	ccflags += ['-DBOOST_DISABLE_ASSERTS', '-DNDEBUG']
 
 BuildDir(build, src, duplicate=0)
 
