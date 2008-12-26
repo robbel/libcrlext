@@ -144,6 +144,7 @@ void _PSPlanner::insertThreshold(StateIterator& sitr, Reward threshold) {
 Action _PSPlanner::getAction(const State& s) {
 	sweep();
 	Action a = _VIPlanner::getAction(s);
+//	cerr << s << "->" << a << endl;
 	return a;
 }
 	
