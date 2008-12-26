@@ -27,8 +27,8 @@ using namespace crl;
 
 
 _HQTable::_HQTable(const Domain& domain, Size num_buckets)
-: _HStateActionTable<Reward>(domain), _best_actions(alloc_hash_map<Size,Action>(num_buckets)),
-  _best_qs(alloc_hash_map<Size,Reward>(num_buckets)) {
+: _HStateActionTable<Reward>(domain), _best_actions(alloc_hash_map<Size,Action,SizeHash>(num_buckets)),
+  _best_qs(alloc_hash_map<Size,Reward,SizeHash>(num_buckets)) {
 
 }
 
