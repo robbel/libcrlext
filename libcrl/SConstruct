@@ -26,11 +26,11 @@ BuildDir(build, src, duplicate=0)
 
 sources = """
 crl.cpp          fdomain.cpp  vi.cpp		rmax.cpp
-environment.cpp  mdomain.cpp  sparse_sampling.cpp  uct.cpp
+environment.cpp  mdomain.cpp  sparse_sampling.cpp  uct.cpp uctdata.cpp
 ps.cpp	  factor_learner.cpp		hdomain.cpp	rtdp.cpp
 """.split()
 headers = """
-crl/crl.hpp          crl/fdomain.hpp  crl/uct.hpp		crl/rmax.hpp
+crl/crl.hpp          crl/fdomain.hpp  crl/uct.hpp crl/uctdata.hpp		crl/rmax.hpp
 crl/environment.hpp  crl/mdomain.hpp  crl/sparse_sampling.hpp  crl/vi.hpp
 crl/ps.hpp           crl/common.hpp	crl/util.hpp	crl/rtdp.hpp
 crl/types.hpp		 crl/factor_learner.hpp				crl/hdomain.hpp
