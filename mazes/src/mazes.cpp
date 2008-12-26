@@ -234,6 +234,18 @@ crl::State _SlipMaze::getState(size_t x, size_t y) {
 	return s;
 }
 
+StateSet _SlipMaze::getTerminalStates() {
+	StateSet ss(new _StateSet());
+	for (size_t x=0; x<getWidth(); x++)
+		for (size_t y=0; y<getHeight(); y++) {
+			if (getTile(x, y) == '#' || getTile(x, y) == 'G')
+				ss->insert(getState(x, y));	
+		}
+		
+	
+	return ss;	
+}
+
 Maze crl::readMaze(istream& is) {
 	XMLObject xobj;
 	is >> xobj;

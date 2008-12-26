@@ -102,6 +102,7 @@ public:
 	virtual MDP getMDP();
 	State getTileState(char c);
 	State getState(size_t x, size_t y);
+	virtual StateSet getTerminalStates();
 };
 typedef boost::shared_ptr<_SlipMaze> SlipMaze;
 
@@ -129,6 +130,7 @@ public:
 	SlipConfig getConfig() {return _config;}
 	std::vector<Location>& getFlags() {return _flags;}
 	std::vector<Location>& getSpawns() {return _spawns;}
+	virtual StateSet getTerminalStates();
 };
 typedef boost::shared_ptr<_FlagMaze> FlagMaze;
 

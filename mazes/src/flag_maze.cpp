@@ -86,6 +86,57 @@ State _FlagMaze::getInitialState() {
 	return s;
 }
 
+set<vector<int> > getFlagOrderings(int collectors_left, set<int> flags_left) {
+	set<vector<int> > sv;
+	if (collectors_left == 0) {
+		sv.insert(vector<int>());
+		return sv;
+	}
+		
+	for (set<int>::iterator itr=flags_left.begin(); itr!=flags_left.end(); itr++) {
+		int flag = *itr;
+		set<int> next_flags_left(flags_left);
+		next_flags_left.erase(next_flags_left.find(flag));
+		set<vector<int> > next_orderings(getFlagOrderings(collectors_left-1, next_flags_left));
+		for (set<vector<int> >::iterator itr=next_orderings.begin(); itr!=next_orderings.end(); itr++) {
+			vector<int> ordering(*itr);
+			ordering.insert(ordering.begin(), flag);
+			sv.insert(ordering);
+		}
+	}
+		
+	return sv;	
+}
+
+/**
+ * Not all terminal states, only some of the useful ones where a collector stops
+ * after collecting its last flag. Obvious sometimes multiple collectors would go
+ * for the last flag, in case something goes wrong for the closest one, and that
+ * ending wouldn't appear here.
+ */
+StateSet _FlagMaze::getTerminalStates() {
+	StateSet ss(new _StateSet());
+	set<int> flags_left;
+	for (size_t i=0; i<_flags.size(); i++)
+		flags_left.insert(i);
+	set<vector<int> > flag_orderings = getFlagOrderings(_spawns.size(), flags_left);
+	for (set<vector<int> >::iterator itr=flag_orderings.begin(); itr!=flag_orderings.end(); itr++) {
+		vector<int> flag_order = *itr;
+		State s(_domain, 0);
+		s.setFactor(0, 0);
+		for (size_t i=0; i<flag_order.size(); i++) {
+			int f = flag_order[i];
+			s.setFactor(1+2*i, _flags[f].x);
+			s.setFactor(2+2*i, _flags[f].y);	
+		}
+		for (Size i=0; i<_flags.size(); i++)
+			s.setFactor(1+2*_spawns.size()+i, 1);
+		ss->insert(s);
+	}
+	
+	return ss;	
+}
+
 
 _FlagMDP::_FlagMDP(FlagMaze& fm)
 : _fm(fm), _domain(_fm->getDomain()) {
@@ -102,6 +153,7 @@ StateIterator _FlagMDP::S() {
 }
 StateIterator _FlagMDP::predecessors(const State& s) {
 	StateSet ss(new _StateSet());
+	
 	
 	if (s.getFactor(0) == 1) {
 		State p = s;
@@ -139,6 +191,7 @@ StateIterator _FlagMDP::predecessors(const State& s) {
 		for (size_t i=0; i<flagLocs.size(); i++)
 			pre_flags.push_back(0);	
 		while (true) {
+			
 			bool all_1 = true;	
 			for (size_t i=0; all_1 && i<pre_flags.size(); i++)
 				all_1 = all_1 && (pre_flags[i]==1);
@@ -167,7 +220,7 @@ StateIterator _FlagMDP::predecessors(const State& s) {
 					p.setFactor(2+2*i, y);
 				}
 				for (size_t i=0; i<flags.size(); i++) {
-					p.setFactor(1+2*locs.size()+i, flags[i]);
+					p.setFactor(1+2*locs.size()+i, pre_flags[i]);
 				}
 				ss->insert(p);
 			}
@@ -235,6 +288,9 @@ Probability _FlagMDP::updateDistribution(MStateDistribution& sd,
 	for (size_t i=0; i<locs.size(); i++) {
 		int x = locs[i].x;
 		int y = locs[i].y;
+		//collectors in pits cannot move
+		if (_fm->getTile(x, y) == '#')
+			continue;
 		if (directions[i] == 0 && !_fm->getWallNorth(x, y))
 			y--;
 		if (directions[i] == 1 && !_fm->getWallEast(x, y))

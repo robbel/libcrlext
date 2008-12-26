@@ -40,6 +40,7 @@ vector<string> args;
 char params[256];
 MDP mdp;
 Domain domain;
+StateSet terminal_states;
 
 Agent crl::getCRLAgent(Domain domain) {
 	Planner planner;
@@ -67,9 +68,11 @@ Agent crl::getCRLAgent(Domain domain) {
 		Reward epsilon = atof(args[2].c_str());
 		sprintf(params, "planner=ps gamma=%f epsilon=%f", gamma, epsilon);
 		PSPlanner ps_planner = PSPlanner(new _FlatPSPlanner(domain, mdp, epsilon, gamma));
-		StateIterator sitr = mdp->S();
-		ps_planner->insertThreshold(sitr, 0.1);
+		StateIterator sitr = StateIterator(new _SharedStateSetIterator(terminal_states));
+		ps_planner->insert(sitr);
 		ps_planner->sweep();
+		
+//		ps_planner->plan();
 //		cerr << "planned in " << c << " updates" << endl;
 		planner = ps_planner;
 	}
@@ -157,11 +160,14 @@ int main(int argc, char** argv) {
 		SlipMaze _slip_maze = SlipMaze(new _SlipMaze(m, cfg));
 		mdp = _slip_maze->getMDP();
 		domain = _slip_maze->getDomain();
+		terminal_states = _slip_maze->getTerminalStates();
 	}
 	else {
 		FlagMaze _flag_maze = FlagMaze(new _FlagMaze(m, cfg));
 		mdp = MDP(new _FlagMDP(_flag_maze));
 		domain = _flag_maze->getDomain();
+		terminal_states = _flag_maze->getTerminalStates();
+		mdp->predecessors(*(terminal_states->begin()));
 	}
 	//mdp->printXML(cerr);
 	
