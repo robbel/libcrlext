@@ -15,7 +15,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/cstdint.hpp>
 #include <cassert>
-#if defined(__linux__) || defined(__CYGWIN__)
+#if defined(__MACH__) ||  defined(__linux__) || defined(__CYGWIN__)
 #include <ext/hash_map>
 #define HASH_MAP hash_map
 #endif
