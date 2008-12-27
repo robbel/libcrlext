@@ -268,10 +268,12 @@ int main(int argc, char** argv) {
 		domain->addStateFactor(0, 299);
 		domain->addActionFactor(0, 4);
 		domain->setRewardRange(-1, 0);
-//		MDP mdp = makeMDP(domain);
+		//MDP mdp = makeMDP(domain);
+		MDP mdp = makeTerminatingMDP(domain);
 		testState();
 //		testVI(mdp, domain);
 //		testPS(mdp, domain);
+		testUCT(mdp, domain);
 		//mdp->printXML(cout);
 //		testState();
 //		testVI(mdp, domain);
