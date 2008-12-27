@@ -45,6 +45,7 @@ void _IUCTPlanner::runSimulation(const State& s) {
 	// Sampling one trajectory until the goal state is reached.
 	bool goal_is_reached = false;
 	do{
+cerr << "step=" << steps << " current state is: " << current_state << endl;
 		ActionIterator curr_actions_iter = _mdp->A(current_state);
 		Size selected_action;
 		Action action;
@@ -54,7 +55,7 @@ void _IUCTPlanner::runSimulation(const State& s) {
 		} else {
 			action =_qtable->GetUCTAction(current_state.getIndex(), selected_action);
 		}
-
+cerr << "Performing action " << action << endl;
 		State new_state;
 		try{
 			new_state = _mdp->T(current_state,action)->sample();
@@ -78,12 +79,12 @@ void _IUCTPlanner::runSimulation(const State& s) {
 		}
 
 		current_state = new_state;
-
+cerr << "new state is: " << new_state << endl;
 	}while( (steps++ < _maxSteps || _maxSteps == 0) && !goal_is_reached);
 
 	Reward cumulative_reward = current_metric - start_metric; // Cumulative reward.
 	if (!goal_is_reached) {
-		cout << "the goal state has not been reached, penalising the trace !!!" << endl;
+		cerr << "the goal state has not been reached, penalising the trace !!!" << endl;
 		cumulative_reward += -100; // if the steps limit exceeded then penalise this trajectory.
 	}
 

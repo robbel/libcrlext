@@ -10,7 +10,7 @@
 #include <cmath>
 #include <map>
 
-#define LOGUCT 1
+#define LOGUCT 0
 
 using namespace std;
 
@@ -112,17 +112,19 @@ Action _UCTQTable::GetUCTAction(Size state_hash, Size& hash_a, bool explore) {
 		}
 	}
 	if (LOGUCT > 0) {
-		cout << "making decision:" << endl;
+		cerr << "making decision: in state " << State(_domain, state_hash) << endl;
 		for (multimap<double,Size>::const_iterator citer=pq.begin(); citer!=pq.end(); citer++) {
-			cout << (*citer).first << " " << (*citer).second << Action(_domain, (*citer).second) << endl;
+			cerr << "v=" << (*citer).first << " action_hash=" << (*citer).second << " action=" << Action(_domain, (*citer).second) << endl;
 		}
-		cout << endl;
 	}
 	multimap<double,Size>::iterator last = pq.end(); last--;
 	double max = last->first;
 	double n = pq.count(max); // how many elements in pq is equal to the max
 	if (n==1) { // only one max
 		hash_a = last->second;
+		if (LOGUCT > 0) {
+			cerr << "selected action = " << Action(_domain, hash_a) << endl << endl;
+		}
 		return Action(_domain, hash_a);
 	}
 	multimap<double,Size>::iterator itlow	=	pq.lower_bound(max);
@@ -133,6 +135,9 @@ Action _UCTQTable::GetUCTAction(Size state_hash, Size& hash_a, bool explore) {
 			hash_a = itlow->second;
 			break;
 		}
+	}
+	if (LOGUCT > 0) {
+		cerr << "selected action = " << Action(_domain, hash_a) << endl << endl;
 	}
 	return Action(_domain, hash_a);
 }
