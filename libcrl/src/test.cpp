@@ -167,7 +167,7 @@ Action testHVI(MDP mdp, Domain domain) {
 Action testUCT(MDP mdp, Domain domain) {
 	cout << "UCT" << endl;
 //	long start_time = time_in_milli();
-	UCTPlanner planner(new _FlatUCTPlanner(domain, mdp, 1));
+	UCTPlanner planner(new _FlatUCTPlanner(domain, mdp, 1, 1, false, true));
 	planner->setRunLimit(-1);
 	planner->setTimeLimit(5000);
 	planner->setConfidenceCoeff(1);
@@ -199,7 +199,7 @@ void testExperiment(Domain domain) {
 	Agent agent1(new _Agent(planner1));
 
 
-	UCTPlanner planner2(new _FlatUCTPlanner(domain, mdp, 1));
+	UCTPlanner planner2(new _FlatUCTPlanner(domain, mdp, 1, 1, false, true));
 	planner2->setRunLimit(-1);
 	planner2->setTimeLimit(100);
 	planner2->setConfidenceCoeff(1);

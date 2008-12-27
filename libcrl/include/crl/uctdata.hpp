@@ -148,17 +148,17 @@ protected:
 	Size _num_actions;
 
 public:
-	_IUCTQTable(const Domain& domain){
+	_IUCTQTable(const Domain& domain, int reward_type){
 		_domain = domain;
 		_rmax = domain->getRewardRange().getMax();
 		_num_actions = domain->getNumActions();
-		_reward_type = 1;
+		_reward_type = reward_type;
 	}
-	_IUCTQTable(const Domain& domain, Reward initial) {
+	_IUCTQTable(const Domain& domain, int reward_type, Reward initial) {
 		_domain = domain;
 		_rmax = domain->getRewardRange().getMax();
 		_num_actions = domain->getNumActions();
-		_reward_type = 1;
+		_reward_type = reward_type;
 	}
 	virtual ~_IUCTQTable(){}
 
@@ -207,7 +207,7 @@ typedef boost::shared_ptr<_IUCTQTable> IUCTQTable;
 /// The Q-table for standard UCT.
 class _UCTQTable : public _IUCTQTable {
 public:
-	_UCTQTable(const Domain& domain): _IUCTQTable(domain){}
+	_UCTQTable(const Domain& domain, int reward_type): _IUCTQTable(domain, reward_type){}
 
 	virtual void Visit(Size hash_s, Size hash_a){
 		_IUCTQTable::Visit<CStateInfoHash, _CStateInfoHash, CActionInfoHash, _CActionInfoHash>(hash_s, hash_a);

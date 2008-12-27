@@ -114,22 +114,15 @@ Action _UCTQTable::GetUCTAction(Size state_hash, Size& hash_a, bool explore) {
 	if (LOGUCT > 0) {
 		cout << "making decision:" << endl;
 		for (multimap<double,Size>::const_iterator citer=pq.begin(); citer!=pq.end(); citer++) {
-			cout << (*citer).first << " " << (*citer).second << endl;
+			cout << (*citer).first << " " << (*citer).second << Action(_domain, (*citer).second) << endl;
 		}
 		cout << endl;
 	}
 	multimap<double,Size>::iterator last = pq.end(); last--;
 	double max = last->first;
 	double n = pq.count(max); // how many elements in pq is equal to the max
-	if(n==1){ // only one max
-		int a_index = -1;
-		for(int ah = 0; ah < int(_num_actions); ah++) {
-			if (Size(ah) == last->second) {
-				a_index = ah;
-				break;
-			}
-		}
-		hash_a = Size(a_index);
+	if (n==1) { // only one max
+		hash_a = last->second;
 		return Action(_domain, hash_a);
 	}
 	multimap<double,Size>::iterator itlow	=	pq.lower_bound(max);
