@@ -47,22 +47,22 @@ Agent crl::getCRLAgent(Domain domain) {
 	if (args[0] == "vi") {
 		if (args.size() != 3) {
 			cerr << "vi parameters: <gamma> <epsilon>" << endl;
-			exit(1);	
+			exit(1);
 		}
 		float gamma = atof(args[1].c_str());
 		Reward epsilon = atof(args[2].c_str());
 		sprintf(params, "planner=vi gamma=%f epsilon=%f", gamma, epsilon);
 		VIPlanner vi_planner = VIPlanner(new _FactoredVIPlanner(domain, mdp, epsilon, gamma));
-		
+
 		vi_planner->plan();
 //		cerr << "planned in " << c << " iterations" << endl;
 		planner = vi_planner;
 	}
-	
+
 	if (args[0] == "ps") {
 		if (args.size() != 3) {
 			cerr << "ps parameters: <gamma> <epsilon>" << endl;
-			exit(1);	
+			exit(1);
 		}
 		float gamma = atof(args[1].c_str());
 		Reward epsilon = atof(args[2].c_str());
@@ -71,7 +71,7 @@ Agent crl::getCRLAgent(Domain domain) {
 		StateIterator sitr = StateIterator(new _SharedStateSetIterator(terminal_states));
 		ps_planner->insert(sitr);
 		ps_planner->sweep();
-		
+
 //		ps_planner->plan();
 //		cerr << "planned in " << c << " updates" << endl;
 		planner = ps_planner;
@@ -79,7 +79,7 @@ Agent crl::getCRLAgent(Domain domain) {
 	if (args[0] == "rtdp") {
 		if (args.size() != 7) {
 			cerr << "rtdp parameters: <gamma> <epsilon> <m> <runlimit> <timelimit> <heuristic>" << endl;
-			exit(1);	
+			exit(1);
 		}
 		float gamma = atof(args[1].c_str());
 		Reward epsilon = atof(args[2].c_str());
@@ -88,29 +88,32 @@ Agent crl::getCRLAgent(Domain domain) {
 		int time_limit = atoi(args[5].c_str());
 		int h = atoi(args[6].c_str());
 		sprintf(params, "planner=rtdp gamma=%f epsilon=%f m=%d runlimit=%d timelimit=%d", gamma, epsilon, m, run_limit, time_limit);
-		
+
 		RTDPPlanner rtdp_planner(new _FlatRTDPPlanner(domain, mdp, gamma, epsilon, m, h, 50));
 		rtdp_planner->setRunLimit(run_limit);
 		rtdp_planner->setTimeLimit(time_limit);
 		planner = rtdp_planner;
 	}
-	/*
+
 	if (args[0] == "uct") {
-		if (args.size() != 5) {
-			cerr << "uct parameters: <gamma> <bias> <time limit> <run limit>" << endl;
-			exit(1);	
+		if (args.size() != 7) {
+			cerr << "uct parameters: <gamma> <reward_type> <clear_tree> <full_tree> <run_limit> <time_limit>" << endl;
+			exit(1);
 		}
 		float gamma = atof(args[1].c_str());
-		float bias = atof(args[2].c_str());
-		int time_limit = atoi(args[3].c_str());
-		int run_limit = atoi(args[4].c_str());
-		sprintf(params, "planner=uct gamma=%f bias=%f tl=%d rl=%d", gamma, bias, time_limit, run_limit);
-		UCTPlanner uct_planner = UCTPlanner(new _FactoredUCTPlanner(domain, mdp, bias, gamma));
+		int reward_type = atoi(args[2].c_str());
+		bool clear_tree = args[3].compare("true") == 0 ? true : false;
+		bool full_tree = args[4].compare("true") == 0 ? true : false;
+		int run_limit = atoi(args[5].c_str());
+		int time_limit = atoi(args[6].c_str());
+		sprintf(params, "planner=uct gamma=%f reward_type=%d clear_tree=%d full_tree=%d runlimit=%d timelimit=%d", gamma, reward_type, clear_tree, full_tree, run_limit, time_limit);
+		cerr << "Params given to the planner = " << params << endl;
+		UCTPlanner uct_planner = UCTPlanner(new _FlatUCTPlanner(domain, mdp, gamma, reward_type, clear_tree, full_tree));
 		uct_planner->setTimeLimit(time_limit);
 		uct_planner->setRunLimit(run_limit);
 		planner = uct_planner;
 	}
-	*/
+
 	Agent agent(new _Agent(planner));
 	return agent;
 }
@@ -135,19 +138,19 @@ void usage(char** argv) {
 
 int main(int argc, char** argv) {
 	srand(time(0));
-	
+
 	if (argc <4) {
 		usage(argv);
-		return 1;	
+		return 1;
 	}
 	const char* maze_path = argv[1];
 	const char* config_path = argv[2];
-	
+
 	ifstream in_maze(maze_path);
 	Maze m = readMaze(in_maze);
 	ifstream in_cfg(config_path);
 	SlipConfig cfg = readSlipConfig(in_cfg);
-	
+
 	bool is_slip_maze = true;
 	for (size_t x=0; is_slip_maze && x<m->getWidth(); x++)
 		for (size_t y=0; is_slip_maze && y<m->getHeight(); y++) {
@@ -155,7 +158,7 @@ int main(int argc, char** argv) {
 				is_slip_maze = false;
 			}
 		}
-		
+
 	if (is_slip_maze) {
 		SlipMaze _slip_maze = SlipMaze(new _SlipMaze(m, cfg));
 		mdp = _slip_maze->getMDP();
@@ -170,11 +173,11 @@ int main(int argc, char** argv) {
 		mdp->predecessors(*(terminal_states->begin()));
 	}
 	//mdp->printXML(cerr);
-	
-	
+
+
 	for (int i=3; i<argc; i++)
 		args.push_back(argv[i]);
-	
+
 
 	try {
 		glue_main_agent();
@@ -182,6 +185,6 @@ int main(int argc, char** argv) {
 	catch (cpputil::Exception e) {
 		cerr << e << endl;
 	}
-	
+
 	return 0;
 }
