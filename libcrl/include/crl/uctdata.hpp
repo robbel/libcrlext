@@ -136,27 +136,24 @@ typedef HASH_MAP<Size, CStateInfoHash, KeyTypeHash> HASH_MAP_STATE_INFO;
 
 /// The basic interface for Q-tables for UCT algorithms.
 class _IUCTQTable : public _QTable {
-protected:
-	HASH_MAP<Size, CStateInfoHash, KeyTypeHash> _qdata;
-	/// Max value of reward (to be used to find the scaling factor C for UCT exploration bonus.
-	Reward _rmax;
-	/// 0 - the final game reward, 1 - the sum of step rewards from a given state.
-	int _reward_type;
-	/// Shrared pointer to the domain (for two direction action <-> hash and state <-> hash mappings).
-	Domain _domain;
-	/// The number of acgtions (the same for all states !!!).
-	Size _num_actions;
-
 public:
-	_IUCTQTable(const Domain& domain, int reward_type){
+	_IUCTQTable(const Domain& domain, int reward_type, Reward C){
 		_domain = domain;
-		_rmax = domain->getRewardRange().getMax();
+		if (C == 0) {
+			_C = domain->getRewardRange().getMax();
+		} else{
+			_C = C;
+		}
 		_num_actions = domain->getNumActions();
 		_reward_type = reward_type;
 	}
-	_IUCTQTable(const Domain& domain, int reward_type, Reward initial) {
+	_IUCTQTable(const Domain& domain, int reward_type, Reward C, Reward initial) {
 		_domain = domain;
-		_rmax = domain->getRewardRange().getMax();
+		if (C == 0) {
+			_C = domain->getRewardRange().getMax();
+		} else{
+			_C = C;
+		}
 		_num_actions = domain->getNumActions();
 		_reward_type = reward_type;
 	}
@@ -190,7 +187,7 @@ public:
 	/// @param hash_list - hashes of actions in state state_hash.
 	/// @param[out] hash_a - the hash code of the action which is returned by this function
 	/// @param explore - if true do exploration
-	virtual Action GetUCTAction(Size state_hash, Size& hash_a, bool explore=true) = 0;
+	virtual Action GetUCTAction(Size state_hash, Size& hash_a, bool explore=true);
 
 	/// Update learned parameters for states which are in the trace.
 	/// @param cumulative_reward - a final score at the end of the game.
@@ -201,19 +198,35 @@ public:
 	virtual void 	setQ (const State &s, const Action &a, Reward r) = 0;
 	virtual Action 	getBestAction (const State &s) = 0;
 	virtual Reward 	getV (const State &s) = 0;
+
+protected:
+	HASH_MAP<Size, CStateInfoHash, KeyTypeHash> _qdata;
+	/// the scaling factor C for UCT exploration bonus (if 0 then _C = Rmax)
+	Reward _C;
+	/// 0 - the final game reward, 1 - the sum of step rewards from a given state.
+	int _reward_type;
+	/// Shrared pointer to the domain (for two direction action <-> hash and state <-> hash mappings).
+	Domain _domain;
+	/// The number of acgtions (the same for all states !!!).
+	Size _num_actions;
+
+	/// @return the value Q(state_hash,hash_a)
+	/// @param if explore=true then add exploration bonus, algorithm specific code for computing UCT exploration
+	/// bonus should be in this function.
+	/// @param lonN = log(state_info->N); log of the number of visits to the current state.
+	virtual Reward GetUCTValue(CActionInfoHash& action_info, double logN, bool explore=true) = 0;
 };
 typedef boost::shared_ptr<_IUCTQTable> IUCTQTable;
 
 /// The Q-table for standard UCT.
 class _UCTQTable : public _IUCTQTable {
 public:
-	_UCTQTable(const Domain& domain, int reward_type): _IUCTQTable(domain, reward_type){}
+	_UCTQTable(const Domain& domain, int reward_type, Reward C): _IUCTQTable(domain, reward_type, C){}
+	virtual ~_UCTQTable(){}
 
 	virtual void Visit(Size hash_s, Size hash_a){
 		_IUCTQTable::Visit<CStateInfoHash, _CStateInfoHash, CActionInfoHash, _CActionInfoHash>(hash_s, hash_a);
 	}
-
-	virtual Action GetUCTAction(Size state_hash, Size& hash_a, bool explore=true);
 
 	virtual void DoBackups(_CTraceList& trace, double cumulative_reward, bool full_tree);
 
@@ -221,6 +234,30 @@ public:
 	virtual void 	setQ (const State &s, const Action &a, Reward r) {}
 	virtual Action 	getBestAction (const State &s);
 	virtual Reward 	getV (const State &s) {return 0.0;}
+
+protected:
+	virtual Reward GetUCTValue(CActionInfoHash& action_info, double logN, bool explore=true);
+};
+
+/// The Q-table for standard MB-UCT.
+class _MBUCTQTable : public _IUCTQTable {
+public:
+	_MBUCTQTable(const Domain& domain, int reward_type, Reward C): _IUCTQTable(domain, reward_type, C){}
+	virtual ~_MBUCTQTable(){}
+
+	virtual void Visit(Size hash_s, Size hash_a){
+		_IUCTQTable::Visit<CStateInfoMBHash, _CStateInfoMBHash, CActionInfoHash, _CActionInfoHash>(hash_s, hash_a);
+	}
+
+	virtual void DoBackups(_CTraceList& trace, double cumulative_reward, bool full_tree);
+
+	virtual Reward 	getQ (const State &s, const Action &a);
+	virtual void 	setQ (const State &s, const Action &a, Reward r);
+	virtual Action 	getBestAction (const State &s);
+	virtual Reward 	getV (const State &s);
+
+protected:
+	virtual Reward GetUCTValue(CActionInfoHash& action_info, double logN, bool explore=true);
 };
 
 // ------------------------------------------------------------------------------------

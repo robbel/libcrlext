@@ -89,8 +89,8 @@ class _UCTPlanner : public _IUCTPlanner {
 public:
 	virtual ~_UCTPlanner(){}
 protected:
-	_UCTPlanner(Domain domain, MDP mdp, Reward gamma, int reward_type, bool clear_tree, bool full_tree)
-		: _IUCTPlanner(new _UCTQTable(domain, reward_type), domain, mdp, gamma, clear_tree, full_tree){}
+	_UCTPlanner(Domain domain, MDP mdp, Reward gamma, int reward_type, bool clear_tree, bool full_tree, Reward C)
+		: _IUCTPlanner(new _UCTQTable(domain, reward_type, C), domain, mdp, gamma, clear_tree, full_tree){}
 };
 typedef boost::shared_ptr<_UCTPlanner> UCTPlanner;
 
@@ -103,8 +103,31 @@ public:
 	/// @param gamma
 	/// @param reward_type 0 - final game reward, 1 - the sum of reward to go
 	/// @param clear_tree
-	_FlatUCTPlanner(Domain domain, MDP mdp, Reward gamma, int reward_type, bool clear_tree, bool full_tree)
-		: _UCTPlanner(domain, mdp, gamma, reward_type, clear_tree, full_tree){}
+	_FlatUCTPlanner(Domain domain, MDP mdp, Reward gamma, int reward_type, bool clear_tree, bool full_tree, Reward C)
+		: _UCTPlanner(domain, mdp, gamma, reward_type, clear_tree, full_tree, C){}
+};
+
+/// The MBUCT planner:
+/// Direct implementations of _IUCTPlanner are to create _IUCTPlanner with proper IUCTQTable implementation.
+class _MBUCTPlanner : public _IUCTPlanner {
+public:
+	virtual ~_MBUCTPlanner(){}
+protected:
+	_MBUCTPlanner(Domain domain, MDP mdp, Reward gamma, int reward_type, bool clear_tree, bool full_tree, Reward C)
+		: _IUCTPlanner(new _UCTQTable(domain, reward_type, C), domain, mdp, gamma, clear_tree, full_tree){}
+};
+typedef boost::shared_ptr<_MBUCTPlanner> MBUCTPlanner;
+
+/// _FlatMBUCTPlanner
+class _FlatMBUCTPlanner : public _MBUCTPlanner {
+public:
+	/// @param domain
+	/// @param mdp
+	/// @param gamma
+	/// @param reward_type 0 - final game reward, 1 - the sum of reward to go
+	/// @param clear_tree
+	_FlatMBUCTPlanner(Domain domain, MDP mdp, Reward gamma, int reward_type, bool clear_tree, bool full_tree, Reward C)
+		: _MBUCTPlanner(domain, mdp, gamma, reward_type, clear_tree, full_tree, C){}
 };
 
 } // crl
