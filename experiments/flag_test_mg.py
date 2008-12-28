@@ -9,7 +9,10 @@ agent_echo = Agent("echo RUN YOUR AGENT")
 agent_rtdp1 = Agent("expert_maze_agent "+maze+" "+cfg+" rtdp 1 0.1 25 500 10 0", cwd=cwd)
 agent_vi = Agent("expert_maze_agent "+maze+" "+cfg+" vi 1 .001", cwd=cwd)
 agent_ps = Agent("expert_maze_agent "+maze+" "+cfg+" ps 1 .001", cwd=cwd)
-agent_uct = Agent("expert_maze_agent "+maze+" "+cfg+" uct 1 1 false true 500 0", cwd=cwd)
+
+# Params for the uct agent:
+# <gamma> <reward_type> <clear_tree> <full_tree> <run_limit> <time_limit> <C>
+agent_uct = Agent("expert_maze_agent "+maze+" "+cfg+" uct 1 1 false true 500 0 0", cwd=cwd)
 
 env = Environment("glue_maze_env "+maze+" "+cfg, cwd=cwd)
 
