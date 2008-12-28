@@ -96,8 +96,8 @@ Agent crl::getCRLAgent(Domain domain) {
 	}
 
 	if (args[0] == "uct") {
-		if (args.size() != 7) {
-			cerr << "uct parameters: <gamma> <reward_type> <clear_tree> <full_tree> <run_limit> <time_limit>" << endl;
+		if (args.size() != 8) {
+			cerr << "uct parameters: <gamma> <reward_type> <clear_tree> <full_tree> <run_limit> <time_limit> <C>" << endl;
 			exit(1);
 		}
 		float gamma = atof(args[1].c_str());
@@ -106,9 +106,30 @@ Agent crl::getCRLAgent(Domain domain) {
 		bool full_tree = args[4].compare("true") == 0 ? true : false;
 		int run_limit = atoi(args[5].c_str());
 		int time_limit = atoi(args[6].c_str());
-		sprintf(params, "planner=uct gamma=%f reward_type=%d clear_tree=%d full_tree=%d runlimit=%d timelimit=%d", gamma, reward_type, clear_tree, full_tree, run_limit, time_limit);
+		float C = atof(args[7].c_str());
+		sprintf(params, "planner=uct gamma=%f reward_type=%d clear_tree=%d full_tree=%d runlimit=%d timelimit=%d C=%f", gamma, reward_type, clear_tree, full_tree, run_limit, time_limit, C);
 		cerr << "Params given to the planner = " << params << endl;
-		UCTPlanner uct_planner = UCTPlanner(new _FlatUCTPlanner(domain, mdp, gamma, reward_type, clear_tree, full_tree));
+		UCTPlanner uct_planner = UCTPlanner(new _FlatUCTPlanner(domain, mdp, gamma, reward_type, clear_tree, full_tree, C));
+		uct_planner->setTimeLimit(time_limit);
+		uct_planner->setRunLimit(run_limit);
+		planner = uct_planner;
+	}
+
+	if (args[0] == "mb-uct") {
+		if (args.size() != 8) {
+			cerr << "mb-uct parameters: <gamma> <reward_type> <clear_tree> <full_tree> <run_limit> <time_limit> <C>" << endl;
+			exit(1);
+		}
+		float gamma = atof(args[1].c_str());
+		int reward_type = atoi(args[2].c_str());
+		bool clear_tree = args[3].compare("true") == 0 ? true : false;
+		bool full_tree = args[4].compare("true") == 0 ? true : false;
+		int run_limit = atoi(args[5].c_str());
+		int time_limit = atoi(args[6].c_str());
+		float C = atof(args[7].c_str());
+		sprintf(params, "planner=uct gamma=%f reward_type=%d clear_tree=%d full_tree=%d runlimit=%d timelimit=%d C=%f", gamma, reward_type, clear_tree, full_tree, run_limit, time_limit, C);
+		cerr << "Params given to the planner = " << params << endl;
+		MBUCTPlanner uct_planner = MBUCTPlanner(new _FlatMBUCTPlanner(domain, mdp, gamma, reward_type, clear_tree, full_tree, C));
 		uct_planner->setTimeLimit(time_limit);
 		uct_planner->setRunLimit(run_limit);
 		planner = uct_planner;
