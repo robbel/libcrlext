@@ -22,7 +22,7 @@ pylab.title(path)
 
 pylab.xlabel("Trials")
 pylab.ylabel("Values")
-
+pylab.legend(names)
 try:
 	name = path.split('/')[-1]
 	name = name.split('.')[0]

@@ -13,6 +13,7 @@ exp_quiet = True
 env_quiet = True
 agent_quiet = True
 
+single_instance = None
 
 class Agent:
     def __init__(self, command, **entries):
@@ -88,7 +89,7 @@ def performInstanceRun(host, (instance_dir, run, instance), rand_seed, experimen
     makeDirectory(run_dir)
     
     log_file = run_dir+'/results.csv'
-    if checkIfExists(run_dir, 'results.csv'):
+    if single_instance is not None and checkIfExists(run_dir, 'results.csv'):
         print run_dir, "exists: skipping"
         return
     
@@ -260,13 +261,13 @@ def printUsage():
 
 def runExperimentor():
     exp_file = None
+    single_instance = None
     rand_seed = random.randint(0,100000)
     concurrent_experiments = 1
     hosts = None
     low_port = 4096
     resume_previous = False
     ignore_lock = False
-    single_instance = None
     max_runs = 0
     
     try:
@@ -383,7 +384,7 @@ def runExperimentor():
         
         threads = []
         for i in range(concurrent_experiments):
-            threads.append(spawnThread(instanceRuns, hqueue, lock, i, rand_seed, experiment_name, low_port))
+            threads.append(spawnThread(instanceRuns, hqueue, lock, i, rand_seed+i*concurrent_experiments, experiment_name, low_port))
         [thread.join() for thread in threads]
         
         names = set()
