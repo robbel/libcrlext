@@ -17,7 +17,7 @@
     You should have received a copy of the GNU Lesser General Public License
     along with CRL.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 #ifndef VI_H_
 #define VI_H_
 
@@ -27,9 +27,6 @@
 #include "crl/hdomain.hpp"
 #include "crl/mdomain.hpp"
 
-#ifdef NDEBUG
-HIETEKHRSD
-#endif
 
 namespace crl {
 
@@ -76,7 +73,7 @@ public:
 	 * Backup the value for a single state/action
 	 */
 	virtual Reward backupStateAction(const State& s, const Action& a);
-	
+
 	/**
 	 * Get the action that maximizes Q(s,a)
 	 */
