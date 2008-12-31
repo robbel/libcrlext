@@ -163,7 +163,7 @@ Action testHVI(MDP mdp, Domain domain) {
 	cout << "HVI finished " << count << " iterations in " << end_time - start_time << endl;
 	return a;
 }
-
+/*
 Action testUCT(MDP mdp, Domain domain) {
 	cout << "UCT" << endl;
 //	long start_time = time_in_milli();
@@ -180,7 +180,7 @@ Action testUCT(MDP mdp, Domain domain) {
 //	cout << "UCT finished in " << end_time - start_time << endl;
 	return a;
 }
-
+*/
 void testSS(MDP mdp, Domain domain) {
 	long start_time = time_in_milli();
 	SparseSamplingPlanner planner(new _SparseSamplingPlanner(mdp, 0.9, 2, 6));
@@ -198,20 +198,20 @@ void testExperiment(Domain domain) {
 	planner1->plan();
 	Agent agent1(new _Agent(planner1));
 
-
+/*
 	UCTPlanner planner2(new _FlatUCTPlanner(domain, mdp, 1, 1, false, true));
 	planner2->setRunLimit(0);
 	planner2->setTimeLimit(100);
 	planner2->setConfidenceCoeff(1);
 	Agent agent2(new _Agent(planner2));
-
+*/
 	Environment env(new _MDPEnvironment(mdp, s));
 
 	Experiment exp1(new _Experiment(env, agent1, 5));
 	cout <<  exp1->runExperiment() << endl;
 
-	Experiment exp2(new _Experiment(env, agent2, 5));
-	cout <<  exp2->runExperiment() << endl;
+//	Experiment exp2(new _Experiment(env, agent2, 5));
+//	cout <<  exp2->runExperiment() << endl;
 }
 
 void testState() {
