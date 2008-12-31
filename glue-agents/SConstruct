@@ -28,6 +28,11 @@ headers = []
 env = Environment(tools = ["default", "tools"], toolpath = '.',
                   CPPPATH=cpp_paths, CCFLAGS=ccflags, LIBPATH=lib_paths)
 
+shared_lib_suffix = ".so"
+if os.uname()[0] == "Darwin":
+	shared_lib_suffix = ".dylib"
+	env.Append(SHLINKFLAGS='-undefined dynamic_lookup')
+	
 config = Configure(env)
 has_crl = sum([
 	config.CheckCXXHeader('cpputil.hpp'),

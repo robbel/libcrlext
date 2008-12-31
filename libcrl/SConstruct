@@ -42,6 +42,12 @@ test_sources = [build.File('test.cpp')]
 env = Environment(tools = ["default", "tools"], toolpath = '.',
                   CPPPATH=cpp_paths, CCFLAGS=ccflags, LIBPATH=lib_paths)
 
+
+shared_lib_suffix = ".so"
+if os.uname()[0] == "Darwin":
+	shared_lib_suffix = ".dylib"
+	env.Append(SHLINKFLAGS='-undefined dynamic_lookup')
+	
 config = Configure(env)
 config.CheckCXXHeader('cpputil.hpp')
 config.CheckCXXHeader('boost/shared_ptr.hpp')
@@ -50,7 +56,7 @@ env = config.Finish()
 lib_targets = []
 bin_targets = []
 
-libcrl = env.SharedLibrary(lib.File('libcrl.so'), build_sources)
+libcrl = env.SharedLibrary(lib.File('libcrl'+shared_lib_suffix), build_sources)
 lib_targets += [libcrl]
 
 test = env.Program(bin.Entry('test'), test_sources, LIBS=['crl'])

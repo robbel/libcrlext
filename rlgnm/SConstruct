@@ -33,6 +33,11 @@ env_codec.c
 env = Environment(tools = ["default", "tools"], toolpath = '.',
                   CPPPATH=cpp_paths, CCFLAGS=ccflags, LIBPATH=lib_paths)
 
+shared_lib_suffix = ".so"
+if os.uname()[0] == "Darwin":
+	shared_lib_suffix = ".dylib"
+	env.Append(SHLINKFLAGS='-undefined dynamic_lookup')
+	
 config = Configure(env)
 config.CheckHeader('rlglue/Agent_common.h')
 config.CheckHeader('rlglue/Environment_common.h')
@@ -40,9 +45,9 @@ config.CheckHeader('rlglue/utils/C/RLStruct_util.h')
 config.CheckHeader('rlglue/network/RL_network.h')
 env = config.Finish()
 
-librlgnmagent = env.SharedLibrary(lib.File('librlgnmagent.so'), agent_sources)
+librlgnmagent = env.SharedLibrary(lib.File('librlgnmagent'+shared_lib_suffix), agent_sources)
 Alias('librlgnmagent', librlgnmagent)
-librlgnmenv = env.SharedLibrary(lib.File('librlgnmenv.so'), env_sources)
+librlgnmenv = env.SharedLibrary(lib.File('librlgnmenv'+shared_lib_suffix), env_sources)
 Alias('librlgnmenv', librlgnmenv)
 
 if prefix != Dir('.'):

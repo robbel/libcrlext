@@ -14,7 +14,7 @@ import os
 cpath = os.environ.get('CPATH', "")
 ld_library_path = os.environ.get('LD_LIBRARY_PATH', "")
 cpp_paths = cpath.split(':')+[prefix_inc, inc]
-lib_paths = ld_library_path.split(':')+[lib, prefix_lib]
+lib_paths = ld_library_path.split(':')+[prefix_lib, lib]
 
 ccflags = ['-Wall', '-Werror', '-ansi']
 if 'debug' in COMMAND_LINE_TARGETS:
@@ -31,6 +31,11 @@ headers = [inc.File('crl/mazes.hpp')]
 
 env = Environment(tools = ["default", "tools"], toolpath = '.',
                   CPPPATH=cpp_paths, CCFLAGS=ccflags, LIBPATH=lib_paths)
+
+shared_lib_suffix = ".so"
+if os.uname()[0] == "Darwin":
+	shared_lib_suffix = ".dylib"
+	env.Append(SHLINKFLAGS='-undefined dynamic_lookup')
 
 config = Configure(env)
 config.CheckLib('z')
@@ -55,7 +60,7 @@ env = config.Finish()
 lib_targets = []
 bin_targets = []
 
-libmazes = env.SharedLibrary(lib.File('libmazes.so'), build_sources,
+libmazes = env.SharedLibrary(lib.File('libmazes'+shared_lib_suffix), build_sources,
                              LIBS=['strxml', 'crl'])
 lib_targets += [libmazes]
 
@@ -81,8 +86,7 @@ if has_glue:
 	                                expert_maze_agent_sources,
 	                                LIBS=['strxml', 'crl', 'rlgnmagent',
 	                                      'rlcrlagent', 'rlutils', 'rlgluenetdev',
-	                                      'taskspecutils', 'mazes', 'diastream',
-	                                      'gzstream', 'z'])
+	                                      'taskspecutils', 'mazes'])
 	bin_targets += [expert_maze_agent]
 else:
 	print "Cannot build glue_maze_env or expert_maze_agent"
