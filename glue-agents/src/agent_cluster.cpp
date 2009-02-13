@@ -1,21 +1,21 @@
 /*
-    Copyright 2008 Rutgers University
-    Copyright 2008 John Asmuth
+    Copyright 2009 Rutgers University
+    Copyright 2009 John Asmuth
 
-    This file is part of CRL:RL-Glue:agents.
+    This file is part of CRL:RL-Glue:bayes.
 
-    CRL:RL-Glue:agents is free software: you can redistribute it and/or modify
+    CRL:RL-Glue:bayes is free software: you can redistribute it and/or modify
     it under the terms of the GNU Lesser General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    CRL:RL-Glue:agents is distributed in the hope that it will be useful,
+    CRL:RL-Glue:bayes is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU Lesser General Public License for more details.
 
     You should have received a copy of the GNU Lesser General Public License
-    along with CRL:RL-Glue:agents.  If not, see <http://www.gnu.org/licenses/>.
+    along with CRL:RL-Glue:bayes.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include <iostream>
@@ -25,7 +25,8 @@
 #include <crl/vi.hpp>
 #include <crl/fdomain.hpp>
 #include <rlgnmagent.h>
-#include "crl/glue_agent.hpp"
+#include <crl/glue_agent.hpp>
+#include "crl/outcomes.hpp"
 
 using namespace std;
 using namespace crl;
@@ -34,15 +35,52 @@ int _m;
 float _gamma;
 Reward _epsilon;
 
+
+class _OutcomeClusterLearner : public _MDPLearner {
+protected:
+	Domain _domain;
+public:
+	_OutcomeClusterLearner(const Domain& domain)
+	: _domain(domain) {
+
+	}
+	virtual bool observe(const State& s, const Action& a, const Observation& o) {
+		return true;
+	}
+	virtual StateIterator S() {
+		StateIterator itr(new _StateIncrementIterator(_domain));
+		return itr;
+	}
+	virtual StateIterator predecessors(const State& s) {
+		StateIterator itr(new _StateIncrementIterator(_domain));
+		return itr;
+	}
+	virtual ActionIterator A() {
+		ActionIterator itr(new _ActionIncrementIterator(_domain));
+		return itr;
+	}
+	virtual ActionIterator A(const State& s) {
+		ActionIterator itr(new _ActionIncrementIterator(_domain));
+		return itr;
+	}
+	virtual StateDistribution T(const State& s, const Action& a) {
+		return EmptyStateDistribution();
+	}
+	virtual Reward R(const State& s, const Action& a) {
+		return 0;
+	}
+};
+typedef boost::shared_ptr<_OutcomeClusterLearner> OutcomeClusterLearner;
+
 Agent crl::getCRLAgent(Domain domain) {
-	FMDPLearner mdp_learner(new _FMDPLearner(domain));
+	OutcomeClusterLearner mdp_learner(new _OutcomeClusterLearner(domain));
 	KnownClassifier classifier(new _FKnownClassifier(domain, _m));
 	ActionIterator itr(new _ActionIncrementIterator(domain));
-	
+
 	Reward vmax = domain->getRewardRange().getMax();
 	if (_gamma < 1)
 		vmax = domain->getRewardRange().getMax()/(1-_gamma);
-	
+
 	RMaxMDPLearner rmaxLearner(new _RMaxMDPLearner(mdp_learner, classifier, itr, vmax));
 	VIPlanner planner(new _FactoredVIPlanner(domain, rmaxLearner, _epsilon, _gamma));
 	VIPlannerAgent agent(new _VIPlannerAgent(planner, rmaxLearner));
@@ -67,10 +105,10 @@ const char* agent_message(const char* inMessage) {
 
 int main(int argc, char** argv) {
 	srand(time(0));
-	
+
 	if (argc != 4 && argc != 5) {
 		cerr << "Usage: " << argv[0] << " <m> <gamma> <epsilon> [host:port]" << endl;
-		return 1;	
+		return 1;
 	}
 	_m = atoi(argv[1]);
 	_gamma = atof(argv[2]);
@@ -81,10 +119,10 @@ int main(int argc, char** argv) {
 		host = strtok(argv[4], ":");
 		port = atoi(strtok(0, ":"));
 	}
-	
+
 	sprintf(params, "m=%d gamma=%f epsilon=%f", _m, _gamma, _epsilon);
-	
+
 	glue_main_agent(host, port);
-	
+
 	return 0;
 }

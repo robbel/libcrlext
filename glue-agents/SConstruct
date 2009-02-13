@@ -22,8 +22,8 @@ if 'debug' in COMMAND_LINE_TARGETS:
 
 BuildDir(build, src, duplicate=0)
 
-vi_rmax_sources = [build.File('agent_vi_rmax.cpp')]
-headers = []
+cluster_sources = map(build.File, ['agent_cluster.cpp', 'dpmem.cpp', 'outcomes.cpp'])
+headers = ['crl/dpmem.hpp', 'crl/outcomes.hpp']
 
 env = Environment(tools = ["default", "tools"], toolpath = '.',
                   CPPPATH=cpp_paths, CCFLAGS=ccflags, LIBPATH=lib_paths)
@@ -52,15 +52,15 @@ env = config.Finish()
 
 lib_targets = []
 bin_targets = []
-
+	
 if has_crl and has_glue:
-	agent_vi_rmax = env.Program(bin.Entry('agent_vi_rmax'), vi_rmax_sources,
+	agent_cluster = env.Program(bin.Entry('agent_cluster'), cluster_sources,
 	                       LIBS=['strxml', 'crl', 'rlgnmagent',
 	                             'rlcrlagent', 'rlutils', 'rlgluenetdev',
 	                             'taskspecutils'])
-	bin_targets += [agent_vi_rmax]
+	bin_targets += [agent_cluster]
 else:
-	print "Cannot build agent_vi_rmax"
+	print "Cannot build agent_cluster"
 
 if prefix != Dir('.'):
 	for header in headers:
@@ -76,7 +76,7 @@ dist_files = [File(x) for x in """
 COPYING COPYING.LESSER SConstruct tools.py
 """.split()]
 dist_files += [inc.Entry(header) for header in headers]
-dist_files += [src.Entry(s) for s in vi_rmax_sources] 
+dist_files += [src.Entry(s) for s in cluster_sources] 
 
 env.Alias('dist', env.DistTar('glue-agents.tar.gz', dist_files))
 	
