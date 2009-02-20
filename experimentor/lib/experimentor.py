@@ -167,24 +167,22 @@ class ExperimentThread(threading.Thread):
         self.experiment_name = experiment_name
         self.port = port
     def run(self):
-        while True:
-            self.lock.acquire()
-            if len(self.instanceRuns) == 0:
-                self.lock.release()
-                return
-            instanceRun = self.instanceRuns.pop(0)
-            
-            self.lock.release()
-            seed = self.rand_seed + instanceRun[1]
-            host = None
-            
-            agent_load = instanceRun[2].agent.load
-            
-            if self.hqueue:
-                host = self.hqueue.acquireHost(agent_load)
-            performInstanceRun(host, instanceRun, seed, self.experiment_name, self.port)
-            if self.hqueue:
-                self.hqueue.releaseHost(host, agent_load)
+        try:
+            while True:
+                instanceRun = self.instanceRuns.pop(0)
+                
+                seed = self.rand_seed + instanceRun[1]
+                host = None
+                
+                agent_load = instanceRun[2].agent.load
+                
+                if self.hqueue:
+                    host = self.hqueue.acquireHost(agent_load)
+                performInstanceRun(host, instanceRun, seed, self.experiment_name, self.port)
+                if self.hqueue:
+                    self.hqueue.releaseHost(host, agent_load)
+        except IndexError:
+            return
 
 def spawnThread(instanceRuns, hqueue, lock, thread_id, rand_seed, experiment_name, low_port):
     port = low_port+thread_id
@@ -380,7 +378,7 @@ def runExperimentor():
                 #("VI", agent_vi, env, 0, 100, 1)
                 instanceRuns += [(instanceDir, run, instance)]
         
-        lock = threading.Lock()
+        lock = None
         
         threads = []
         for i in range(concurrent_experiments):

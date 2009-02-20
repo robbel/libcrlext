@@ -28,7 +28,7 @@ def launchProcess(hcmd, cwd, cmd, verbose, silent, **entries):
             full_cmd += " > /dev/null"
         #print full_cmd
         os.system(full_cmd)
-    sys.exit(0)
+    os._exit(0)
     
 def checkIfExists(dir, file):
     try:

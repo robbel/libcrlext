@@ -1,4 +1,4 @@
-/* 
+/*
  Copyright (C) 2008, Brian Tanner
  modified by John Asmuth
 
@@ -41,12 +41,12 @@ inline time_t time_in_milli() {
 
 template <class T>
 string printArray(const char* name, T* a, int n) {
-	ostringstream os; 
+	ostringstream os;
 	os << "<" << name << ">";
 	for (int i=0; i<n; i++) {
 		os << a[i];
 		if (i != n-1)
-			os << ", ";	
+			os << ", ";
 	}
 	os << "</" << name << ">";
 	return os.str();
@@ -56,7 +56,7 @@ void runEpisode(ostream& os, int episode, int step_limit, int& steps_total, rewa
 	int terminal;
 	if (output == xml)
 		os << "  <Episode>" << endl;
-		
+
 	time_t start_time = time_in_milli();
 	if (!experiment_verbose) {
 		terminal = RL_episode(step_limit);
@@ -64,6 +64,7 @@ void runEpisode(ostream& os, int episode, int step_limit, int& steps_total, rewa
 	else {
 		os << "   <Trajectory>" << endl;
 		const observation_action_t* startResponse = RL_start();
+		start_time = time_in_milli();
 		os << "    <Observation>" << endl;
 		if (startResponse->observation->numInts)
 			os << "     " << printArray<int>("ints", startResponse->observation->intArray, startResponse->observation->numInts) << endl;
@@ -72,12 +73,12 @@ void runEpisode(ostream& os, int episode, int step_limit, int& steps_total, rewa
 		if (startResponse->observation->numChars)
 			os << "     " << printArray<char>("chars", startResponse->observation->charArray, startResponse->observation->numChars) << endl;
 		os << "    </Observation>" << endl;
-	
-		
+
+
 		int steps = 1;
-		
+
 		const reward_observation_action_terminal_t* stepResponse = RL_step();
-		
+
 		while(stepResponse->terminal != 1 && (step_limit == 0 || steps < step_limit)){
 			stepResponse = RL_step();
 			if(stepResponse->terminal !=1 ){
@@ -98,9 +99,9 @@ void runEpisode(ostream& os, int episode, int step_limit, int& steps_total, rewa
 				if (startResponse->observation->numChars)
 					os << "     " << printArray<char>("chars", stepResponse->observation->charArray, stepResponse->observation->numChars) << endl;
 				os << "    </Observation>" << endl;
-				
+
 			}
-		}	
+		}
 		terminal = stepResponse->terminal;
 		os << "   </Trajectory>" << endl;
 	}
@@ -134,7 +135,7 @@ void runEpisode(ostream& os, int episode, int step_limit, int& steps_total, rewa
 int main(int argc, char *argv[]) {
 	output = xml;
 	experiment_verbose = false;
-	
+
 	int num_eps = 10;
 	int step_limit = 0;
 	const char* out_path = "/dev/stdout";
@@ -153,7 +154,7 @@ int main(int argc, char *argv[]) {
 		}
 		if (!strcmp(argv[i], "-v")) {
 			experiment_verbose = true;
-			continue;	
+			continue;
 		}
 		if (!strcmp(argv[i], "-seed")) {
 			seed = atoi(argv[++i]);
@@ -169,7 +170,7 @@ int main(int argc, char *argv[]) {
 			exp_id = argv[i];
 		if (j == 4) {
 			setenv("RLGLUE_HOST", strtok(argv[i], ":"), 1);
-			setenv("RLGLUE_PORT", strtok(0, ":"), 1); 
+			setenv("RLGLUE_PORT", strtok(0, ":"), 1);
 		}
 		j++;
 	}
@@ -178,7 +179,7 @@ int main(int argc, char *argv[]) {
 		cerr << " Options:" << endl;
 		cerr << "  -xml, -csv: output format" << endl;
 		cerr << "  -seed x: seed the environment and agent with x" << endl;
-		cerr << "  -v: verbose - print the entire trajectory (only in xml mode)" << endl; 
+		cerr << "  -v: verbose - print the entire trajectory (only in xml mode)" << endl;
 		return 1;
 	}
 
@@ -192,14 +193,14 @@ int main(int argc, char *argv[]) {
 	time_t start_time = time_in_milli();
 
 	const char* task_spec = strdup(RL_init());
-	
+
 	const char* agent_id = strdup(RL_agent_message((char*)"id"));
 	const char* agent_param = strdup(RL_agent_message((char*)"param"));
 	const char* agent_vers = strdup(RL_agent_message((char*)"version"));
 	const char* env_id = strdup(RL_env_message((char*)"id"));
 	const char* env_param = strdup(RL_env_message((char*)"param"));
 	const char* env_vers = strdup(RL_env_message((char*)"version"));
-	
+
 	{
 		ostringstream seed_os;
 		seed_os << "seed " << seed;
@@ -211,8 +212,8 @@ int main(int argc, char *argv[]) {
 		seed_os << "seed " << (seed+1);
 		char* seed_str = (char*)seed_os.str().c_str();
 		RL_env_message(seed_str);
-	} 
-	
+	}
+
 	if (output == xml) {
 		if (!exp_id)
 			os << "<Experiment>" << endl;
@@ -228,7 +229,7 @@ int main(int argc, char *argv[]) {
 		   << " <Episodes>" << endl;
 	}
 	if (output == csv) {
-		
+
 		os << "Experiment ID:\t" << (exp_id?exp_id:"") << endl
 		   << "Task:\t" << task_spec << endl
 		   << "Agent:\t" << agent_id << endl
@@ -257,7 +258,7 @@ int main(int argc, char *argv[]) {
 		   << " <averageReturn>" << avg_return << "</averageReturn>" << endl
 		   << "</Experiment>" << endl;
 	}
-		
+
 	RL_cleanup();
 	delete task_spec;
 	delete agent_id;
