@@ -52,6 +52,9 @@ public:
 		return next_value++;
 	}
 	virtual Size peek() {
+		if (recycling_bin.size() > 0) {
+			return recycling_bin[recycling_bin.size()-1];
+		}
 		return next_value;
 	}
 	virtual void recycle(Size value) {
@@ -94,6 +97,7 @@ public:
 	 * Get the posterior of a possible sample
 	 */
 	Probability P(Size value);
+	void print();
 
 	virtual ~_DPMem() { }
 };

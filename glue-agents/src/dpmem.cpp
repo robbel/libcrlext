@@ -18,12 +18,14 @@
     along with CRL:RL-Glue:bayes.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <iostream>
 #include <cpputil.hpp>
 
 #include "crl/dpmem.hpp"
 
-using namespace crl;
+using namespace std;
 using namespace cpputil;
+using namespace crl;
 
 Size _DPMem::draw() {
 	Probability u = randDouble();
@@ -32,11 +34,8 @@ Size _DPMem::draw() {
 	double c = 0;
 	for (Size i=0; i<_counts.size(); i++) {
 		c += _counts[i];
-		if (c < r) {
-			_counts[i]++;
-			_total++;
-			return i;
-		}
+		if (c < r)
+			return draw(i);
 	}
 	Size value = _gen->next();
 	return draw(value);
@@ -44,7 +43,7 @@ Size _DPMem::draw() {
 
 Size _DPMem::draw(Size value) {
 	if (_counts.size() <= value) {
-		_counts.resize(value, 0);
+		_counts.resize(value+1, 0);
 	}
 	_counts[value]++;
 	_total++;
@@ -58,6 +57,8 @@ Size _DPMem::peekUnseen() {
 void _DPMem::undraw(Size value) {
 	_counts[value]--;
 	_total--;
+	if (_counts[value] == 0)
+		_gen->recycle(value);
 }
 
 Size _DPMem::count(Size value) {
@@ -67,8 +68,14 @@ Size _DPMem::count(Size value) {
 }
 
 Probability _DPMem::P(Size value) {
-	if (value >= _counts.size())
+	if (value >= _counts.size() || _counts[value] == 0)
 		return _alpha/_total;
-	return _counts[value]/_total;
+	return 1.0*_counts[value]/_total;
 }
 
+void _DPMem::print() {
+	cerr << "DP(" << _alpha << "):";
+	for (Size i=0; i<_counts.size(); i++)
+		cerr << " " << i << ":" << _counts[i];
+	cerr << endl;
+}

@@ -74,6 +74,12 @@ public:
 	Outcome getOutcome(Size index) {
 		return _outcomes[index];
 	}
+	Size getOutcomeIndex(Outcome o) {
+		for (Size i=0; i<_outcomes.size(); i++)
+			if (o == _outcomes[i])
+				return i;
+		return -1;
+	}
 	Size numOutcomes() {return _outcomes.size();}
 
 	void print();

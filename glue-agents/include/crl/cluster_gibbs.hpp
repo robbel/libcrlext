@@ -35,9 +35,11 @@ protected:
 	std::vector<Cluster> _clusters;
 	_FStateTable<Size> _cluster_indices;
 	DPMem _dp;
+	_FActionTable<std::vector<Size> > _cluster_priors;
 public:
 	_OutcomeClusterLearner(const Domain& domain, const std::vector<Outcome>& outcomes);
 	virtual ~_OutcomeClusterLearner() { }
+	Cluster createNewCluster();
 	void assignInitialClusters();
 	void gibbsSweepClusters();
 	void inferClusters();

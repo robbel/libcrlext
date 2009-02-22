@@ -174,7 +174,8 @@ Size _Cluster::size() {
 }
 
 Probability _Cluster::P(const Action& a, const Outcome& o) {
-	return 1.0/_outcome_table->numOutcomes();
+	Size index = _outcome_table->getOutcomeIndex(o);
+	return _outcome_probs.getValue(a)[index];
 }
 
 Probability _Cluster::logP(const State& s) {
@@ -188,7 +189,7 @@ Probability _Cluster::logP(const State& s) {
 			Probability outcome_likelihood = P(a, o);
 			Probability log_likelihood = log(outcome_likelihood);
 			log_p += log_likelihood * outcome_counts[outcome_index];
-			cerr << log_p << endl;
+			//cerr << log_p << endl;
 		}
 	}
 	return log_p;

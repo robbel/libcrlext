@@ -49,7 +49,6 @@ public:
 	: _Agent(planner, cluster_learner), _cluster_learner(cluster_learner) { }
 	virtual ~_OutcomeClusterAgent() {
 		_cluster_learner->inferClusters();
-		_cluster_learner->printClusters();
 	}
 };
 
