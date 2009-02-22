@@ -17,7 +17,7 @@
     You should have received a copy of the GNU Lesser General Public License
     along with CRL.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 #ifndef TYPES_HPP_
 #define TYPES_HPP_
 
@@ -27,7 +27,7 @@
 namespace crl {
 
 typedef float Reward;
-typedef float Probability;
+typedef double Probability;
 typedef short Factor;
 typedef uint64_t Size;
 typedef long Index;

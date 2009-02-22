@@ -51,7 +51,7 @@ protected:
 public:
 	_Domain();
 	virtual ~_Domain() { }
-	
+
 	RewardRange getRewardRange() const {
 		return _reward_range;
 	}
@@ -82,7 +82,7 @@ public:
 	Size getNumActionFactors() {
 		return _action_ranges.size();
 	}
-	
+
 	void addStateFactor(Factor min, Factor max);
 	void addActionFactor(Factor min, Factor max);
 };
@@ -112,7 +112,7 @@ protected:
 	 * multidimensional array would be if it were flattened.
 	 */
 	Size _index;
-	
+
 	RLType()
 	: _ranges(0), _components(0), _index(0) { }
 	RLType(const RangeVec* ranges, const SizeVec* components)
@@ -121,14 +121,14 @@ protected:
 	: _ranges(ranges), _components(components), _index(index) { }
 public:
 	virtual ~RLType() { }
-	
+
 	virtual Size size() const {
 		if (!_ranges) {
 			throw NullObjectException();
 		}
 		return _ranges->size();
 	}
-	
+
 	virtual void setFactor(Size index, Factor data) {
 		if (!_ranges) {
 			throw NullObjectException();
@@ -151,7 +151,7 @@ public:
 		//offset the factor with the minimum
 		return (Factor)ret+(*_ranges)[index].getMin();
 	}
-	
+
 	void setIndex(int index) {
 		_index = index;
 	}
@@ -287,7 +287,7 @@ protected:
 public:
 	_StateRandomIterator(const Domain& domain)
 	: _domain(domain), _last(domain) {
-		
+
 	}
 	const State& next() {
 		_last = State(_domain, random()%_domain->getNumStates());
@@ -297,7 +297,7 @@ public:
 		return true;
 	}
 	void reset() {
-		
+
 	}
 };
 typedef boost::shared_ptr<_StateRandomIterator> StateRandomIterator;
@@ -309,7 +309,7 @@ protected:
 public:
 	_ActionRandomIterator(const Domain& domain)
 	: _domain(domain), _last(domain) {
-		
+
 	}
 	const Action& next() {
 		_last = Action(_domain, random()%_domain->getNumActions());
@@ -319,7 +319,7 @@ public:
 		return true;
 	}
 	void reset() {
-		
+
 	}
 };
 typedef boost::shared_ptr<_ActionRandomIterator> ActionRandomIterator;
@@ -330,7 +330,7 @@ template <class T>
 class _StateTable {
 public:
 	virtual ~_StateTable() { }
-	
+
 	virtual T& getValue(const State& s) = 0;
 	virtual void setValue(const State& s, T t) = 0;
 	virtual StateIterator iterator() = 0;
@@ -345,8 +345,8 @@ template <class T>
 class _ActionTable {
 public:
 	virtual ~_ActionTable() { }
-	
-	virtual T getValue(const Action& a) = 0;
+
+	virtual T& getValue(const Action& a) = 0;
 	virtual void setValue(const Action& a, T t) = 0;
 	virtual ActionIterator iterator() = 0;
 };
@@ -361,7 +361,7 @@ template <class T>
 class _StateActionTable {
 public:
 	virtual ~_StateActionTable() { }
-	
+
 	virtual T& getValue(const State& s, const Action& a) = 0;
 	virtual void setValue(const State& s, const Action& a, T t) = 0;
 };
@@ -382,9 +382,9 @@ template <class T>
 class _Distribution {
 public:
 	virtual ~_Distribution() { }
-	
+
 	typedef boost::shared_ptr<cpputil::Iterator<T> > Iterator;
-	
+
 	/**
 	 * Iterate through possible outcomes
 	 */

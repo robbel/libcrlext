@@ -42,7 +42,7 @@ public:
 	_Observation(const State& s, Reward r)
 	: _s(s), _r(r) { }
 	virtual ~_Observation() { }
-	
+
 	State getState() {return _s;}
 	Reward getReward() {return _r;}
 };
@@ -57,7 +57,7 @@ inline std::ostream& operator<<(std::ostream& os, const Observation& o) {
 class _MDP {
 public:
 	virtual ~_MDP() { }
-	
+
 	virtual StateIterator S() = 0;
 	virtual StateIterator predecessors(const State& s) = 0;
 	virtual ActionIterator A() = 0;
@@ -114,7 +114,7 @@ protected:
 	: _potential(potential) { }
 public:
 	virtual ~_QTable() { }
-	
+
 	virtual Reward getQ(const State& s, const Action& a) = 0;
 	virtual void setQ(const State& s, const Action& a, Reward r) = 0;
 	virtual Action getBestAction(const State& s) = 0;
@@ -136,6 +136,25 @@ public:
 typedef boost::shared_ptr<_Planner> Planner;
 
 /**
+ * A simple planner for testing data throughput
+ */
+class _RandomPlanner : public _Planner {
+protected:
+	Domain _domain;
+public:
+	_RandomPlanner(const Domain& domain)
+	: _domain(domain) { }
+	virtual ~_RandomPlanner() { }
+	virtual Action getAction(const State& s) {
+		Size numActions = _domain->getNumActions();
+		Index actionIndex = random()%numActions;
+		Action a(_domain, actionIndex);
+		return a;
+	}
+};
+typedef boost::shared_ptr<_RandomPlanner> RandomPlanner;
+
+/**
  * Interface for something that learns from experience.
  */
 class _Learner {
@@ -147,7 +166,7 @@ public:
 	 */
 	virtual bool observe(const State& s, const Action& a, const Observation& o) = 0;
 };
-typedef boost::shared_ptr<_Learner> Learner; 
+typedef boost::shared_ptr<_Learner> Learner;
 
 /**
  * Interface for classes that make observations and take actions
@@ -162,7 +181,7 @@ public:
 	_Agent(Planner planner);
 	_Agent(Planner planner, Learner learner);
 	virtual ~_Agent() { }
-	
+
 	virtual void begin(const State& s);
 	virtual void end();
 	virtual bool observe(const Observation& o);
@@ -175,7 +194,7 @@ typedef boost::shared_ptr<_Agent> Agent;
 class _Environment {
 public:
 	virtual ~_Environment() { }
-	
+
 	virtual State begin() = 0;
 	virtual bool isTerminated() = 0;
 	virtual Observation getObservation(const Action& a) = 0;

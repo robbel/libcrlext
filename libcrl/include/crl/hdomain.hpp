@@ -17,7 +17,7 @@
     You should have received a copy of the GNU Lesser General Public License
     along with CRL.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 #ifndef HDOMAIN_HPP_
 #define HDOMAIN_HPP_
 
@@ -54,7 +54,7 @@ std_hash_map<K,V,H> alloc_hash_map(size_t num_buckets=100) {
 }
 
 #endif
- 
+
 
 namespace crl {
 
@@ -63,13 +63,13 @@ namespace crl {
  */
 template <class T>
 class _HashTable {
-	typedef std_hash_map<Size,T> hm_t;
+	typedef std_hash_map<Size,T,SizeHash> hm_t;
 protected:
 	hm_t _values;
 public:
 	_HashTable(Size num_buckets=100)
-	: _values(alloc_hash_map<Size,T>(num_buckets)) {
-		
+	: _values(alloc_hash_map<Size,T,SizeHash>(num_buckets)) {
+
 	}
 	virtual ~_HashTable() { }
 	virtual T& getValue(const RLType& r) {
@@ -97,9 +97,9 @@ public:
 	_HStateActionTable(const Domain& domain, T initial, Size num_buckets=1000)
 	: _domain(domain), _sa_values(alloc_hash_map<Size,std::vector<T>,SizeHash>(num_buckets)), _initial(initial) { }
 	virtual void clear() {
-		_sa_values.clear();	
+		_sa_values.clear();
 	}
-	
+
 	virtual T& getValue(const State& s, const Action& a) {
 		std::vector<T>& a_v = _sa_values[s.getIndex()];
 		if (a_v.size() == 0)
@@ -124,7 +124,7 @@ protected:
 	Reward _initial;
 public:
 	_HQTable(const Domain& domain, Size num_buckets=1000);
-	
+
 	virtual Reward getQ(const State& s, const Action& a) {
 		return _HStateActionTable<Reward>::getValue(s, a);
 	}
