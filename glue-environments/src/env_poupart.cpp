@@ -40,6 +40,7 @@ Probability probs[] = {.9, .7};
 Reward reward_step = -1;
 Reward reward_goal = 0;
 Reward reward_reset = 0;
+bool reset = true; //reset goes to beginning with true, back one step if false
 
 class _ChainEnv : public _Environment {
 protected:
@@ -58,7 +59,7 @@ typedef boost::shared_ptr<_ChainEnv> ChainEnv;
 
 _ChainEnv::_ChainEnv(const Domain& domain)
 : _domain(domain) {
-	for (int i=0; i<5; i++) {
+	for (int i=0; i<num_links+1; i++) {
 		float r = randDouble();
 		float c = 0;
 		for (int j=0; j<num_types; j++) {
@@ -103,7 +104,10 @@ Observation _ChainEnv::getObservation(const Action& a) {
 		action = 1-action;
 	}
 	if (action == 0) {
-		_current.setFactor(0, 0);
+		if (reset || link == 0)
+			_current.setFactor(0, 0);
+		else
+			_current.setFactor(0, link-1);
 		r = reward_reset;
 	}
 	if (action == 1)
