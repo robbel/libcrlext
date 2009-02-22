@@ -19,10 +19,14 @@
  */
 
 #include <math.h>
+
+#include <cpputil.hpp>
+
 #include "crl/outcomes.hpp"
 
 using namespace crl;
 using namespace std;
+using namespace cpputil;
 
 _StepOutcome::_StepOutcome(const vector<int>& deltas)
 : _deltas(deltas) {
@@ -32,9 +36,9 @@ _StepOutcome::_StepOutcome(const vector<int>& deltas)
 bool _StepOutcome::match(const State& s, const State& sp) {
 	for (Size i=0; i<s.size(); i++) {
 		if (sp.getFactor(i)-s.getFactor(i) != _deltas[i])
-			return true;
+			return false;
 	}
-	return false;
+	return true;
 }
 
 _FixedOutcome::_FixedOutcome(const State& s)
@@ -54,60 +58,153 @@ _OutcomeTable::_OutcomeTable(const Domain& domain, const std::vector<Outcome>& o
 
 bool _OutcomeTable::observe(const State& s, const Action& a, const Observation& o) {
 	State sp = o->getState();
+	if (!sp)
+		return false;
 	Size total = 0;
 	vector<Size>& counts = _outcomeCounts.getValue(s, a);
+
 	for (Size i=0; i<_outcomes.size(); i++) {
-		if (_outcomes[i]->match(s, sp))
+		if (_outcomes[i]->match(s, sp)) {
 			counts[i] += 1;
+		}
 		total += counts[i];
 	}
-	double normInv = 1.0/total;
-	vector<Probability>& probabilities = _outcomeDistributions.getValue(s, a);
-	for (Size i=0; i<_outcomes.size(); i++)
-		probabilities[i] = counts[i]*normInv;
 
 	return true;
 }
 
-Probability _OutcomeTable::outcomesGivenDistribution(const State& s, vector<_FActionTable<Probability> > dist) {
-	Probability p = 1;
-	ActionIterator itr(new _ActionIncrementIterator(_domain));
-	for (Size i=0; i<dist.size(); i++) {
-		_FActionTable<Probability>& ptable = dist[i];
-		while (itr->hasNext()) {
-			Action a = itr->next();
-			vector<Size>& counts = _outcomeCounts.getValue(s, a);
-			p *= pow(ptable.getValue(a), counts[i]);
-		}
-	}
-
-	return p;
-}
-
-vector<_FActionTable<Probability> > _OutcomeTable::clusterDistribution(StateIterator sitr) {
-	std::vector<_FActionTable<Size> > counts(_outcomes.size(), _FActionTable<Size>(_domain, 0));
-	//_FActionTable
-	sitr->reset();
-	ActionIterator aitr(new _ActionIncrementIterator(_domain));
+void _OutcomeTable::print() {
+	StateIterator sitr(new _StateIncrementIterator(_domain));
 	while (sitr->hasNext()) {
 		State s = sitr->next();
-		aitr->reset();
+		cerr << "for state " << s << endl;
+		ActionIterator aitr(new _ActionIncrementIterator(_domain));
 		while (aitr->hasNext()) {
 			Action a = aitr->next();
+			cerr << " for action " << a << endl;
+			vector<Size>& counts = _outcomeCounts.getValue(s, a);
 			for (Size i=0; i<_outcomes.size(); i++) {
-				Size count = counts[i].getValue(a);
-				counts[i].setValue(a, count+_outcomeCounts.getValue(s, a)[i]);
+				cerr << "  outcome " << i << " = " << counts[i] << endl;
 			}
 		}
 	}
-	vector<_FActionTable<Probability> > dist(_outcomes.size(), _FActionTable<Probability>(_domain));
+}
 
-	aitr->reset();
+_Cluster::_Cluster(const Domain& domain, OutcomeTable outcome_table)
+: _domain(domain), _outcome_table(outcome_table),
+  _outcome_counts(domain, vector<Size>(_outcome_table->numOutcomes(), 1)),
+  _outcome_totals(domain, 0),
+  _outcome_probs(domain, vector<Probability>(_outcome_table->numOutcomes())), _num_states(0) {
+	ActionIterator aitr = ActionIterator(new _ActionIncrementIterator(_domain));
 	while (aitr->hasNext()) {
 		Action a = aitr->next();
-		for (Size i=0; i<_outcomes.size(); i++) {
+		Size total = 0;
+		vector<Size>& counts = _outcome_counts.getValue(a);
+		for (Size i=0; i<counts.size(); i++)
+			total += counts[i];
+		_outcome_totals.setValue(a, total);
+		Probability totalInv = 1.0/total;
+		vector<Probability>& probs = _outcome_probs.getValue(a);
+		for (Size i=0; i<counts.size(); i++)
+			probs[i] = totalInv*counts[i];
+	}
+}
 
+_Cluster::_Cluster(const Domain& domain, OutcomeTable outcome_table, _FActionTable<std::vector<Size> > _outcome_priors)
+: _domain(domain), _outcome_table(outcome_table), _outcome_counts(_outcome_priors),
+  _outcome_totals(domain, 0),
+  _outcome_probs(domain, vector<Probability>(_outcome_table->numOutcomes())), _num_states(0) {
+	ActionIterator aitr = ActionIterator(new _ActionIncrementIterator(_domain));
+	while (aitr->hasNext()) {
+		Action a = aitr->next();
+		Size total = 0;
+		vector<Size>& counts = _outcome_counts.getValue(a);
+		for (Size i=0; i<counts.size(); i++)
+			total += counts[i];
+		_outcome_totals.setValue(a, total);
+		Probability totalInv = 1.0/total;
+		vector<Probability>& probs = _outcome_probs.getValue(a);
+		for (Size i=0; i<probs.size(); i++)
+			probs[i] = totalInv*counts[i];
+	}
+}
+
+void _Cluster::addState(const State& s) {
+	_num_states++;
+	ActionIterator aitr(new _ActionIncrementIterator(_domain));
+	while (aitr->hasNext()) {
+		Action a = aitr->next();
+		vector<Size>& cluster_action_counts = _outcome_counts.getValue(a);
+		vector<Size>& total_action_counts = _outcome_table->getOutcomeCounts(s, a);
+		Size total = _outcome_totals.getValue(a);
+		for (Size i=0; i<_outcome_table->numOutcomes(); i++) {
+			cluster_action_counts[i] += total_action_counts[i];
+			total += total_action_counts[i];
+		}
+		_outcome_totals.setValue(a, total);
+		Probability totalInv = 1.0/total;
+		vector<Probability>& probs = _outcome_probs.getValue(a);
+		for (Size i=0; i<probs.size(); i++)
+			probs[i] = totalInv*cluster_action_counts[i];
+	}
+}
+
+void _Cluster::removeState(const State& s) {
+	_num_states--;
+	ActionIterator aitr(new _ActionIncrementIterator(_domain));
+	while (aitr->hasNext()) {
+		Action a = aitr->next();
+		vector<Size>& cluster_action_counts = _outcome_counts.getValue(a);
+		vector<Size>& total_action_counts = _outcome_table->getOutcomeCounts(s, a);
+		Size total = _outcome_totals.getValue(a);
+		for (Size i=0; i<_outcome_table->numOutcomes(); i++) {
+			cluster_action_counts[i] -= total_action_counts[i];
+			total -= total_action_counts[i];
+		}
+		_outcome_totals.setValue(a, total);
+		Probability totalInv = 1.0/total;
+		vector<Probability>& probs = _outcome_probs.getValue(a);
+		for (Size i=0; i<probs.size(); i++)
+			probs[i] = totalInv*cluster_action_counts[i];
+	}
+}
+
+Size _Cluster::size() {
+	return _num_states;
+}
+
+Probability _Cluster::P(const Action& a, const Outcome& o) {
+	return 1.0/_outcome_table->numOutcomes();
+}
+
+Probability _Cluster::logP(const State& s) {
+	Probability log_p = 0;
+	ActionIterator aitr(new _ActionIncrementIterator(_domain));
+	while (aitr->hasNext()) {
+		Action a = aitr->next();
+		vector<Size>& outcome_counts = _outcome_table->getOutcomeCounts(s, a);
+		for (Size outcome_index=0; outcome_index<_outcome_table->numOutcomes(); outcome_index++) {
+			Outcome o = _outcome_table->getOutcome(outcome_index);
+			Probability outcome_likelihood = P(a, o);
+			Probability log_likelihood = log(outcome_likelihood);
+			log_p += log_likelihood * outcome_counts[outcome_index];
+			cerr << log_p << endl;
 		}
 	}
-	return dist;
+	return log_p;
 }
+
+void _Cluster::print() {
+	ActionIterator aitr(new _ActionIncrementIterator(_domain));
+	while (aitr->hasNext()) {
+		Action a = aitr->next();
+		cerr << " for action " << a << endl;
+		vector<Size>& counts = _outcome_counts.getValue(a);
+		for (Size i=0; i<_outcome_table->numOutcomes(); i++) {
+			cerr << "  outcome " << i << " = " << counts[i] << endl;
+		}
+	}
+}
+
+
+

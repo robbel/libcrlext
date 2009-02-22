@@ -16,15 +16,19 @@ ld_library_path = os.environ.get('LD_LIBRARY_PATH', "")
 cpp_paths = cpath.split(':')+[prefix_inc, inc]
 lib_paths = ld_library_path.split(':')+[lib, prefix_lib]
 
+if os.uname()[0] == "Darwin":
+	lib_paths += ['/sw/lib']
+	cpp_paths += ['/sw/include']
+
 ccflags = ['-Wall', '-Werror', '-ansi']
 if 'debug' in COMMAND_LINE_TARGETS:
 	ccflags += ['-g']
 
 BuildDir(build, src, duplicate=0)
 
-cluster_sources = map(build.File, ['agent_cluster.cpp', 'dpmem.cpp', 'outcomes.cpp'])
-headers = ['crl/dpmem.hpp', 'crl/outcomes.hpp']
-
+cluster_sources = map(build.File, ['agent_cluster.cpp', 'dpmem.cpp', 'outcomes.cpp', 'cluster_gibbs.cpp'])
+headers = ['crl/dpmem.hpp', 'crl/outcomes.hpp', 'crl/cluster_gibbs.hpp']
+	
 env = Environment(tools = ["default", "tools"], toolpath = '.',
                   CPPPATH=cpp_paths, CCFLAGS=ccflags, LIBPATH=lib_paths)
 
@@ -48,16 +52,19 @@ has_glue = sum([
     config.CheckLib('rlgluenetdev'),
     config.CheckLib('taskspecutils')
 ])
+has_gsl = sum([
+	config.CheckLibWithHeader('gsl', 'gsl/gsl_rng.h', 'c')
+])
 env = config.Finish()
 
 lib_targets = []
 bin_targets = []
 	
-if has_crl and has_glue:
+if has_crl and has_glue and has_gsl:
 	agent_cluster = env.Program(bin.Entry('agent_cluster'), cluster_sources,
 	                       LIBS=['strxml', 'crl', 'rlgnmagent',
 	                             'rlcrlagent', 'rlutils', 'rlgluenetdev',
-	                             'taskspecutils'])
+	                             'taskspecutils', 'gsl', 'gslcblas', 'm'])
 	bin_targets += [agent_cluster]
 else:
 	print "Cannot build agent_cluster"

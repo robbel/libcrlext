@@ -19,6 +19,7 @@
  */
 
 #include <iostream>
+#include <cpputil.hpp>
 #include <rlglue/Agent_common.h>
 #include <crl/crl.hpp>
 #include <crl/rmax.hpp>
@@ -27,6 +28,8 @@
 #include <rlgnmagent.h>
 #include <crl/glue_agent.hpp>
 #include "crl/outcomes.hpp"
+#include "crl/cluster_gibbs.hpp"
+#include "crl/dpmem.hpp"
 
 using namespace std;
 using namespace crl;
@@ -35,45 +38,37 @@ int _m;
 float _gamma;
 Reward _epsilon;
 
+vector<Outcome> the_outcomes;
 
-class _OutcomeClusterLearner : public _MDPLearner {
+
+class _OutcomeClusterAgent : public _Agent {
 protected:
-	Domain _domain;
+	OutcomeClusterLearner _cluster_learner;
 public:
-	_OutcomeClusterLearner(const Domain& domain)
-	: _domain(domain) {
-
-	}
-	virtual bool observe(const State& s, const Action& a, const Observation& o) {
-		return true;
-	}
-	virtual StateIterator S() {
-		StateIterator itr(new _StateIncrementIterator(_domain));
-		return itr;
-	}
-	virtual StateIterator predecessors(const State& s) {
-		StateIterator itr(new _StateIncrementIterator(_domain));
-		return itr;
-	}
-	virtual ActionIterator A() {
-		ActionIterator itr(new _ActionIncrementIterator(_domain));
-		return itr;
-	}
-	virtual ActionIterator A(const State& s) {
-		ActionIterator itr(new _ActionIncrementIterator(_domain));
-		return itr;
-	}
-	virtual StateDistribution T(const State& s, const Action& a) {
-		return EmptyStateDistribution();
-	}
-	virtual Reward R(const State& s, const Action& a) {
-		return 0;
+	_OutcomeClusterAgent(Planner planner, OutcomeClusterLearner cluster_learner)
+	: _Agent(planner, cluster_learner), _cluster_learner(cluster_learner) { }
+	virtual ~_OutcomeClusterAgent() {
+		_cluster_learner->inferClusters();
+		_cluster_learner->printClusters();
 	}
 };
-typedef boost::shared_ptr<_OutcomeClusterLearner> OutcomeClusterLearner;
+
+void populateOutcomes(Domain domain) {
+	vector<int> steps;
+	steps.push_back(1);
+	Outcome rightOutcome(new _StepOutcome(steps));
+	the_outcomes.push_back(rightOutcome);
+
+	State origin(domain);
+	origin.setFactor(0, 0);
+	Outcome resetOutcome(new _FixedOutcome(origin));
+	the_outcomes.push_back(resetOutcome);
+}
 
 Agent crl::getCRLAgent(Domain domain) {
-	OutcomeClusterLearner mdp_learner(new _OutcomeClusterLearner(domain));
+	populateOutcomes(domain);
+	OutcomeClusterLearner mdp_learner(new _OutcomeClusterLearner(domain, the_outcomes));
+	/*
 	KnownClassifier classifier(new _FKnownClassifier(domain, _m));
 	ActionIterator itr(new _ActionIncrementIterator(domain));
 
@@ -82,8 +77,11 @@ Agent crl::getCRLAgent(Domain domain) {
 		vmax = domain->getRewardRange().getMax()/(1-_gamma);
 
 	RMaxMDPLearner rmaxLearner(new _RMaxMDPLearner(mdp_learner, classifier, itr, vmax));
-	VIPlanner planner(new _FactoredVIPlanner(domain, rmaxLearner, _epsilon, _gamma));
-	VIPlannerAgent agent(new _VIPlannerAgent(planner, rmaxLearner));
+	 */
+
+	//VIPlanner planner(new _FactoredVIPlanner(domain, rmaxLearner, _epsilon, _gamma));
+	Planner planner(new _RandomPlanner(domain));
+	Agent agent(new _OutcomeClusterAgent(planner, mdp_learner));
 	return agent;
 }
 
@@ -104,25 +102,29 @@ const char* agent_message(const char* inMessage) {
 
 
 int main(int argc, char** argv) {
-	srand(time(0));
+	try {
+		srand(time(0));
 
-	if (argc != 4 && argc != 5) {
-		cerr << "Usage: " << argv[0] << " <m> <gamma> <epsilon> [host:port]" << endl;
-		return 1;
+		if (argc != 4 && argc != 5) {
+			cerr << "Usage: " << argv[0] << " <m> <gamma> <epsilon> [host:port]" << endl;
+			return 1;
+		}
+		_m = atoi(argv[1]);
+		_gamma = atof(argv[2]);
+		_epsilon = atof(argv[3]);
+		char* host = 0;
+		short port = 0;
+		if (argc == 5) {
+			host = strtok(argv[4], ":");
+			port = atoi(strtok(0, ":"));
+		}
+
+		sprintf(params, "m=%d gamma=%f epsilon=%f", _m, _gamma, _epsilon);
+
+		glue_main_agent(host, port);
 	}
-	_m = atoi(argv[1]);
-	_gamma = atof(argv[2]);
-	_epsilon = atof(argv[3]);
-	char* host = 0;
-	short port = 0;
-	if (argc == 5) {
-		host = strtok(argv[4], ":");
-		port = atoi(strtok(0, ":"));
+	catch (cpputil::Exception e) {
+		cerr << e << endl << e.trace << endl;
 	}
-
-	sprintf(params, "m=%d gamma=%f epsilon=%f", _m, _gamma, _epsilon);
-
-	glue_main_agent(host, port);
-
 	return 0;
 }

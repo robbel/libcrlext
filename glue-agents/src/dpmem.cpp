@@ -25,7 +25,7 @@
 using namespace crl;
 using namespace cpputil;
 
-Size DPMem::draw() {
+Size _DPMem::draw() {
 	Probability u = randDouble();
 	double total_mass = _total+_alpha;
 	double r = u*total_mass;
@@ -42,7 +42,7 @@ Size DPMem::draw() {
 	return draw(value);
 }
 
-Size DPMem::draw(Size value) {
+Size _DPMem::draw(Size value) {
 	if (_counts.size() <= value) {
 		_counts.resize(value, 0);
 	}
@@ -51,18 +51,22 @@ Size DPMem::draw(Size value) {
 	return value;
 }
 
-void DPMem::undraw(Size value) {
+Size _DPMem::peekUnseen() {
+	return _gen->peek();
+}
+
+void _DPMem::undraw(Size value) {
 	_counts[value]--;
 	_total--;
 }
 
-Size DPMem::count(Size value) {
+Size _DPMem::count(Size value) {
 	if (_counts.size() > value)
 		return _counts[value];
 	return 0;
 }
 
-Probability DPMem::P(Size value) {
+Probability _DPMem::P(Size value) {
 	if (value >= _counts.size())
 		return _alpha/_total;
 	return _counts[value]/_total;

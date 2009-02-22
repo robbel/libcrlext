@@ -22,6 +22,7 @@
 #define DPMEM_HPP_
 
 #include <vector>
+#include <boost/shared_ptr.hpp>
 #include <crl/common.hpp>
 
 namespace crl {
@@ -29,6 +30,7 @@ namespace crl {
 class Generator {
 public:
 	virtual Size next() = 0;
+	virtual Size peek() = 0;
 	virtual void recycle(Size value) = 0;
 	virtual ~Generator() { }
 };
@@ -49,19 +51,22 @@ public:
 		}
 		return next_value++;
 	}
+	virtual Size peek() {
+		return next_value;
+	}
 	virtual void recycle(Size value) {
 		recycling_bin.push_back(value);
 	}
 };
 
-class DPMem {
+class _DPMem {
 protected:
 	crl::Probability _alpha;
 	Generator* _gen;
 	std::vector<Size> _counts;
 	size_t _total;
-	DPMem(crl::Probability alpha, Generator* gen)
-	: _alpha(alpha), _gen(gen) {
+	_DPMem(crl::Probability alpha, Generator* gen)
+	: _alpha(alpha), _gen(gen), _counts(0), _total(0) {
 
 	}
 public:
@@ -73,6 +78,10 @@ public:
 	 * force a value to be drawn
 	 */
 	Size draw(Size value);
+	/**
+	 * peek the next unseen value
+	 */
+	Size peekUnseen();
 	/**
 	 * decrement the count of one value
 	 */
@@ -86,18 +95,20 @@ public:
 	 */
 	Probability P(Size value);
 
-	virtual ~DPMem() { }
+	virtual ~_DPMem() { }
 };
+typedef boost::shared_ptr<_DPMem> DPMem;
 
-class IncrementDPMem : public DPMem {
+class _IncrementDPMem : public _DPMem {
 public:
-	IncrementDPMem(crl::Probability alpha)
-	: DPMem(alpha, new IncrementGenerator()){
+	_IncrementDPMem(crl::Probability alpha)
+	: _DPMem(alpha, new IncrementGenerator()) {
 	}
-	~IncrementDPMem() {
+	~_IncrementDPMem() {
 		delete _gen;
 	}
 };
+typedef boost::shared_ptr<_IncrementDPMem> IncrementDPMem;
 
 };
 

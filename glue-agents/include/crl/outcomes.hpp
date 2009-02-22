@@ -67,9 +67,40 @@ public:
 	_OutcomeTable(const Domain& domain, const std::vector<Outcome>& outcomes);
 	virtual ~_OutcomeTable() { }
 	virtual bool observe(const State& s, const Action& a, const Observation& o);
-	virtual Probability outcomesGivenDistribution(const State& s, std::vector<_FActionTable<Probability> > dist);
-	virtual std::vector<_FActionTable<Probability> > clusterDistribution(StateIterator sitr);
+
+	std::vector<Size>& getOutcomeCounts(const State& s, const Action& a) {
+		return _outcomeCounts.getValue(s, a);
+	}
+	Outcome getOutcome(Size index) {
+		return _outcomes[index];
+	}
+	Size numOutcomes() {return _outcomes.size();}
+
+	void print();
 };
+typedef boost::shared_ptr<_OutcomeTable> OutcomeTable;
+
+class _Cluster {
+protected:
+	Domain _domain;
+	OutcomeTable _outcome_table;
+	_FActionTable<std::vector<Size> > _outcome_counts;
+	_FActionTable<Size> _outcome_totals;
+	_FActionTable<std::vector<Probability> > _outcome_probs;
+	Size _num_states;
+public:
+	_Cluster(const Domain& domain, OutcomeTable outcome_table);
+	_Cluster(const Domain& domain, OutcomeTable outcome_table, _FActionTable<std::vector<Size> > _outcome_priors);
+	virtual ~_Cluster() { }
+	void addState(const State& s);
+	void removeState(const State& s);
+	Size size();
+	virtual Probability P(const Action& a, const Outcome& o);
+	virtual Probability logP(const State& s);
+
+	void print();
+};
+typedef boost::shared_ptr<_Cluster> Cluster;
 
 };
 
