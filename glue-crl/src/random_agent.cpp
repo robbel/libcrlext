@@ -27,26 +27,6 @@
 
 using namespace crl;
 
-class _RandomPlanner : public _Planner {
-	Domain _domain;
-public:
-	_RandomPlanner(const Domain& domain);
-	virtual ~_RandomPlanner() { }
-	virtual Action getAction(const State& s);
-};
-typedef boost::shared_ptr<_RandomPlanner> RandomPlanner;
-
-_RandomPlanner::_RandomPlanner(const Domain& domain)
-: _domain(domain) {
-	
-}
-
-Action _RandomPlanner::getAction(const State& s) {
-	Size index = random()%_domain->getNumActions();
-	Action a(_domain, index);
-	return a;
-}
-
 Agent crl::getCRLAgent(Domain domain) {
 	Learner learner;
 	Planner planner(new _RandomPlanner(domain));
@@ -72,6 +52,6 @@ int main(int argc, char** argv) {
 		port = atoi(strtok(0, ":"));
 	}
 	glue_main_agent(host, port);
-	
+
 	return 0;
 }

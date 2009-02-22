@@ -39,41 +39,80 @@ string task_string;
 int current_state=0;
 
 const char* env_init()
-{    
+{
 	_domain_env = getCRLEnvironmentDomain();
 	_env = getCRLEnvironment(_domain_env);
-	
+
 //	task_specification_t task_spec="2:e:1_[i]_[0,20]:1_[i]_[0,1]:[-1,1]";
 
 	std::ostringstream os;
-	os << "2:e:" << _domain_env->getNumStateFactors() << "_[";
-	for (Size i=0; i<_domain_env->getNumStateFactors(); i++) {
-		os << "i";
-		if (i != _domain_env->getNumStateFactors()-1)
-			os << ",";
+	if (true) {
+		os << "2:e:" << _domain_env->getNumStateFactors() << "_[";
+		for (Size i=0; i<_domain_env->getNumStateFactors(); i++) {
+			os << "i";
+			if (i != _domain_env->getNumStateFactors()-1)
+				os << ",";
+		}
+		os << "]";
+		for (Size i=0; i<_domain_env->getNumStateFactors(); i++) {
+			os << "_[" << _domain_env->getStateRanges()[i].getMin()
+			   << "," << _domain_env->getStateRanges()[i].getMax()
+			   << "]";
+		}
+		os << ":" << _domain_env->getNumActionFactors() << "_[";
+		for (Size i=0; i<_domain_env->getNumActionFactors(); i++) {
+			os << "i";
+			if (i != _domain_env->getNumActionFactors()-1)
+				os << ",";
+		}
+		os << "]";
+		for (Size i=0; i<_domain_env->getNumActionFactors(); i++) {
+			os << "_[" << _domain_env->getActionRanges()[i].getMin()
+			   << "," << _domain_env->getActionRanges()[i].getMax()
+			   << "]";
+		}
+		os << ":[" << _domain_env->getRewardRange().getMin()
+		   << "," << _domain_env->getRewardRange().getMax() << "]";
 	}
-	os << "]";
-	for (Size i=0; i<_domain_env->getNumStateFactors(); i++) {
-		os << "_[" << _domain_env->getStateRanges()[i].getMin()
-		   << "," << _domain_env->getStateRanges()[i].getMax()
-		   << "]";
+	else {
+		//task spec 2.0
+		os << "VERSION RL-Glue-3.0"
+		   << " PROBLEMTYPE episodic"
+		   << " DISCOUNTFACTOR 1";
+
+		os << " OBSERVATIONS"
+		   << " INTS";
+		const RangeVec& state_ranges = _domain_env->getStateRanges();
+		for (Size i=0; i<state_ranges.size(); i++) {
+			os << " (" << state_ranges[i].getMin() << " " << state_ranges[i].getMax() << ")";
+		}
+		os << " ACTIONS"
+		   << " INTS";
+		const RangeVec& action_ranges = _domain_env->getActionRanges();
+		for (Size i=0; i<action_ranges.size(); i++) {
+			os << " (" << action_ranges[i].getMin() << " " << action_ranges[i].getMax() << ")";
+		}
+		const RewardRange& reward_range = _domain_env->getRewardRange();
+		os << " REWARDS (" << reward_range.getMin() << " " << reward_range.getMax() << ")";
+		os << " EXTRA this environment is run by libcrl";
+		/*
+		 * VERSION <version-name>
+		 * PROBLEMTYPE <problem-type>
+		 * DISCOUNTFACTOR <discount-factor>
+		 * OBSERVATIONS
+		 * INTS ([times-to-repeat-this-tuple=1] <min-value> <max-value>)*
+		 * DOUBLES ([times-to-repeat-this-tuple=1] <min-value> <max-value>)*
+		 * CHARCOUNT <char-count>
+		 * ACTIONS
+		 * INTS ([times-to-repeat-this-tuple=1] <min-value> <max-value>)*
+		 * DOUBLES ([times-to-repeat-this-tuple=1] <min-value> <max-value>)*
+		 * CHARCOUNT <char-count>
+		 * REWARDS (<min-value> <max-value>)
+		 * EXTRA [extra text of your choice goes here]
+		 */
 	}
-	os << ":" << _domain_env->getNumActionFactors() << "_[";
-	for (Size i=0; i<_domain_env->getNumActionFactors(); i++) {
-		os << "i";
-		if (i != _domain_env->getNumActionFactors()-1)
-			os << ",";
-	}
-	os << "]";
-	for (Size i=0; i<_domain_env->getNumActionFactors(); i++) {
-		os << "_[" << _domain_env->getActionRanges()[i].getMin()
-		   << "," << _domain_env->getActionRanges()[i].getMax()
-		   << "]";
-	}
-	os << ":[" << _domain_env->getRewardRange().getMin()
-	   << "," << _domain_env->getRewardRange().getMax() << "]";
-	
-	
+
+
 	/* Allocate the observation variable */
 	allocateRLStruct(&this_observation, _domain_env->getNumStateFactors(),0,0);
 	/* That is equivalent to:
@@ -103,7 +142,7 @@ const observation_t* env_start()
 
 const reward_observation_terminal_t* env_step(const action_t* this_action)
 {
-	
+
 	Action a = getAction(_domain_env, this_action);
 	Observation o = _env->getObservation(a);
 	populateState(_domain_env, o->getState(), &this_observation);
