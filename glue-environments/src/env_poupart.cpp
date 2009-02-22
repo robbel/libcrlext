@@ -59,6 +59,7 @@ typedef boost::shared_ptr<_ChainEnv> ChainEnv;
 
 _ChainEnv::_ChainEnv(const Domain& domain)
 : _domain(domain) {
+	srand(time(0));
 	for (int i=0; i<num_links+1; i++) {
 		float r = randDouble();
 		float c = 0;
@@ -69,9 +70,9 @@ _ChainEnv::_ChainEnv(const Domain& domain)
 				break;
 			}
 		}
-		cerr << _state_types[i];
+		//cerr << _state_types[i];
 	}
-	cerr << endl;
+	//cerr << endl;
 }
 
 State _ChainEnv::begin() {
@@ -138,6 +139,10 @@ const char* env_message(const char* inMessage) {
 		return paramBuf;
 	else if (!strcmp(inMessage, "version"))
 		return (char*)"1";
+	else if (!strncmp(inMessage, "seed", 4)) {
+		long seed = atoi(inMessage+5);
+		srand(seed);
+	}
 	return (char*)"";
  }
 
