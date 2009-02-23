@@ -19,7 +19,9 @@
  */
 
 #include <iostream>
+#include <fstream>
 #include <sstream>
+#include <strxml.hpp>
 #include <string.h>
 #include <rlglue/Environment_common.h>
 #include <rlglue/RL_glue.h>
@@ -33,10 +35,11 @@ using namespace std;
 using namespace cpputil;
 using namespace crl;
 
-int num_links = 5;
-int num_types = 2;
-Probability type_priors[] = {.5, .5};
-Probability probs[] = {.9, .7};
+int num_links;
+int num_types;
+string link_assignments;
+
+vector<Probability> probs;
 Reward reward_step = -1;
 Reward reward_goal = 0;
 Reward reward_reset = 0;
@@ -59,20 +62,14 @@ typedef boost::shared_ptr<_ChainEnv> ChainEnv;
 
 _ChainEnv::_ChainEnv(const Domain& domain)
 : _domain(domain) {
-	srand(time(0));
-	for (int i=0; i<num_links+1; i++) {
-		float r = randDouble();
-		float c = 0;
-		for (int j=0; j<num_types; j++) {
-			c += type_priors[j];
-			if (r < c) {
-				_state_types.push_back(j);
-				break;
-			}
+	for (int i=0; i<num_links-1; i++) {
+		char assignment = link_assignments[i];
+		if (assignment != 'T') {
+			_state_types.push_back(assignment-'0');
+			cerr << assignment;
 		}
-		//cerr << _state_types[i];
 	}
-	//cerr << endl;
+	cerr << "T" << endl;
 }
 
 State _ChainEnv::begin() {
@@ -145,11 +142,37 @@ const char* env_message(const char* inMessage) {
 	}
 	return (char*)"";
  }
-
+/*
+<Chain>
+	<ClusterAssignments count="6">10101T</ClusterAssignments>
+	<Clusters count="2">
+		<Cluster index="0">.7</Cluster>
+		<Cluster index="1">.3</Cluster>
+	</Clusters>
+</Chain>
+ */
 int main(int argc, char** argv) {
-	if (argc != 1 && argc != 2 && argc != 4 && argc != 5) {
-		cerr << "Usage: " << argv[0] << endl;
+	if (argc != 2) {
+		cerr << "Usage: " << argv[0] << " <config>" << endl;
 		return 1;
+	}
+	ifstream is(argv[1]);
+	XMLObject xobj(is);
+	XMLObject clusterAssignments = xobj["ClusterAssignments"];
+	num_links = atoi(clusterAssignments("count").c_str());
+	link_assignments = clusterAssignments.getText();
+	
+	XMLObject clusters = xobj["Clusters"];
+	probs.resize(atoi(clusters("count").c_str()));
+	for (int i=0; i<clusters.size(); i++) {
+		XMLObject cluster = clusters[i];
+		if (cluster.getName() != "Cluster")
+			continue;
+		int index = atoi(cluster("index").c_str());
+		string prob_str = cluster.getText();
+		cerr << prob_str << endl;
+		Probability prob = atof(prob_str.c_str());
+		probs[index] = prob;
 	}
 
 	paramBuf[0] = '\0';

@@ -1,0 +1,7 @@
+<Chain>
+	<ClusterAssignments count="5">1100T</ClusterAssignments>
+	<Clusters count="2">
+		<Cluster index="0">.9</Cluster>
+		<Cluster index="1">.2</Cluster>
+	</Clusters>
+</Chain>

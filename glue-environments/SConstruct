@@ -55,7 +55,7 @@ bin_targets = []
 
 if has_crl and has_glue:
 	env_poupart = env.Program(bin.Entry('env_poupart'), poupart_sources,
-	                       LIBS=['crl', 'rlgnmenv',
+	                       LIBS=['crl', 'rlgnmenv', 'strxml',
 	                             'rlcrlenv', 'rlutils', 'rlgluenetdev',
 	                             'taskspecutils'])
 	bin_targets += [env_poupart]
