@@ -31,14 +31,17 @@ namespace crl {
 class _OutcomeClusterLearner : public _Learner {
 protected:
 	Domain _domain;
+	std::vector<Outcome> _outcomes;
 	OutcomeTable _outcome_table;
 	std::vector<Cluster> _clusters;
 	_FStateTable<Index> _cluster_indices;
 	DPMem _dp;
 	_FActionTable<std::vector<Size> > _cluster_priors;
 	std::set<State> _clustered_states;
+	FStateActionRewardTable _reward_totals;
+	FCounter _sa_counter;
 public:
-	_OutcomeClusterLearner(const Domain& domain, const std::vector<Outcome>& outcomes);
+	_OutcomeClusterLearner(const Domain& domain, const std::vector<Outcome>& outcomes, Probability alpha);
 	virtual ~_OutcomeClusterLearner() { }
 	Cluster createNewCluster();
 	void assignInitialClusters();
@@ -47,6 +50,10 @@ public:
 	void print();
 	virtual bool observe(const State& s, const Action& a, const Observation& o);
 	void printClusters();
+	/**
+	 * Sample k MDPs, with a specified burn period and spacing between draws
+	 */
+	std::set<MDP> sampleMDPs(Size k, Size burn, Size spacing);
 };
 typedef boost::shared_ptr<_OutcomeClusterLearner> OutcomeClusterLearner;
 

@@ -30,6 +30,7 @@
 #include "crl/outcomes.hpp"
 #include "crl/cluster_gibbs.hpp"
 #include "crl/dpmem.hpp"
+#include "crl/boss.hpp"
 
 using namespace std;
 using namespace crl;
@@ -43,14 +44,23 @@ vector<Outcome> the_outcomes;
 
 class _OutcomeClusterAgent : public _Agent {
 protected:
+	BOSSPlanner _boss_planner;
 	OutcomeClusterLearner _cluster_learner;
 public:
-	_OutcomeClusterAgent(Planner planner, OutcomeClusterLearner cluster_learner)
-	: _Agent(planner, cluster_learner), _cluster_learner(cluster_learner) { }
+	_OutcomeClusterAgent(BOSSPlanner boss_planner, OutcomeClusterLearner cluster_learner)
+	: _Agent(boss_planner, cluster_learner),
+	  _boss_planner(boss_planner), _cluster_learner(cluster_learner) { }
 	virtual ~_OutcomeClusterAgent() {
 		//_cluster_learner->print();
 		//_cluster_learner->inferClusters();
 		//_cluster_learner->printClusters();
+	}
+	virtual Action getAction(const State& s) {
+		set<MDP> mdps = _cluster_learner->sampleMDPs(5, 100, 10);
+		_boss_planner->setMDPs(mdps);
+		_boss_planner->plan();
+		Action a = _boss_planner->getAction(s);
+		return a;
 	}
 	virtual void end() {
 		Observation o(new _Observation(State(), 0));
@@ -75,7 +85,9 @@ void populateOutcomes(Domain domain) {
 
 Agent crl::getCRLAgent(Domain domain) {
 	populateOutcomes(domain);
-	OutcomeClusterLearner mdp_learner(new _OutcomeClusterLearner(domain, the_outcomes));
+	QTable qtable(new _FQTable(domain));
+	BOSSPlanner planner(new _BOSSPlanner(.1, .9, qtable));
+	OutcomeClusterLearner mdp_learner(new _OutcomeClusterLearner(domain, the_outcomes, .5));
 	/*
 	KnownClassifier classifier(new _FKnownClassifier(domain, _m));
 	ActionIterator itr(new _ActionIncrementIterator(domain));
@@ -88,7 +100,6 @@ Agent crl::getCRLAgent(Domain domain) {
 	 */
 
 	//VIPlanner planner(new _FactoredVIPlanner(domain, rmaxLearner, _epsilon, _gamma));
-	Planner planner(new _RandomPlanner(domain));
 	Agent agent(new _OutcomeClusterAgent(planner, mdp_learner));
 	return agent;
 }

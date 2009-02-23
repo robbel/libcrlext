@@ -29,10 +29,12 @@ using namespace std;
 using namespace crl;
 using namespace cpputil;
 
-_OutcomeClusterLearner::_OutcomeClusterLearner(const Domain& domain, const vector<Outcome>& outcomes)
-: _domain(domain), _outcome_table(new _OutcomeTable(domain, outcomes)),
-  _cluster_indices(_domain, -1), _dp(new _IncrementDPMem(1)),
-  _cluster_priors(domain, vector<Size>(outcomes.size(), 10)) {
+_OutcomeClusterLearner::_OutcomeClusterLearner(const Domain& domain, const vector<Outcome>& outcomes, Probability alpha)
+: _domain(domain), _outcomes(outcomes), _outcome_table(new _OutcomeTable(domain, _outcomes)),
+  _cluster_indices(_domain, -1), _dp(new _IncrementDPMem(alpha)),
+  _cluster_priors(domain, vector<Size>(_outcomes.size(), 1)),
+  _reward_totals(new _FStateActionTable<Reward>(_domain, 0)),
+  _sa_counter(new _FCounter(_domain)) {
 	//cerr << "+_OutcomeClusterLearner::_OutcomeClusterLearner" << endl;
 	//assignInitialClusters();
 	//cerr << "-_OutcomeClusterLearner::_OutcomeClusterLearner" << endl;
@@ -47,6 +49,7 @@ void _OutcomeClusterLearner::print() {
 	_outcome_table->print();
 }
 bool _OutcomeClusterLearner::observe(const State& s, const Action& a, const Observation& o) {
+	_sa_counter->observe(s, a, o);
 //	cerr << "+_OutcomeClusterLearner::observe" << endl;
 	//cerr << s << " x " << a << " -> " << o->getState() << endl;
 	_clustered_states.insert(s);
@@ -62,6 +65,8 @@ bool _OutcomeClusterLearner::observe(const State& s, const Action& a, const Obse
 		gibbsSweepClusters();
 		printClusters();
 	}
+	Reward old_r = _reward_totals->getValue(s, a);
+	_reward_totals->setValue(s, a, old_r+o->getReward());
 	return true;
 }
 void _OutcomeClusterLearner::printClusters() {
@@ -184,4 +189,21 @@ void _OutcomeClusterLearner::gibbsSweepClusters() {
 		//cerr << " " << s << " : " << _cluster_indices.getValue(s) << endl;
 	}
 	//cerr << "-gibbsSweepClusters" << endl;
+}
+
+set<MDP> _OutcomeClusterLearner::sampleMDPs(Size k, Size burn, Size spacing) {
+	set<MDP> mdps;
+
+	for (Size i=0; i<burn; i++)
+		gibbsSweepClusters();
+	for (Size j=0; j<k; j++) {
+		for (Size i=0; j!=0 && i<spacing; i++)
+			gibbsSweepClusters();
+		ClusterMDP mdp(new _ClusterMDP(_domain, _outcomes, _clusters, _cluster_indices));
+		mdp->setRewardTotals(_reward_totals);
+		mdp->setCounter(_sa_counter);
+		mdps.insert(mdp);
+	}
+
+	return mdps;
 }

@@ -43,6 +43,13 @@ bool _StepOutcome::match(const State& s, const State& sp) {
 	return true;
 }
 
+State _StepOutcome::apply(const State& s) {
+	State sp = s;
+	for (Size i=0; i<s.size(); i++)
+		sp.setFactor(i, s.getFactor(i)+_deltas[i]);
+	return sp;
+}
+
 _FixedOutcome::_FixedOutcome(const State& s)
 : _s(s) {
 
@@ -52,8 +59,16 @@ bool _FixedOutcome::match(const State& s, const State& sp) {
 	return sp && sp == _s;
 }
 
+State _FixedOutcome::apply(const State& s) {
+	return _s;
+}
+
 bool _TerminalOutcome::match(const State& s, const State& sp) {
 	return !sp;
+}
+
+State _TerminalOutcome::apply(const State& s) {
+	return State();
 }
 
 _OutcomeTable::_OutcomeTable(const Domain& domain, const std::vector<Outcome>& outcomes)
@@ -212,6 +227,62 @@ void _Cluster::print() {
 			cerr << "  outcome " << i << " = " << counts[i] << endl;
 		}
 	}
+}
+
+_ClusterMDP::_ClusterMDP(const Domain& domain, vector<Outcome> outcomes, vector<Cluster>& cluster_vec, _FStateTable<Index>& cluster_indices)
+: _domain(domain), _outcomes(outcomes), _clusters(domain) {
+	vector<Cluster> cluster_copies;
+	for (Size i=0; i<cluster_vec.size(); i++) {
+		Cluster c(new _Cluster(*cluster_vec[i]));
+		cluster_copies.push_back(c);
+	}
+	StateIterator sitr(new _StateIncrementIterator(_domain));
+	while (sitr->hasNext()) {
+		State s = sitr->next();
+		Index cluster_index = cluster_indices.getValue(s);
+		if (cluster_index != -1) {
+			Cluster c = cluster_copies[cluster_index];
+			_clusters.setValue(s, c);
+		}
+	}
+}
+
+StateIterator _ClusterMDP::S() {
+	StateIterator sitr(new _StateIncrementIterator(_domain));
+	return sitr;
+}
+
+StateIterator _ClusterMDP::predecessors(const State& s) {
+	StateIterator sitr(new _StateIncrementIterator(_domain));
+	return sitr;
+}
+
+ActionIterator _ClusterMDP::A() {
+	ActionIterator aitr(new _ActionIncrementIterator(_domain));
+	return aitr;
+}
+
+ActionIterator _ClusterMDP::A(const State& s) {
+	ActionIterator aitr(new _ActionIncrementIterator(_domain));
+	return aitr;
+}
+
+StateDistribution _ClusterMDP::T(const State& s, const Action& a) {
+	Cluster c = _clusters.getValue(s);
+	FStateDistribution sd(new _FStateDistribution(_domain));
+	for (Size i=0; i<_outcomes.size(); i++) {
+		Outcome o = _outcomes[i];
+		Probability p = c->P(a, o);
+		State n = o->apply(s);
+		sd->setP(n, p);
+	}
+	return sd;
+}
+
+Reward _ClusterMDP::R(const State& s, const Action& a) {
+	Reward total = _reward_totals->getValue(s, a);
+	Size count = _sa_counter->getCount(s, a);
+	return total/count;
 }
 
 
