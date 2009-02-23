@@ -49,6 +49,11 @@ public:
 	: _Agent(planner, cluster_learner), _cluster_learner(cluster_learner) { }
 	virtual ~_OutcomeClusterAgent() {
 		_cluster_learner->inferClusters();
+		_cluster_learner->printClusters();
+	}
+	virtual void end() {
+		Observation o(new _Observation(State(), 0));
+		_cluster_learner->observe(_last_state, _last_action, o);
 	}
 };
 
@@ -62,6 +67,9 @@ void populateOutcomes(Domain domain) {
 	origin.setFactor(0, 0);
 	Outcome resetOutcome(new _FixedOutcome(origin));
 	the_outcomes.push_back(resetOutcome);
+
+	Outcome termOutcome(new _TerminalOutcome());
+	the_outcomes.push_back(termOutcome);
 }
 
 Agent crl::getCRLAgent(Domain domain) {

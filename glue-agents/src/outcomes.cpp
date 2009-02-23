@@ -34,6 +34,8 @@ _StepOutcome::_StepOutcome(const vector<int>& deltas)
 }
 
 bool _StepOutcome::match(const State& s, const State& sp) {
+	if (!sp)
+		return false;
 	for (Size i=0; i<s.size(); i++) {
 		if (sp.getFactor(i)-s.getFactor(i) != _deltas[i])
 			return false;
@@ -47,8 +49,13 @@ _FixedOutcome::_FixedOutcome(const State& s)
 }
 
 bool _FixedOutcome::match(const State& s, const State& sp) {
-	return sp == _s;
+	return sp && sp == _s;
 }
+
+bool _TerminalOutcome::match(const State& s, const State& sp) {
+	return !sp;
+}
+
 _OutcomeTable::_OutcomeTable(const Domain& domain, const std::vector<Outcome>& outcomes)
 : _domain(domain), _outcomes(outcomes),
   _outcomeCounts(domain, std::vector<Size>(outcomes.size(), 0)),
@@ -58,8 +65,8 @@ _OutcomeTable::_OutcomeTable(const Domain& domain, const std::vector<Outcome>& o
 
 bool _OutcomeTable::observe(const State& s, const Action& a, const Observation& o) {
 	State sp = o->getState();
-	if (!sp)
-		return false;
+//	if (!sp)
+//		return false;
 	Size total = 0;
 	vector<Size>& counts = _outcomeCounts.getValue(s, a);
 

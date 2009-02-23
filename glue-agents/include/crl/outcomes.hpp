@@ -57,6 +57,13 @@ public:
 };
 typedef boost::shared_ptr<_FixedOutcome> FixedOutcome;
 
+class _TerminalOutcome : public _Outcome {
+public:
+	virtual ~_TerminalOutcome() { }
+	virtual bool match(const State& s, const State& sp);
+};
+typedef boost::shared_ptr<_TerminalOutcome> TerminalOutcome;
+
 class _OutcomeTable : _Learner {
 protected:
 	Domain _domain;

@@ -33,9 +33,10 @@ protected:
 	Domain _domain;
 	OutcomeTable _outcome_table;
 	std::vector<Cluster> _clusters;
-	_FStateTable<Size> _cluster_indices;
+	_FStateTable<Index> _cluster_indices;
 	DPMem _dp;
 	_FActionTable<std::vector<Size> > _cluster_priors;
+	std::set<State> _clustered_states;
 public:
 	_OutcomeClusterLearner(const Domain& domain, const std::vector<Outcome>& outcomes);
 	virtual ~_OutcomeClusterLearner() { }

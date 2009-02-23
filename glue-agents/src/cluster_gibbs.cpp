@@ -31,14 +31,14 @@ using namespace cpputil;
 
 _OutcomeClusterLearner::_OutcomeClusterLearner(const Domain& domain, const vector<Outcome>& outcomes)
 : _domain(domain), _outcome_table(new _OutcomeTable(domain, outcomes)),
-  _cluster_indices(_domain, 0), _dp(new _IncrementDPMem(1)),
+  _cluster_indices(_domain, -1), _dp(new _IncrementDPMem(1)),
   _cluster_priors(domain, vector<Size>(outcomes.size(), 10)) {
 	//cerr << "+_OutcomeClusterLearner::_OutcomeClusterLearner" << endl;
-	assignInitialClusters();
+	//assignInitialClusters();
 	//cerr << "-_OutcomeClusterLearner::_OutcomeClusterLearner" << endl;
 }
 void _OutcomeClusterLearner::inferClusters() {
-	for (Size i=0; i<100; i++) {
+	for (Size i=0; i<1000; i++) {
 		gibbsSweepClusters();
 	}
 }
@@ -46,12 +46,18 @@ void _OutcomeClusterLearner::print() {
 	_outcome_table->print();
 }
 bool _OutcomeClusterLearner::observe(const State& s, const Action& a, const Observation& o) {
+//	cerr << "+_OutcomeClusterLearner::observe" << endl;
 	//cerr << s << " x " << a << " -> " << o->getState() << endl;
-	Cluster c = _clusters[_cluster_indices.getValue(s)];
-	c->removeState(s);
-	_outcome_table->observe(s, a, o);
-	c->addState(s);
+	_clustered_states.insert(s);
+	Index cluster_index = _cluster_indices.getValue(s);
+	if (cluster_index != -1) {
+		Cluster c = _clusters[_cluster_indices.getValue(s)];
+		c->removeState(s);
+		_outcome_table->observe(s, a, o);
+		c->addState(s);
+	}
 	//_outcome_table->print();
+//	cerr << "-_OutcomeClusterLearner::observe" << endl;
 	return true;
 }
 void _OutcomeClusterLearner::printClusters() {
@@ -61,13 +67,13 @@ void _OutcomeClusterLearner::printClusters() {
 		cerr << _cluster_indices.getValue(s);
 	}
 	cerr << endl;
-	/*
+
 	cerr << "cluster dump" << endl;
 	for (Size i=0; i<_clusters.size(); i++) {
 		cerr << "cluster " << i << endl;
 		_clusters[i]->print();
 	}
-	*/
+
 }
 
 Cluster _OutcomeClusterLearner::createNewCluster() {
@@ -76,8 +82,8 @@ Cluster _OutcomeClusterLearner::createNewCluster() {
 }
 
 void _OutcomeClusterLearner::assignInitialClusters() {
-	//cerr << "+assignInitialClusters" << endl;
-	StateIterator sitr(new _StateIncrementIterator(_domain));
+	cerr << "+assignInitialClusters" << endl;
+	StateIterator sitr(new _StateSetIterator(_clustered_states));
 	while (sitr->hasNext()) {
 		State s = sitr->next();
 		Size new_index = _dp->draw();
@@ -90,20 +96,22 @@ void _OutcomeClusterLearner::assignInitialClusters() {
 		_clusters[new_index]->addState(s);
 		//cerr << s << " <- " << new_index << endl;
 	}
-	//cerr << "-assignInitialClusters" << endl;
+	cerr << "-assignInitialClusters" << endl;
 }
 
 void _OutcomeClusterLearner::gibbsSweepClusters() {
 	//cerr << "+gibbsSweepClusters" << endl;
-	StateIterator sitr(new _StateIncrementIterator(_domain));
+	StateIterator sitr(new _StateSetIterator(_clustered_states));
 	while (sitr->hasNext()) {
 		State s = sitr->next();
 		//first we desample s's current cluster
-		Size current_index = _cluster_indices.getValue(s);
-		//cerr << "resampling cluster for " << s << "(" << current_index << ")" << endl;
-		Cluster current_cluster = _clusters[current_index];
-		current_cluster->removeState(s);
-		_dp->undraw(current_index);
+		Index current_index = _cluster_indices.getValue(s);
+		if (current_index != -1) {
+			//cerr << "resampling cluster for " << s << "(" << current_index << ")" << endl;
+			Cluster current_cluster = _clusters[current_index];
+			current_cluster->removeState(s);
+			_dp->undraw(current_index);
+		}
 		//if a new cluster is assigned to this state, this is its index
 		Size new_index = _dp->peekUnseen();
 		//make sure it exists
@@ -122,7 +130,7 @@ void _OutcomeClusterLearner::gibbsSweepClusters() {
 				continue;
 			}
 			//add and remove because we sample C_i|C_i,C_{-i}, not C_i|C_{-i}
-			candidate_cluster->addState(s); 
+			candidate_cluster->addState(s);
 			Probability log_p = candidate_cluster->logP(s);
 			candidate_cluster->removeState(s);
 			Probability dp_p = _dp->P(candidate_index);
