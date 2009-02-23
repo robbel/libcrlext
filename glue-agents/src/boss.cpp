@@ -51,4 +51,8 @@ void _BOSSPlanner::setMDPs(set<MDP> mdps) {
 	_mdps = mdps;
 }
 
+void _BOSSPlanner::plan() {
+	_mdp = *(_mdps.begin());
+	_VIPlanner::plan();
+}
 

@@ -44,7 +44,6 @@ public:
 	_OutcomeClusterLearner(const Domain& domain, const std::vector<Outcome>& outcomes, Probability alpha);
 	virtual ~_OutcomeClusterLearner() { }
 	Cluster createNewCluster();
-	void assignInitialClusters();
 	void gibbsSweepClusters();
 	void inferClusters();
 	void print();

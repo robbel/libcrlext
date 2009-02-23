@@ -59,19 +59,21 @@ public:
 		set<MDP> mdps = _cluster_learner->sampleMDPs(5, 100, 10);
 		_boss_planner->setMDPs(mdps);
 		_boss_planner->plan();
-		Action a = _boss_planner->getAction(s);
-		return a;
+		_last_action = _boss_planner->getAction(s);
+//		cerr << s << " <- " << _last_action << endl;
+		return _last_action;
 	}
 	virtual void end() {
 		Observation o(new _Observation(State(), 0));
 		_cluster_learner->observe(_last_state, _last_action, o);
+		_cluster_learner->printClusters();
 	}
 };
 
 void populateOutcomes(Domain domain) {
 	vector<int> steps;
 	steps.push_back(1);
-	Outcome rightOutcome(new _StepOutcome(steps));
+	Outcome rightOutcome(new _StepOutcome(domain, steps));
 	the_outcomes.push_back(rightOutcome);
 
 	State origin(domain);

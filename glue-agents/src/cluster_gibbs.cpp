@@ -51,7 +51,7 @@ void _OutcomeClusterLearner::print() {
 bool _OutcomeClusterLearner::observe(const State& s, const Action& a, const Observation& o) {
 	_sa_counter->observe(s, a, o);
 //	cerr << "+_OutcomeClusterLearner::observe" << endl;
-	//cerr << s << " x " << a << " -> " << o->getState() << endl;
+//	cerr << s << " x " << a << " -> " << o->getState() << endl;
 	_clustered_states.insert(s);
 	Index cluster_index = _cluster_indices.getValue(s);
 	if (cluster_index != -1)
@@ -61,12 +61,13 @@ bool _OutcomeClusterLearner::observe(const State& s, const Action& a, const Obse
 		_clusters[_cluster_indices.getValue(s)]->addState(s);
 	//_outcome_table->print();
 //	cerr << "-_OutcomeClusterLearner::observe" << endl;
-	for (Size i=0; i<1; i++) {
-		gibbsSweepClusters();
-		printClusters();
-	}
+//	for (Size i=0; i<1; i++) {
+//		gibbsSweepClusters();
+//		printClusters();
+//	}
 	Reward old_r = _reward_totals->getValue(s, a);
 	_reward_totals->setValue(s, a, old_r+o->getReward());
+//	printClusters();
 	return true;
 }
 void _OutcomeClusterLearner::printClusters() {
@@ -85,8 +86,7 @@ void _OutcomeClusterLearner::printClusters() {
 	for (Size i=0; i<_clusters.size(); i++) {
 		cerr << "cluster " << i << endl;
 		_clusters[i]->print();
-	}
-*/
+	}*/
 }
 
 Cluster _OutcomeClusterLearner::createNewCluster() {
@@ -94,27 +94,10 @@ Cluster _OutcomeClusterLearner::createNewCluster() {
 	return new_cluster;
 }
 
-void _OutcomeClusterLearner::assignInitialClusters() {
-	cerr << "+assignInitialClusters" << endl;
-	StateIterator sitr(new _StateSetIterator(_clustered_states));
-	while (sitr->hasNext()) {
-		State s = sitr->next();
-		Size new_index = _dp->draw();
-		if (new_index >= _clusters.size())
-			_clusters.resize(new_index+1);
-		if (!_clusters[new_index]) {
-			_clusters[new_index] = createNewCluster();
-		}
-		_cluster_indices.setValue(s, new_index);
-		_clusters[new_index]->addState(s);
-		//cerr << s << " <- " << new_index << endl;
-	}
-	cerr << "-assignInitialClusters" << endl;
-}
-
 void _OutcomeClusterLearner::gibbsSweepClusters() {
 	//cerr << "+gibbsSweepClusters" << endl;
-	StateIterator sitr(new _StateSetIterator(_clustered_states));
+	//StateIterator sitr(new _StateSetIterator(_clustered_states));
+	StateIterator sitr(new _StateIncrementIterator(_domain));
 	while (sitr->hasNext()) {
 		State s = sitr->next();
 		//first we desample s's current cluster
@@ -192,6 +175,7 @@ void _OutcomeClusterLearner::gibbsSweepClusters() {
 }
 
 set<MDP> _OutcomeClusterLearner::sampleMDPs(Size k, Size burn, Size spacing) {
+//	cerr << "+_OutcomeClusterLearner::sampleMDPs" << endl;
 	set<MDP> mdps;
 
 	for (Size i=0; i<burn; i++)
@@ -199,11 +183,16 @@ set<MDP> _OutcomeClusterLearner::sampleMDPs(Size k, Size burn, Size spacing) {
 	for (Size j=0; j<k; j++) {
 		for (Size i=0; j!=0 && i<spacing; i++)
 			gibbsSweepClusters();
+			
+//		printClusters();
+
 		ClusterMDP mdp(new _ClusterMDP(_domain, _outcomes, _clusters, _cluster_indices));
 		mdp->setRewardTotals(_reward_totals);
 		mdp->setCounter(_sa_counter);
 		mdps.insert(mdp);
+//		mdp->printXML(cerr);
 	}
 
+//	cerr << "-_OutcomeClusterLearner::sampleMDPs" << endl;
 	return mdps;
 }

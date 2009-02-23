@@ -28,8 +28,8 @@ using namespace crl;
 using namespace std;
 using namespace cpputil;
 
-_StepOutcome::_StepOutcome(const vector<int>& deltas)
-: _deltas(deltas) {
+_StepOutcome::_StepOutcome(Domain domain, const vector<int>& deltas)
+: _domain(domain), _deltas(deltas) {
 
 }
 
@@ -45,8 +45,13 @@ bool _StepOutcome::match(const State& s, const State& sp) {
 
 State _StepOutcome::apply(const State& s) {
 	State sp = s;
-	for (Size i=0; i<s.size(); i++)
-		sp.setFactor(i, s.getFactor(i)+_deltas[i]);
+	for (Size i=0; i<s.size(); i++) {
+		Factor f = s.getFactor(i)+_deltas[i];
+		const RangeVec& ranges = _domain->getStateRanges();
+		if (!ranges[i].check(f))
+			return State();
+		sp.setFactor(i, f); 
+	}
 	return sp;
 }
 
@@ -269,11 +274,17 @@ ActionIterator _ClusterMDP::A(const State& s) {
 
 StateDistribution _ClusterMDP::T(const State& s, const Action& a) {
 	Cluster c = _clusters.getValue(s);
+	if (!c) {
+		StateDistribution sd(new _EmptyStateDistribution());
+		return sd;
+	}
 	FStateDistribution sd(new _FStateDistribution(_domain));
+	//cerr << "building T(" << s << "," << a << ")" << endl;
 	for (Size i=0; i<_outcomes.size(); i++) {
 		Outcome o = _outcomes[i];
 		Probability p = c->P(a, o);
 		State n = o->apply(s);
+		//cerr << " " << n << " : " << p << endl;
 		sd->setP(n, p);
 	}
 	return sd;
@@ -282,6 +293,8 @@ StateDistribution _ClusterMDP::T(const State& s, const Action& a) {
 Reward _ClusterMDP::R(const State& s, const Action& a) {
 	Reward total = _reward_totals->getValue(s, a);
 	Size count = _sa_counter->getCount(s, a);
+	if (count == 0)
+		return 0;
 	return total/count;
 }
 

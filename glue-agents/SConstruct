@@ -61,11 +61,11 @@ env = config.Finish()
 lib_targets = []
 bin_targets = []
 	
-if has_crl and has_glue and has_gsl:
+if has_crl and has_glue:
 	agent_cluster = env.Program(bin.Entry('agent_cluster'), cluster_sources,
 	                       LIBS=['strxml', 'crl', 'rlgnmagent',
 	                             'rlcrlagent', 'rlutils', 'rlgluenetdev',
-	                             'taskspecutils', 'gsl', 'gslcblas', 'm'])
+	                             'taskspecutils'])#, 'gsl', 'gslcblas', 'm'])
 	bin_targets += [agent_cluster]
 else:
 	print "Cannot build agent_cluster"

@@ -42,9 +42,10 @@ typedef boost::shared_ptr<_Outcome> Outcome;
 
 class _StepOutcome : public _Outcome {
 protected:
+	Domain _domain;
 	const std::vector<int> _deltas;
 public:
-	_StepOutcome(const std::vector<int>& deltas);
+	_StepOutcome(Domain domain, const std::vector<int>& deltas);
 	virtual ~_StepOutcome() { }
 	virtual bool match(const State& s, const State& sp);
 	virtual State apply(const State& s);
