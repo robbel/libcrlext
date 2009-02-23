@@ -415,16 +415,16 @@ public:
 	: min(r.min), max(r.max) { }
 	Range(T min, T max)
 	: min(min), max(max) { }
-	bool check(T v) {
+	bool check(T v) const {
 		return v>=min && v<=max;
 	}
-	void checkThrow(T v) {
+	void checkThrow(T v) const {
 		if (!check(v))
 			throw RangeException(v, min, max);
 	}
 	const T& getMin() const {return min;}
 	const T& getMax() const {return max;}
-	T getSpan() const{return max-min;}
+	T getSpan() const {return max-min;}
 };
 
 template <class T>

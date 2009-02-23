@@ -90,6 +90,8 @@ State _FStateDistribution::sample() {
 	throw DistributionException("exceeded sum of probabilities");
 }
 void _FStateDistribution::setP(const State& s, Probability p) {
+	if (!s) //terminal state represented by sub-1 distribution
+		return;
 	prob_vec[s.getIndex()] = p;
 	if (p)
 		_known_states.insert(s);
