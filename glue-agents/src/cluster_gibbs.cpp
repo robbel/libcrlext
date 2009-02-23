@@ -40,6 +40,7 @@ _OutcomeClusterLearner::_OutcomeClusterLearner(const Domain& domain, const vecto
 void _OutcomeClusterLearner::inferClusters() {
 	for (Size i=0; i<1000; i++) {
 		gibbsSweepClusters();
+		printClusters();
 	}
 }
 void _OutcomeClusterLearner::print() {
@@ -50,30 +51,37 @@ bool _OutcomeClusterLearner::observe(const State& s, const Action& a, const Obse
 	//cerr << s << " x " << a << " -> " << o->getState() << endl;
 	_clustered_states.insert(s);
 	Index cluster_index = _cluster_indices.getValue(s);
-	if (cluster_index != -1) {
-		Cluster c = _clusters[_cluster_indices.getValue(s)];
-		c->removeState(s);
-		_outcome_table->observe(s, a, o);
-		c->addState(s);
-	}
+	if (cluster_index != -1)
+		_clusters[_cluster_indices.getValue(s)]->removeState(s);
+	_outcome_table->observe(s, a, o);
+	if (cluster_index != -1)
+		_clusters[_cluster_indices.getValue(s)]->addState(s);
 	//_outcome_table->print();
 //	cerr << "-_OutcomeClusterLearner::observe" << endl;
+	for (Size i=0; i<1; i++) {
+		gibbsSweepClusters();
+		printClusters();
+	}
 	return true;
 }
 void _OutcomeClusterLearner::printClusters() {
 	StateIterator sitr(new _StateIncrementIterator(_domain));
 	while (sitr->hasNext()) {
 		State s = sitr->next();
-		cerr << _cluster_indices.getValue(s);
+		Index i = _cluster_indices.getValue(s);
+		if (i == -1)
+			cerr << "?";
+		else
+			cerr << i;
 	}
 	cerr << endl;
-
+/*
 	cerr << "cluster dump" << endl;
 	for (Size i=0; i<_clusters.size(); i++) {
 		cerr << "cluster " << i << endl;
 		_clusters[i]->print();
 	}
-
+*/
 }
 
 Cluster _OutcomeClusterLearner::createNewCluster() {

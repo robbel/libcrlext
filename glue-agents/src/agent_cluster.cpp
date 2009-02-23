@@ -48,8 +48,9 @@ public:
 	_OutcomeClusterAgent(Planner planner, OutcomeClusterLearner cluster_learner)
 	: _Agent(planner, cluster_learner), _cluster_learner(cluster_learner) { }
 	virtual ~_OutcomeClusterAgent() {
-		_cluster_learner->inferClusters();
-		_cluster_learner->printClusters();
+		//_cluster_learner->print();
+		//_cluster_learner->inferClusters();
+		//_cluster_learner->printClusters();
 	}
 	virtual void end() {
 		Observation o(new _Observation(State(), 0));

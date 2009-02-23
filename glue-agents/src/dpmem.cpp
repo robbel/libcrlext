@@ -47,6 +47,7 @@ Size _DPMem::draw(Size value) {
 	}
 	_counts[value]++;
 	_total++;
+	_gen->next(value);
 	return value;
 }
 
@@ -69,7 +70,7 @@ Size _DPMem::count(Size value) {
 
 Probability _DPMem::P(Size value) {
 	if (value >= _counts.size() || _counts[value] == 0)
-		return _alpha/_total;
+		return _alpha/(_total+_alpha);
 	return 1.0*_counts[value]/_total;
 }
 

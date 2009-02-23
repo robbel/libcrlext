@@ -30,6 +30,7 @@ namespace crl {
 class Generator {
 public:
 	virtual Size next() = 0;
+	virtual Size next(Size value) = 0;
 	virtual Size peek() = 0;
 	virtual void recycle(Size value) = 0;
 	virtual ~Generator() { }
@@ -50,6 +51,15 @@ public:
 			return value;
 		}
 		return next_value++;
+	}
+	virtual Size next(Size value) {
+		if (recycling_bin.size() && recycling_bin[recycling_bin.size()-1] == value) {
+			recycling_bin.pop_back();
+			return value;
+		}
+		if (value >= next_value)
+			next_value = value+1;
+		return value;
 	}
 	virtual Size peek() {
 		if (recycling_bin.size() > 0) {
