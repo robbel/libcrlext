@@ -39,7 +39,7 @@ protected:
 	/**
 	 * the dynamics model
 	 */
-	const MDP _mdp;
+	MDP _mdp;
 	/**
 	 * The q-table to store values in
 	 */
@@ -53,13 +53,13 @@ protected:
 	 */
 	float _gamma;
 
-	_VIPlanner(const MDP& mdp, Reward epsilon, float gamma);
+	_VIPlanner(MDP mdp, Reward epsilon, float gamma);
 public:
-	_VIPlanner(const MDP& mdp, Reward epsilon, float gamma, QTable qtable);
+	_VIPlanner(MDP mdp, Reward epsilon, float gamma, QTable qtable);
 	/**
 	 * Do VI on some subset of the state and action space
 	 */
-	virtual int plan(StateIterator& sitr, ActionIterator& aitr);
+	virtual int plan(StateIterator sitr, ActionIterator aitr);
 	/**
 	 * Do VI on _mdp->S(), _mdp->A()
 	 */
@@ -73,7 +73,10 @@ public:
 	 * Backup the value for a single state/action
 	 */
 	virtual Reward backupStateAction(const State& s, const Action& a);
-
+	/**
+	 * Find the new value for a state/action
+	 */
+	virtual Reward evaluateStateAction(const State& s, const Action& a);
 	/**
 	 * Get the action that maximizes Q(s,a)
 	 */
@@ -90,7 +93,7 @@ inline VIPlanner getVIPlanner(const Planner& planner) {
  */
 class _FactoredVIPlanner : public _VIPlanner {
 public:
-	_FactoredVIPlanner(const Domain& domain, const MDP& mdp, Reward epsilon, float gamma)
+	_FactoredVIPlanner(const Domain domain, MDP mdp, Reward epsilon, float gamma)
 	: _VIPlanner(mdp, epsilon, gamma) {
 		_qtable = FQTable(new _FQTable(domain));
 	}
@@ -102,7 +105,7 @@ typedef boost::shared_ptr<_FactoredVIPlanner> FactoredVIPlanner;
  */
 class _HashedVIPlanner : public _VIPlanner {
 public:
-	_HashedVIPlanner(const Domain& domain, const MDP& mdp, Reward epsilon, float gamma)
+	_HashedVIPlanner(const Domain domain, MDP mdp, Reward epsilon, float gamma)
 	: _VIPlanner(mdp, epsilon, gamma) {
 		_qtable = HQTable(new _HQTable(domain));
 	}
@@ -114,7 +117,7 @@ typedef boost::shared_ptr<_HashedVIPlanner> HashedVIPlanner;
  */
 class _MappedVIPlanner : public _VIPlanner {
 public:
-	_MappedVIPlanner(const MDP& mdp, Reward epsilon, float gamma)
+	_MappedVIPlanner(MDP mdp, Reward epsilon, float gamma)
 	: _VIPlanner(mdp, epsilon, gamma) {
 		_qtable = MQTable(new _MQTable(0));
 	}

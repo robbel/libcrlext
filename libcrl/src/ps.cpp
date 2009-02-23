@@ -17,7 +17,7 @@
     You should have received a copy of the GNU Lesser General Public License
     along with CRL.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 #include "crl/ps.hpp"
 
 using namespace std;
@@ -52,7 +52,7 @@ void _SPriorityQueue::heapDown(Size i) {
 		heapDown(gci);
 	}
 }
-	
+
 void _SPriorityQueue::insert(State s, Reward priority) {
 	priority = fabs(priority);
 	Index cur_index = _heap_indices->getValue(s);
@@ -83,14 +83,14 @@ Reward _SPriorityQueue::peek() {
 	return _heap[0].priority;
 }
 
-_PSPlanner::_PSPlanner(const MDP& mdp, Reward epsilon, float gamma)
+_PSPlanner::_PSPlanner(MDP& mdp, Reward epsilon, float gamma)
 : _VIPlanner(mdp, epsilon, gamma) {
-	
+
 }
 
-_PSPlanner::_PSPlanner(const MDP& mdp, Reward epsilon, float gamma, QTable qtable, SPriorityQueue pqueue)
+_PSPlanner::_PSPlanner(MDP& mdp, Reward epsilon, float gamma, QTable qtable, SPriorityQueue pqueue)
 : _VIPlanner(mdp, epsilon, gamma, qtable), _pqueue(pqueue) {
-	
+
 }
 
 int _PSPlanner::sweep(ActionIterator& aitr) {
@@ -102,7 +102,7 @@ int _PSPlanner::sweep(ActionIterator& aitr) {
 		StateIterator sitr = _mdp->predecessors(s);
 		while (sitr->hasNext()) {
 			State p = sitr->next();
-			insert(p, error);	
+			insert(p, error);
 		}
 	}
 	return count;
@@ -124,7 +124,7 @@ void _PSPlanner::insert(State s) {
 }
 void _PSPlanner::insert(StateIterator& sitr) {
 	while (sitr->hasNext()) {
-		insert(sitr->next());	
+		insert(sitr->next());
 	}
 }
 void _PSPlanner::insertThreshold(StateIterator& sitr, Reward threshold) {
@@ -147,4 +147,4 @@ Action _PSPlanner::getAction(const State& s) {
 //	cerr << s << "->" << a << endl;
 	return a;
 }
-	
+

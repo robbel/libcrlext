@@ -57,7 +57,7 @@ protected:
 	 * index of i's parent
 	 */
 	Size gpi(Size i) {
-		return (i-1)/2;	
+		return (i-1)/2;
 	}
 	/**
 	 * index of i's left child
@@ -109,9 +109,9 @@ class _PSPlanner : public _VIPlanner {
 public:
 protected:
 	SPriorityQueue _pqueue;
-	_PSPlanner(const MDP& mdp, Reward epsilon, float gamma);
+	_PSPlanner(MDP& mdp, Reward epsilon, float gamma);
 public:
-	_PSPlanner(const MDP& mdp, Reward epsilon, float gamma, QTable qtable, SPriorityQueue pqueue);
+	_PSPlanner(MDP& mdp, Reward epsilon, float gamma, QTable qtable, SPriorityQueue pqueue);
 	/**
 	 * perform a sweep with some set of actions
 	 */
@@ -149,7 +149,7 @@ typedef boost::shared_ptr<_PSPlanner> PSPlanner;
  */
 class _FlatPSPlanner : public _PSPlanner {
 public:
-	_FlatPSPlanner(const Domain& domain, const MDP& mdp, Reward epsilon, float gamma)
+	_FlatPSPlanner(const Domain& domain, MDP& mdp, Reward epsilon, float gamma)
 	: _PSPlanner(mdp, epsilon, gamma) {
 		_qtable = FQTable(new _FQTable(domain, 0));
 		SCountTable heap_indices = SCountTable(new _FStateTable<Index>(domain, -1));
@@ -157,7 +157,7 @@ public:
 	}
 };
 typedef boost::shared_ptr<_FlatPSPlanner> FlatPSPlanner;
-	
+
 }
 
 #endif /*PRIORITIZED_SWEEPING_HPP_*/

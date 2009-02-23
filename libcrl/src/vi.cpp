@@ -17,7 +17,7 @@
     You should have received a copy of the GNU Lesser General Public License
     along with CRL.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 #include <math.h>
 #include <iostream>
 #include "crl/crl.hpp"
@@ -27,13 +27,13 @@ using namespace std;
 using namespace crl;
 using namespace cpputil;
 
-_VIPlanner::_VIPlanner(const MDP& mdp, Reward epsilon, float gamma)
+_VIPlanner::_VIPlanner(MDP mdp, Reward epsilon, float gamma)
 : _mdp(mdp), _epsilon(epsilon), _gamma(gamma) {
 
 }
-_VIPlanner::_VIPlanner(const MDP& mdp, Reward epsilon, float gamma, QTable qtable)
+_VIPlanner::_VIPlanner(MDP mdp, Reward epsilon, float gamma, QTable qtable)
 : _mdp(mdp), _qtable(qtable), _epsilon(epsilon), _gamma(gamma) {
-	
+
 }
 Reward _VIPlanner::backupState(const State& s, ActionIterator& aitr) {
 //	cout << "backing up " << s << endl;
@@ -48,39 +48,40 @@ Reward _VIPlanner::backupState(const State& s, ActionIterator& aitr) {
 	return error_inf;
 }
 Reward _VIPlanner::backupStateAction(const State& s, const Action& a) {
-	
+
+	Reward q = evaluateStateAction(s, a);
+
+	Reward error = fabs(q-_qtable->getQ(s, a));
+	_qtable->setQ(s, a, q);
+
+	return error;
+}
+
+Reward _VIPlanner::evaluateStateAction(const State& s, const Action& a) {
 	StateDistribution sd = _mdp->T(s, a);
 	StateIterator nitr = sd->iterator();
-//				cout << " " << a << " : " << _mdp->R(s, a) << endl;
 	Reward q = 0;
 	while (nitr->hasNext()) {
 		State n = nitr->next();
 		Probability p = sd->P(n);
 		Reward v = _qtable->getV(n);
 		q += p*v;
-//		cout << " : " << n << "(" << p << ") = " << v << endl;
-//					cout << "  " << n << "(" << v << ") : " << p << endl;
 	}
-	
+
 	q *= _gamma;
 	q += _mdp->R(s, a);
-	
-//	cout << "Q(" << s << "," << a << ") <- " << q << endl;
-	
-	Reward error = fabs(q-_qtable->getQ(s, a));
-	_qtable->setQ(s, a, q);
-	
-	return error;
+	return q;
 }
-int _VIPlanner::plan(StateIterator& sitr, ActionIterator& aitr) {
+
+int _VIPlanner::plan(StateIterator sitr, ActionIterator aitr) {
 	//cerr << "+_VIPlanner::plan" << endl;
 	int num_iterations = 0;
 	Reward error_inf = 0;
-	
+
 	do {
 		error_inf = 0;
 		sitr->reset();
-		
+
 		while (sitr->hasNext()) {
 			State s = sitr->next();
 			Reward error = backupState(s, aitr);
@@ -110,7 +111,7 @@ QTable _VIPlanner::getQTable() {
 
 _VIPlannerAgent::_VIPlannerAgent(VIPlanner planner, Learner learner)
 : _Agent(planner, learner) {
-	
+
 }
 
 bool _VIPlannerAgent::observe(const Observation& o) {
