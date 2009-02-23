@@ -26,8 +26,9 @@ if 'debug' in COMMAND_LINE_TARGETS:
 
 BuildDir(build, src, duplicate=0)
 
-cluster_sources = map(build.File, ['agent_cluster.cpp', 'dpmem.cpp', 'outcomes.cpp', 'cluster_gibbs.cpp'])
-headers = ['crl/dpmem.hpp', 'crl/outcomes.hpp', 'crl/cluster_gibbs.hpp']
+cluster_sources = map(build.File, ['agent_cluster.cpp', 'dpmem.cpp', 'outcomes.cpp',
+								   'cluster_gibbs.cpp', 'boss.cpp'])
+headers = ['crl/dpmem.hpp', 'crl/outcomes.hpp', 'crl/cluster_gibbs.hpp', 'crl/boss.hpp']
 	
 env = Environment(tools = ["default", "tools"], toolpath = '.',
                   CPPPATH=cpp_paths, CCFLAGS=ccflags, LIBPATH=lib_paths)
