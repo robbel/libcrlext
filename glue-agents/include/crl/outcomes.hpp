@@ -23,6 +23,7 @@
 
 #include <vector>
 #include <boost/shared_ptr.hpp>
+#include <gsl/gsl_rng.h>
 
 #include <crl/crl.hpp>
 #include <crl/hdomain.hpp>
@@ -107,16 +108,22 @@ protected:
 	_FActionTable<std::vector<Size> > _outcome_counts;
 	_FActionTable<Size> _outcome_totals;
 	_FActionTable<std::vector<Probability> > _outcome_probs;
+	_FActionTable<std::vector<Probability> > _outcome_probs_no_model;
 	Size _num_states;
+	gsl_rng* _gsl_random;
 public:
-	_Cluster(const Domain& domain, OutcomeTable outcome_table);
-	_Cluster(const Domain& domain, OutcomeTable outcome_table, _FActionTable<std::vector<Size> > _outcome_priors);
+	_Cluster(const Domain& domain, OutcomeTable outcome_table, gsl_rng* gsl_random);
+	_Cluster(const Domain& domain, OutcomeTable outcome_table, _FActionTable<std::vector<Size> > _outcome_priors, gsl_rng* gsl_random);
 	virtual ~_Cluster() { }
+	virtual void setGSLRandom(gsl_rng* gsl_random);
 	void addState(const State& s);
 	void removeState(const State& s);
+	void calcProbs(const Action& a);
 	Size size();
+	std::vector<Size>& getCounts(const Action& a);
 	virtual Probability P(const Action& a, const Outcome& o);
-	virtual Probability logP(const State& s);
+	virtual Probability noModelP(const Action& a, const Outcome& o);
+	virtual Probability logNoModelP(const State& s);
 
 	void print();
 };
@@ -129,6 +136,7 @@ protected:
 	_FStateTable<Cluster> _clusters;
 	FStateActionRewardTable _reward_totals;
 	FCounter _sa_counter;
+	_FStateActionTable<FStateDistribution> _T_map;
 public:
 	_ClusterMDP(const Domain& domain, std::vector<Outcome> outcomes, std::vector<Cluster>& cluster_vec, _FStateTable<Index>& cluster_indices);
 	virtual void setRewardTotals(FStateActionRewardTable reward_totals) {_reward_totals=reward_totals;}
@@ -139,6 +147,7 @@ public:
 	virtual ActionIterator A(const State& s);
 	virtual StateDistribution T(const State& s, const Action& a);
 	virtual Reward R(const State& s, const Action& a);
+	virtual void printXML(std::ostream& os);
 };
 typedef boost::shared_ptr<_ClusterMDP> ClusterMDP;
 

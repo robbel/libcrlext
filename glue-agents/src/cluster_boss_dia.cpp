@@ -18,30 +18,12 @@
     along with CRL:RL-Glue:bayes.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef BOSS_HPP_
-#define BOSS_HPP_
+#include <diastream.hpp>
 
-#include <set>
-#include <boost/shared_ptr.hpp>
-#include <crl/crl.hpp>
-#include <crl/vi.hpp>
+#include "crl/outcomes.hpp"
 
-namespace crl {
-
-class _BOSSPlanner : public _VIPlanner {
-protected:
-	std::set<MDP> _mdps;
-	_BOSSPlanner(Reward epsilon, float gamma);
-public:
-	_BOSSPlanner(Reward epsilon, float gamma, QTable qtable);
-	virtual ~_BOSSPlanner() { }
-	virtual Reward evaluateStateAction(const State& s, const Action& a);
-	virtual void setMDPs(std::set<MDP> mdps);
-	virtual std::set<MDP> getMDPs() {return _mdps;}
-	virtual void plan();
-};
-typedef boost::shared_ptr<_BOSSPlanner> BOSSPlanner;
-
-};
-
-#endif /* BOSS_HPP_ */
+using namespace crl;
+ 
+void makeClusterBOSSVis(ClusterMDP cmdp) {
+	
+}

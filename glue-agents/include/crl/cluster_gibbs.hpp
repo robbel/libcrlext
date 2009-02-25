@@ -22,6 +22,7 @@
 #define CLUSTER_GIBBS_HPP_
 
 #include <vector>
+#include <gsl/gsl_rng.h>
 #include <crl/crl.hpp>
 #include "crl/outcomes.hpp"
 #include "crl/dpmem.hpp"
@@ -40,9 +41,11 @@ protected:
 	std::set<State> _clustered_states;
 	FStateActionRewardTable _reward_totals;
 	FCounter _sa_counter;
+	gsl_rng* _gsl_random;
 public:
 	_OutcomeClusterLearner(const Domain& domain, const std::vector<Outcome>& outcomes, Probability alpha);
 	virtual ~_OutcomeClusterLearner() { }
+	void setGSLRandom(gsl_rng* gsl_random);
 	Cluster createNewCluster();
 	void gibbsSweepClusters();
 	void inferClusters();

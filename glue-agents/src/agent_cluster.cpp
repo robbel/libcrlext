@@ -19,6 +19,7 @@
  */
 
 #include <iostream>
+#include <gsl/gsl_rng.h>
 #include <cpputil.hpp>
 #include <rlglue/Agent_common.h>
 #include <crl/crl.hpp>
@@ -34,13 +35,15 @@
 
 using namespace std;
 using namespace crl;
+using namespace cpputil;
+
+gsl_rng* gsl_random = 0;
 
 int _m;
 float _gamma;
 Reward _epsilon;
 
 vector<Outcome> the_outcomes;
-
 
 class _OutcomeClusterAgent : public _Agent {
 protected:
@@ -49,18 +52,28 @@ protected:
 public:
 	_OutcomeClusterAgent(BOSSPlanner boss_planner, OutcomeClusterLearner cluster_learner)
 	: _Agent(boss_planner, cluster_learner),
-	  _boss_planner(boss_planner), _cluster_learner(cluster_learner) { }
+	  _boss_planner(boss_planner), _cluster_learner(cluster_learner) {
+	  	if (!gsl_random)
+			gsl_random = gsl_rng_alloc(gsl_rng_taus2);
+		_cluster_learner->setGSLRandom(gsl_random);
+	}
 	virtual ~_OutcomeClusterAgent() {
 		//_cluster_learner->print();
 		//_cluster_learner->inferClusters();
 		//_cluster_learner->printClusters();
+		set<MDP> mdps = _boss_planner->getMDPs();
+		ContainerIterator<MDP,set<MDP> > itr(mdps);
+		while (itr.hasNext()) {
+			MDP mdp = itr.next();
+			mdp->printXML(cerr);
+		}
 	}
 	virtual Action getAction(const State& s) {
 		set<MDP> mdps = _cluster_learner->sampleMDPs(5, 100, 10);
 		_boss_planner->setMDPs(mdps);
 		_boss_planner->plan();
 		_last_action = _boss_planner->getAction(s);
-//		cerr << s << " <- " << _last_action << endl;
+		cerr << s << " <- " << _last_action << endl;
 		return _last_action;
 	}
 	virtual void end() {
@@ -71,24 +84,26 @@ public:
 };
 
 void populateOutcomes(Domain domain) {
-	vector<int> steps;
-	steps.push_back(1);
-	Outcome rightOutcome(new _StepOutcome(domain, steps));
+	vector<int> steps1;
+	steps1.push_back(1);
+	Outcome rightOutcome(new _StepOutcome(domain, steps1));
 	the_outcomes.push_back(rightOutcome);
-
+	/*
+	vector<int> steps2;
+	steps2.push_back(0);
+	Outcome noOutcome(new _StepOutcome(domain, steps2));
+	the_outcomes.push_back(noOutcome);
+	*/
 	State origin(domain);
 	origin.setFactor(0, 0);
 	Outcome resetOutcome(new _FixedOutcome(origin));
 	the_outcomes.push_back(resetOutcome);
-
-	Outcome termOutcome(new _TerminalOutcome());
-	the_outcomes.push_back(termOutcome);
 }
 
 Agent crl::getCRLAgent(Domain domain) {
 	populateOutcomes(domain);
 	QTable qtable(new _FQTable(domain));
-	BOSSPlanner planner(new _BOSSPlanner(.1, .9, qtable));
+	BOSSPlanner planner(new _BOSSPlanner(_epsilon, _gamma, qtable));
 	OutcomeClusterLearner mdp_learner(new _OutcomeClusterLearner(domain, the_outcomes, .5));
 	/*
 	KnownClassifier classifier(new _FKnownClassifier(domain, _m));
@@ -117,6 +132,10 @@ const char* agent_message(const char* inMessage) {
 	if (!strncmp(inMessage, "seed", 4)) {
 		long seed = atoi(inMessage+5);
 		srand(seed);
+		if (gsl_random)
+			gsl_rng_free(gsl_random);
+		gsl_random = gsl_rng_alloc(gsl_rng_taus2);
+		gsl_rng_set(gsl_random, seed);
 	}
 	return (char*)"";
 }

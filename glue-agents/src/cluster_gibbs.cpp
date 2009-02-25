@@ -39,6 +39,9 @@ _OutcomeClusterLearner::_OutcomeClusterLearner(const Domain& domain, const vecto
 	//assignInitialClusters();
 	//cerr << "-_OutcomeClusterLearner::_OutcomeClusterLearner" << endl;
 }
+void _OutcomeClusterLearner::setGSLRandom(gsl_rng* gsl_random) {
+	_gsl_random = gsl_random;
+}
 void _OutcomeClusterLearner::inferClusters() {
 	for (Size i=0; i<1000; i++) {
 		gibbsSweepClusters();
@@ -81,6 +84,14 @@ void _OutcomeClusterLearner::printClusters() {
 			cerr << i;
 	}
 	cerr << endl;
+	for (Size i=0; i<_clusters.size(); i++) {
+		if (_clusters[i]->size() == 0)
+			continue;
+		cerr << " " << i << ":";
+		_clusters[i]->print();
+		cerr << endl;
+	}
+	
 /*
 	cerr << "cluster dump" << endl;
 	for (Size i=0; i<_clusters.size(); i++) {
@@ -90,7 +101,7 @@ void _OutcomeClusterLearner::printClusters() {
 }
 
 Cluster _OutcomeClusterLearner::createNewCluster() {
-	Cluster new_cluster(new _Cluster(_domain, _outcome_table, _cluster_priors));
+	Cluster new_cluster(new _Cluster(_domain, _outcome_table, _cluster_priors, _gsl_random));
 	return new_cluster;
 }
 
@@ -127,7 +138,7 @@ void _OutcomeClusterLearner::gibbsSweepClusters() {
 			}
 			//add and remove because we sample C_i|C_i,C_{-i}, not C_i|C_{-i}
 			candidate_cluster->addState(s);
-			Probability log_p = candidate_cluster->logP(s);
+			Probability log_p = candidate_cluster->logNoModelP(s);
 			candidate_cluster->removeState(s);
 			Probability dp_p = _dp->P(candidate_index);
 			log_p += log(dp_p);
@@ -184,7 +195,7 @@ set<MDP> _OutcomeClusterLearner::sampleMDPs(Size k, Size burn, Size spacing) {
 		for (Size i=0; j!=0 && i<spacing; i++)
 			gibbsSweepClusters();
 			
-//		printClusters();
+		printClusters();
 
 		ClusterMDP mdp(new _ClusterMDP(_domain, _outcomes, _clusters, _cluster_indices));
 		mdp->setRewardTotals(_reward_totals);
@@ -192,7 +203,7 @@ set<MDP> _OutcomeClusterLearner::sampleMDPs(Size k, Size burn, Size spacing) {
 		mdps.insert(mdp);
 //		mdp->printXML(cerr);
 	}
-
+	cerr << endl;
 //	cerr << "-_OutcomeClusterLearner::sampleMDPs" << endl;
 	return mdps;
 }
