@@ -81,11 +81,11 @@ public:
 		if (learned = _Agent::observe(o)) {
 			set<MDP> mdps = _cluster_learner->sampleMDPs(5, 500, 50);
 			_boss_planner->setMDPs(mdps);
-			_boss_planner->plan();
 		}
 		return learned;
 	}
 	virtual Action getAction(const State& s) {
+		_boss_planner->plan();// don't plan here? only in observe()
 		_last_action = _boss_planner->getAction(s);
 //		cerr << s << " <- " << _last_action << endl;
 		return _last_action;
@@ -138,7 +138,7 @@ Agent crl::getCRLAgent(Domain domain) {
 char params[256];
 const char* agent_message(const char* inMessage) {
 	if (strcmp(inMessage,"id")==0)
-		return (char*)"vi_rmax";
+		return (char*)"ClusterBOSS";
 	if (strcmp(inMessage,"version")==0)
 		return (char*)"1";
 	if (strcmp(inMessage,"param")==0)
