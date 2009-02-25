@@ -69,27 +69,27 @@ void _QTable::print(std::ostream& os, StateIterator sitr, ActionIterator aitr) {
 }
 
 void _MDP::printXML(std::ostream& os) {
-	cout << "<MDP>" << endl;
+	os << "<MDP>" << endl;
 	StateIterator sitr = S();
 	while (sitr->hasNext()) {
 		State s = sitr->next();
-		cout << " <State desc=\"" << s << "\">" << endl;
+		os << " <State desc=\"" << s << "\">" << endl;
 		ActionIterator aitr = A(s);
 		while (aitr->hasNext()) {
 			Action a = aitr->next();
-			cout << "  <Action desc=\"" << a << "\" reward=\"" << R(s, a) << "\">" << endl;
+			os << "  <Action desc=\"" << a << "\" reward=\"" << R(s, a) << "\">" << endl;
 			StateDistribution sd = T(s, a);
 			StateIterator nitr = sd->iterator();
 			while (nitr->hasNext()) {
 				State n = nitr->next();
 				Probability p = sd->P(n);
-				cout << "   <State desc=\"" << n << "\" probability=\"" << p << "\"/>" << endl;
+				os << "   <State desc=\"" << n << "\" probability=\"" << p << "\"/>" << endl;
 			}
-			cout << "  </Action>" << endl;
+			os << "  </Action>" << endl;
 		}
-		cout << " </State>" << endl;
+		os << " </State>" << endl;
 	}
-	cout << "</MDP>" << endl;
+	os << "</MDP>" << endl;
 }
 
 _Agent::_Agent(Planner planner)
