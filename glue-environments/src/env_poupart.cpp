@@ -64,9 +64,9 @@ _ChainEnv::_ChainEnv(const Domain& domain)
 	for (int i=0; i<num_links; i++) {
 		char assignment = link_assignments[i];
 		_state_types.push_back(assignment-'0');
-		cerr << assignment;
+//		cerr << assignment;
 	}
-	cerr << endl;
+//	cerr << endl;
 }
 
 State _ChainEnv::begin() {
