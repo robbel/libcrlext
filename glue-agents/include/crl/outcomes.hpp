@@ -118,6 +118,7 @@ public:
 	virtual void setGSLRandom(gsl_rng* gsl_random);
 	void addState(const State& s);
 	void removeState(const State& s);
+	void calcProbs();
 	void calcProbs(const Action& a);
 	Size size();
 	std::vector<Size>& getCounts(const Action& a);
@@ -129,6 +130,8 @@ public:
 };
 typedef boost::shared_ptr<_Cluster> Cluster;
 
+class _ClusterMDP;
+typedef boost::shared_ptr<_ClusterMDP> ClusterMDP;
 class _ClusterMDP : public _MDP {
 protected:
 	Domain _domain;
@@ -148,8 +151,8 @@ public:
 	virtual StateDistribution T(const State& s, const Action& a);
 	virtual Reward R(const State& s, const Action& a);
 	virtual void printXML(std::ostream& os);
+	Cluster getCluster(const State& s) {return _clusters.getValue(s);}
 };
-typedef boost::shared_ptr<_ClusterMDP> ClusterMDP;
 
 };
 

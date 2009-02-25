@@ -23,6 +23,7 @@
 
 #include <vector>
 #include <gsl/gsl_rng.h>
+#include <diastream.hpp>
 #include <crl/crl.hpp>
 #include "crl/outcomes.hpp"
 #include "crl/dpmem.hpp"
@@ -56,6 +57,8 @@ public:
 	 * Sample k MDPs, with a specified burn period and spacing between draws
 	 */
 	std::set<MDP> sampleMDPs(Size k, Size burn, Size spacing);
+	
+	void makeClusterBOSSVis(diastream& os, int offset, const char* path, ClusterMDP cmdp);
 };
 typedef boost::shared_ptr<_OutcomeClusterLearner> OutcomeClusterLearner;
 

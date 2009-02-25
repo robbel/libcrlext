@@ -19,6 +19,7 @@
  */
 
 #include <iostream>
+#include <diastream.hpp>
 #include <gsl/gsl_rng.h>
 #include <cpputil.hpp>
 #include <rlglue/Agent_common.h>
@@ -53,8 +54,6 @@ public:
 	_OutcomeClusterAgent(BOSSPlanner boss_planner, OutcomeClusterLearner cluster_learner)
 	: _Agent(boss_planner, cluster_learner),
 	  _boss_planner(boss_planner), _cluster_learner(cluster_learner) {
-	  	if (!gsl_random)
-			gsl_random = gsl_rng_alloc(gsl_rng_taus2);
 		_cluster_learner->setGSLRandom(gsl_random);
 	}
 	virtual ~_OutcomeClusterAgent() {
@@ -63,17 +62,32 @@ public:
 		//_cluster_learner->printClusters();
 		set<MDP> mdps = _boss_planner->getMDPs();
 		ContainerIterator<MDP,set<MDP> > itr(mdps);
+		char* path = strdup("dia/mdps.dia");
+		diastream os(path);
+		os << DiaBeginDoc();
+		int s_counter = 0;
 		while (itr.hasNext()) {
 			MDP mdp = itr.next();
-			mdp->printXML(cerr);
+			//mdp->printXML(cerr);
+			ClusterMDP cmdp = boost::shared_polymorphic_downcast<_ClusterMDP>(mdp);
+			_cluster_learner->makeClusterBOSSVis(os, s_counter++, path, cmdp);
 		}
+		os << DiaEndDoc();
+		//os.close();
+		delete path;
+	}
+	virtual bool observe(const Observation& o) {
+		bool learned;
+		if (learned = _Agent::observe(o)) {
+			set<MDP> mdps = _cluster_learner->sampleMDPs(5, 500, 50);
+			_boss_planner->setMDPs(mdps);
+			_boss_planner->plan();
+		}
+		return learned;
 	}
 	virtual Action getAction(const State& s) {
-		set<MDP> mdps = _cluster_learner->sampleMDPs(5, 100, 10);
-		_boss_planner->setMDPs(mdps);
-		_boss_planner->plan();
 		_last_action = _boss_planner->getAction(s);
-		cerr << s << " <- " << _last_action << endl;
+//		cerr << s << " <- " << _last_action << endl;
 		return _last_action;
 	}
 	virtual void end() {
@@ -132,10 +146,7 @@ const char* agent_message(const char* inMessage) {
 	if (!strncmp(inMessage, "seed", 4)) {
 		long seed = atoi(inMessage+5);
 		srand(seed);
-		if (gsl_random)
-			gsl_rng_free(gsl_random);
-		gsl_random = gsl_rng_alloc(gsl_rng_taus2);
-		gsl_rng_set(gsl_random, seed);
+		gsl_rng_set(gsl_random, seed+1);
 	}
 	return (char*)"";
 }
@@ -161,7 +172,9 @@ int main(int argc, char** argv) {
 
 		sprintf(params, "m=%d gamma=%f epsilon=%f", _m, _gamma, _epsilon);
 
+	  	gsl_random = gsl_rng_alloc(gsl_rng_taus2);
 		glue_main_agent(host, port);
+		gsl_rng_free(gsl_random);
 	}
 	catch (cpputil::Exception e) {
 		cerr << e << endl << e.trace << endl;

@@ -201,6 +201,14 @@ void _Cluster::removeState(const State& s) {
 	}
 }
 
+void _Cluster::calcProbs() {
+	ActionIterator aitr(new _ActionIncrementIterator(_domain));
+	while (aitr->hasNext()) {
+		Action a = aitr->next();
+		calcProbs(a);
+	}
+}
+
 void _Cluster::calcProbs(const Action& a) {
 	vector<Size>& cluster_action_counts = _outcome_counts.getValue(a);
 	Size total = _outcome_totals.getValue(a);
@@ -286,8 +294,9 @@ _ClusterMDP::_ClusterMDP(const Domain& domain, vector<Outcome> outcomes, vector<
 : _domain(domain), _outcomes(outcomes), _clusters(domain), _T_map(domain) {
 	vector<Cluster> cluster_copies;
 	for (Size i=0; i<cluster_vec.size(); i++) {
-		Cluster c(new _Cluster(*cluster_vec[i]));
+		Cluster c(new _Cluster(*(cluster_vec[i])));
 		cluster_copies.push_back(c);
+		c->calcProbs();
 	}
 	StateIterator sitr(new _StateIncrementIterator(_domain));
 	while (sitr->hasNext()) {
@@ -355,7 +364,7 @@ void _ClusterMDP::printXML(std::ostream& os) {
 	ActionIterator aitr(new _ActionIncrementIterator(_domain));
 	while (aitr->hasNext()) {
 		Action a = aitr->next();
-		c->calcProbs(a);
+		//c->calcProbs(a);
 	}
 	_MDP::printXML(os);
 }

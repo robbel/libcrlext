@@ -53,6 +53,9 @@ void _OutcomeClusterLearner::print() {
 }
 bool _OutcomeClusterLearner::observe(const State& s, const Action& a, const Observation& o) {
 	_sa_counter->observe(s, a, o);
+	bool learned = false;
+	if (_sa_counter->getCount(s, a) <= 10)
+		learned =  true;
 //	cerr << "+_OutcomeClusterLearner::observe" << endl;
 //	cerr << s << " x " << a << " -> " << o->getState() << endl;
 	_clustered_states.insert(s);
@@ -71,7 +74,7 @@ bool _OutcomeClusterLearner::observe(const State& s, const Action& a, const Obse
 	Reward old_r = _reward_totals->getValue(s, a);
 	_reward_totals->setValue(s, a, old_r+o->getReward());
 //	printClusters();
-	return true;
+	return learned;
 }
 void _OutcomeClusterLearner::printClusters() {
 	StateIterator sitr(new _StateIncrementIterator(_domain));
@@ -195,7 +198,7 @@ set<MDP> _OutcomeClusterLearner::sampleMDPs(Size k, Size burn, Size spacing) {
 		for (Size i=0; j!=0 && i<spacing; i++)
 			gibbsSweepClusters();
 			
-		printClusters();
+//		printClusters();
 
 		ClusterMDP mdp(new _ClusterMDP(_domain, _outcomes, _clusters, _cluster_indices));
 		mdp->setRewardTotals(_reward_totals);
@@ -203,7 +206,7 @@ set<MDP> _OutcomeClusterLearner::sampleMDPs(Size k, Size burn, Size spacing) {
 		mdps.insert(mdp);
 //		mdp->printXML(cerr);
 	}
-	cerr << endl;
+//	cerr << endl;
 //	cerr << "-_OutcomeClusterLearner::sampleMDPs" << endl;
 	return mdps;
 }
