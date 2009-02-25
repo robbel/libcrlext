@@ -40,10 +40,9 @@ int num_types;
 string link_assignments;
 
 vector<Probability> probs;
-Reward reward_step = -1;
-Reward reward_goal = 0;
-Reward reward_reset = 0;
-bool reset = true; //reset goes to beginning with true, back one step if false
+Reward reward_step = 0;
+Reward reward_goal = 10;
+Reward reward_reset = 2;
 
 class _ChainEnv : public _Environment {
 protected:
@@ -62,14 +61,12 @@ typedef boost::shared_ptr<_ChainEnv> ChainEnv;
 
 _ChainEnv::_ChainEnv(const Domain& domain)
 : _domain(domain) {
-	for (int i=0; i<num_links-1; i++) {
+	for (int i=0; i<num_links; i++) {
 		char assignment = link_assignments[i];
-		if (assignment != 'T') {
-			_state_types.push_back(assignment-'0');
-			cerr << assignment;
-		}
+		_state_types.push_back(assignment-'0');
+		cerr << assignment;
 	}
-	cerr << "T" << endl;
+	cerr << endl;
 }
 
 State _ChainEnv::begin() {
@@ -79,7 +76,7 @@ State _ChainEnv::begin() {
 }
 
 bool _ChainEnv::isTerminated() {
-	return _current.getFactor(0) == num_links;
+	return false;
 }
 
 Observation _ChainEnv::getObservation(const Action& a) {
@@ -87,29 +84,28 @@ Observation _ChainEnv::getObservation(const Action& a) {
 	int link = _current.getFactor(0);
 	int action = a.getFactor(0);
 
-	if (link == num_links-1) {
-		r = reward_goal;
-		_current.setFactor(0, link+1);
-		Observation o(new _Observation(_current, r));
-		return o;
-	}
+//	cerr << _current << " x " << a << " -> ";
 
 	Probability p_switch = probs[_state_types[link]];
-
-
 
 	if (p_switch > randDouble()) {
 		action = 1-action;
 	}
 	if (action == 0) {
-		if (reset || link == 0)
-			_current.setFactor(0, 0);
-		else
-			_current.setFactor(0, link-1);
+		_current.setFactor(0, 0);
 		r = reward_reset;
 	}
-	if (action == 1)
-		_current.setFactor(0, link+1);
+	if (action == 1) {
+		if (link == num_links-1) {
+			r = reward_goal;
+			_current.setFactor(0, link);
+		}
+		else {
+			r = reward_step;
+			_current.setFactor(0, link+1);
+		}
+	}
+//	cerr << _current << ", " << r << endl;
 	Observation o(new _Observation(_current, r));
 	return o;
 }
@@ -117,7 +113,7 @@ Observation _ChainEnv::getObservation(const Action& a) {
 
 Domain crl::getCRLEnvironmentDomain() {
 	Domain domain(new _Domain());
-	domain->addStateFactor(0, num_links);
+	domain->addStateFactor(0, num_links-1);
 	domain->addActionFactor(0, 1);
 	domain->setRewardRange(reward_step, reward_goal);
 	return domain;
@@ -170,7 +166,6 @@ int main(int argc, char** argv) {
 			continue;
 		int index = atoi(cluster("index").c_str());
 		string prob_str = cluster.getText();
-		cerr << prob_str << endl;
 		Probability prob = atof(prob_str.c_str());
 		probs[index] = prob;
 	}
