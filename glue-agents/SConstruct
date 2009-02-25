@@ -27,7 +27,7 @@ if 'debug' in COMMAND_LINE_TARGETS:
 BuildDir(build, src, duplicate=0)
 
 cluster_sources = map(build.File, ['agent_cluster.cpp', 'dpmem.cpp', 'outcomes.cpp',
-								   'cluster_gibbs.cpp', 'boss.cpp'])
+								   'cluster_gibbs.cpp', 'boss.cpp', 'cluster_boss_dia.cpp'])
 headers = ['crl/dpmem.hpp', 'crl/outcomes.hpp', 'crl/cluster_gibbs.hpp', 'crl/boss.hpp']
 	
 env = Environment(tools = ["default", "tools"], toolpath = '.',
@@ -65,7 +65,7 @@ if has_crl and has_glue:
 	agent_cluster = env.Program(bin.Entry('agent_cluster'), cluster_sources,
 	                       LIBS=['strxml', 'crl', 'rlgnmagent',
 	                             'rlcrlagent', 'rlutils', 'rlgluenetdev',
-	                             'taskspecutils'])#, 'gsl', 'gslcblas', 'm'])
+	                             'taskspecutils', 'gsl', 'gslcblas', 'm'])
 	bin_targets += [agent_cluster]
 else:
 	print "Cannot build agent_cluster"
