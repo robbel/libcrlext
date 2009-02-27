@@ -26,6 +26,7 @@ if 'debug' in COMMAND_LINE_TARGETS:
 
 BuildDir(build, src, duplicate=0)
 
+vi_rmax_sources = [build.File('agent_vi_rmax.cpp')]
 cluster_sources = map(build.File, ['agent_cluster.cpp', 'dpmem.cpp', 'outcomes.cpp',
 								   'cluster_gibbs.cpp', 'boss.cpp', 'cluster_boss_dia.cpp'])
 headers = ['crl/dpmem.hpp', 'crl/outcomes.hpp', 'crl/cluster_gibbs.hpp', 'crl/boss.hpp']
@@ -70,6 +71,14 @@ if has_crl and has_glue:
 	bin_targets += [agent_cluster]
 else:
 	print "Cannot build agent_cluster"
+if has_crl and has_glue:
+	agent_vi_rmax = env.Program(bin.Entry('agent_vi_rmax'), vi_rmax_sources,
+	                       LIBS=['strxml', 'crl', 'rlgnmagent',
+	                             'rlcrlagent', 'rlutils', 'rlgluenetdev',
+	                             'taskspecutils'])
+	bin_targets += [agent_vi_rmax]
+else:
+	print "Cannot build agent_vi_rmax"
 
 if prefix != Dir('.'):
 	for header in headers:
