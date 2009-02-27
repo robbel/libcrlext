@@ -33,11 +33,30 @@ using namespace std;
 
 Agent _agent;
 Domain _domain_agent;
+StateMapper _state_mapper;
 action_t _this_action;
 action_t _last_action;
 observation_t _last_observation;
-task_spec_struct _tss;
-
+taskspec_t _tss;
+//
+//typedef struct {
+//	char *version;             
+//	char problem_type;
+//	double discount_factor;
+//	int num_int_observations;            /*
+//	int_range_t *int_observations;       /* array of integral observation dimensions */
+//	int num_double_observations;         /* length of double_observations array */
+//	double_range_t *double_observations; /* array of real observation dimensions */
+//	int charcount_observations;          /* number of characters in observation */
+//	int num_int_actions;            /* length of int_actions array */
+//	int_range_t *int_actions;       /* array of integral action dimensions */
+//	int num_double_actions;         /* length of double_actions array */
+//	double_range_t *double_actions; /* array of real action dimensions */
+//	int charcount_actions;          /* number of characters in action */
+//	double_range_t reward;      /* range of (environmentally determined) reward */
+//	char *extra_spec;           /* string of extra specifications (not parsed) */
+//} taskspec_t;
+//
 void agent_init(const char* task_spec)
 {
 	/*Seed the random number generator*/
@@ -45,30 +64,47 @@ void agent_init(const char* task_spec)
 	/*Here is where you might allocate storage for parameters (value function or policy, last action, last observation, etc)*/
 	
 	/*Here you would parse the task spec if you felt like it*/
-	parse_task_spec(task_spec, &_tss);
+	decode_taskspec(&_tss, task_spec);
+	
+	if (_tss.num_int_observations == 0) {
+		_tss.num_int_observations = 4;	
+		_tss.int_observations = new int_range_t[4];
+		for (int i=0; i<2; i++) {
+			_tss.int_observations[i].min = -10;
+			_tss.int_observations[i].max = 10;
+		}
+		for (int i=2; i<4; i++) {
+			_tss.int_observations[i].min = -3;
+			_tss.int_observations[i].max = 3;
+		}
+	}
 	
 	_domain_agent = Domain(new _Domain());
-	for (int i=0; i<_tss.num_discrete_obs_dims; i++) {
-		int min = (int)_tss.obs_mins[i];
-		int max = (int)_tss.obs_maxs[i];
+	for (int i=0; i<_tss.num_int_observations; i++) {
+		int min = (int)_tss.int_observations[i].min;
+		int max = (int)_tss.int_observations[i].max;
 		_domain_agent->addStateFactor(min, max);
 	}
-	for (int i=0; i<_tss.num_discrete_action_dims; i++) {
-		int min = (int)_tss.action_mins[i];
-		int max = (int)_tss.action_maxs[i];
+	for (int i=0; i<_tss.num_int_actions; i++) {
+		int min = (int)_tss.int_actions[i].min;
+		int max = (int)_tss.int_actions[i].max;
 		_domain_agent->addActionFactor(min, max);
 	}
-	_domain_agent->setRewardRange(_tss.reward_min, _tss.reward_max);
+	_domain_agent->setRewardRange(_tss.reward.min, _tss.reward.max);
 	
 	_agent = getCRLAgent(_domain_agent);
-		
+	_state_mapper = getStateMapper();
+	if (!_state_mapper) {
+		_state_mapper = StateMapper(new _StateMapper());
+	}
+	
 	/*Allocate memory for a one-dimensional integer action using utility functions from RLStruct_util*/
 	allocateRLStruct(&_this_action, _domain_agent->getNumActionFactors(), 0, 0);
 
 }
 
 const action_t* agent_start(const observation_t* this_observation) {
-	State s = getState(_domain_agent, this_observation);
+	State s = _state_mapper->getState(_domain_agent, this_observation);
 	_agent->begin(s);
 	Action a;
 	if (_agent)
@@ -89,7 +125,7 @@ const action_t* agent_step(double reward, const observation_t* this_observation)
 	/* This agent always returns a random number, either 0 or 1 for its action */
 
 
-	State n = getState(_domain_agent, this_observation);
+	State n = _state_mapper->getState(_domain_agent, this_observation);
 	Observation o(new _Observation(n, reward));
 	if (_agent);
 	_agent->observe(o);

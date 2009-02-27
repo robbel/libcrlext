@@ -27,7 +27,7 @@
 
 void populateState(crl::Domain domain, crl::State s, observation_t* obs);
 void populateAction(crl::Domain domain, crl::Action a, action_t* act);
-crl::State getState(crl::Domain domain, const observation_t* obs);
+//crl::State getState(crl::Domain domain, const observation_t* obs);
 crl::Action getAction(crl::Domain domain, const action_t* act);
 
 #endif /*GLUE_UTIL_HPP_*/

@@ -21,6 +21,9 @@
 #include <rlglue/utils/C/RLStruct_util.h>
 #include <rlglue/utils/C/TaskSpec_Parser.h>
 #include <crl/crl.hpp>
+#include <iostream>
+
+using namespace std;
 
 using namespace crl;
 
@@ -35,13 +38,6 @@ void populateAction(Domain domain, Action a, action_t* act) {
 	}
 }
 
-State getState(Domain domain, const observation_t* obs) {
-	State s(domain);
-	for (Size i=0; i<domain->getNumStateFactors(); i++) {
-		s.setFactor(i, obs->intArray[i]);
-	}
-	return s;
-}
 Action getAction(Domain domain, const action_t* act) {
 	Action a(domain);
 	for (Size i=0; i<domain->getNumActionFactors(); i++) {

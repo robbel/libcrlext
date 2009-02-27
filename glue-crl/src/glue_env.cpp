@@ -46,7 +46,7 @@ const char* env_init()
 //	task_specification_t task_spec="2:e:1_[i]_[0,20]:1_[i]_[0,1]:[-1,1]";
 
 	std::ostringstream os;
-	if (true) {
+	if (false) {
 		os << "2:e:" << _domain_env->getNumStateFactors() << "_[";
 		for (Size i=0; i<_domain_env->getNumStateFactors(); i++) {
 			os << "i";
