@@ -81,11 +81,11 @@ public:
 		if (learned = _Agent::observe(o)) {
 			set<MDP> mdps = _cluster_learner->sampleMDPs(5, 500, 50);
 			_boss_planner->setMDPs(mdps);
+			_boss_planner->plan();
 		}
 		return learned;
 	}
 	virtual Action getAction(const State& s) {
-		_boss_planner->plan();// don't plan here? only in observe()
 		_last_action = _boss_planner->getAction(s);
 //		cerr << s << " <- " << _last_action << endl;
 		return _last_action;
@@ -133,6 +133,10 @@ Agent crl::getCRLAgent(Domain domain) {
 	//VIPlanner planner(new _FactoredVIPlanner(domain, rmaxLearner, _epsilon, _gamma));
 	Agent agent(new _OutcomeClusterAgent(planner, mdp_learner));
 	return agent;
+}
+
+StateMapper crl::getStateMapper() {
+	return StateMapper(new _StateMapper());
 }
 
 char params[256];

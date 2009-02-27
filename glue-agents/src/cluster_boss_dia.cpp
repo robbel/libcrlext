@@ -132,7 +132,10 @@ void _OutcomeClusterLearner::makeClusterBOSSVis(diastream& os, int offset, const
 				
 				ostringstream tos;
 				tos << setprecision(2) << fixed << p;
-				os << DiaText(arrow_x, arrow_y-.5, tos.str());
+				if (a_index == 1)
+					os << DiaText(arrow_x-2, arrow_y-.5, tos.str());
+				else
+					os << DiaText(arrow_x, arrow_y-.5, tos.str());
 				
 				a_offset += 2;
 			}
