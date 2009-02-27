@@ -139,6 +139,10 @@ Agent crl::getCRLAgent(Domain domain) {
 	return agent;
 }
 
+StateMapper crl::getStateMapper() {
+	return StateMapper(new _StateMapper());
+}
+
 const char* agent_message(const char* inMessage) {
 	if (strcmp(inMessage,"id")==0)
 		return (char*)"expert_maze";
