@@ -74,6 +74,7 @@ public:
 		//_cluster_learner->print();
 		//_cluster_learner->inferClusters();
 		//_cluster_learner->printClusters();
+		/*
 		set<MDP> mdps = _boss_planner->getMDPs();
 		ContainerIterator<MDP,set<MDP> > itr(mdps);
 		char* path = strdup("dia/mdps.dia");
@@ -89,6 +90,7 @@ public:
 		os << DiaEndDoc();
 		//os.close();
 		delete path;
+		*/
 	}
 	virtual bool observe(const Observation& o) {
 		bool learned;

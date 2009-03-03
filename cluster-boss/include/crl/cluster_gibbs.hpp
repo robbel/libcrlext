@@ -61,7 +61,7 @@ public:
 	 */
 	std::set<MDP> sampleMDPs(Size k, Size burn, Size spacing);
 	
-	void makeClusterBOSSVis(diastream& os, int offset, const char* path, ClusterMDP cmdp);
+//	void makeClusterBOSSVis(diastream& os, int offset, const char* path, ClusterMDP cmdp);
 };
 typedef boost::shared_ptr<_OutcomeClusterLearner> OutcomeClusterLearner;
 
