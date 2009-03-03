@@ -26,7 +26,7 @@ if 'debug' in COMMAND_LINE_TARGETS:
 
 BuildDir(build, src, duplicate=0)
 
-vi_rmax_sources = [build.File('agent_vi_rmax.cpp')]
+acrobot_sources = [build.File('acrobot_agent.cpp')]
 cluster_sources = map(build.File, ['agent_cluster.cpp', 'dpmem.cpp', 'outcomes.cpp',
 								   'cluster_gibbs.cpp', 'boss.cpp', 'cluster_boss_dia.cpp'])
 headers = ['crl/dpmem.hpp', 'crl/outcomes.hpp', 'crl/cluster_gibbs.hpp', 'crl/boss.hpp']
@@ -72,13 +72,13 @@ if has_crl and has_glue:
 else:
 	print "Cannot build agent_cluster"
 if has_crl and has_glue:
-	agent_vi_rmax = env.Program(bin.Entry('agent_vi_rmax'), vi_rmax_sources,
+	agent_acrobot = env.Program(bin.Entry('agent_acrobot'), acrobot_sources,
 	                       LIBS=['strxml', 'crl', 'rlgnmagent',
 	                             'rlcrlagent', 'rlutils', 'rlgluenetdev',
 	                             'taskspecutils'])
-	bin_targets += [agent_vi_rmax]
+	bin_targets += [agent_acrobot]
 else:
-	print "Cannot build agent_vi_rmax"
+	print "Cannot build agent_acrobot"
 
 if prefix != Dir('.'):
 	for header in headers:
@@ -95,6 +95,7 @@ COPYING COPYING.LESSER SConstruct tools.py
 """.split()]
 dist_files += [inc.Entry(header) for header in headers]
 dist_files += [src.Entry(s) for s in cluster_sources] 
+dist_files += [src.Entry(s) for s in acrobot_sources] 
 
 env.Alias('dist', env.DistTar('glue-agents.tar.gz', dist_files))
 	

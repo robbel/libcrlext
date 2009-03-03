@@ -24,6 +24,7 @@
 #include <diastream.hpp>
 
 #include <crl/crl.hpp>
+#include <crl/vi.hpp>
 #include "crl/cluster_gibbs.hpp"
 #include "crl/outcomes.hpp"
 
@@ -40,10 +41,11 @@ float getY(State s, int offset) {
 }
 
 void _OutcomeClusterLearner::makeClusterBOSSVis(diastream& os, int offset, const char* path, ClusterMDP cmdp) {
-
-	
-	
 	vector<Cluster> seen_clusters;
+	
+	VIPlanner vip(new _FactoredVIPlanner(_domain, cmdp, .01, .95));
+	vip->plan();
+	
 	
 	os << DiaBeginLayer("States");
 	StateIterator sitr = cmdp->S();
@@ -80,9 +82,11 @@ void _OutcomeClusterLearner::makeClusterBOSSVis(diastream& os, int offset, const
 		Cluster c = cmdp->getCluster(s);
 		float sx = getX(s, offset);
 		float sy = getY(s, offset);
-			
+		
+		Action best_action = vip->getAction(s);
+		
 		ostringstream tos;
-		tos << s;
+		tos << s << "(" << best_action << ")";
 		os << DiaText(sx, sy, tos.str());
 		
 		os << DiaText(sx+2, sy+1, "a,o(s)");
@@ -93,6 +97,7 @@ void _OutcomeClusterLearner::makeClusterBOSSVis(diastream& os, int offset, const
 		ActionIterator aitr = cmdp->A(s);
 		while (aitr->hasNext()) {
 			Action a = aitr->next();
+			Reward r = cmdp->R(s, a);
 			
 			vector<Size>& counts = _outcome_table->getOutcomeCounts(s, a);
 			for (Size i=0; i<counts.size(); i++) {
@@ -131,7 +136,7 @@ void _OutcomeClusterLearner::makeClusterBOSSVis(diastream& os, int offset, const
 					os << DiaArc(arrow_x, arrow_y, ex+x_offset, ey+y_offset+1, 5, "#0000FF");
 				
 				ostringstream tos;
-				tos << setprecision(2) << fixed << p;
+				tos << setprecision(2) << fixed << p << "(" << r << ")";
 				if (a_index == 1)
 					os << DiaText(arrow_x-2, arrow_y-.5, tos.str());
 				else

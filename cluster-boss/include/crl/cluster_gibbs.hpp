@@ -41,10 +41,13 @@ protected:
 	_FActionTable<std::vector<Size> > _cluster_priors;
 	std::set<State> _clustered_states;
 	FStateActionRewardTable _reward_totals;
+	FStateActionRewardTable _reward_Beta_alpha;
+	FStateActionRewardTable _reward_Beta_beta;
 	FCounter _sa_counter;
 	gsl_rng* _gsl_random;
+	Size _m;
 public:
-	_OutcomeClusterLearner(const Domain& domain, const std::vector<Outcome>& outcomes, Probability alpha);
+	_OutcomeClusterLearner(const Domain& domain, const std::vector<Outcome>& outcomes, Probability alpha, Size m, Size t_priors, float alpha_prior, float beta_prior);
 	virtual ~_OutcomeClusterLearner() { }
 	void setGSLRandom(gsl_rng* gsl_random);
 	Cluster createNewCluster();

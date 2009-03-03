@@ -22,7 +22,7 @@
 #include <rlglue/Agent_common.h>
 #include <crl/crl.hpp>
 #include <crl/rmax.hpp>
-#include <crl/vi.hpp>
+#include <crl/rtdp.hpp>
 #include <crl/fdomain.hpp>
 #include <rlgnmagent.h>
 #include "crl/glue_agent.hpp"
@@ -44,14 +44,28 @@ Agent crl::getCRLAgent(Domain domain) {
 		vmax = domain->getRewardRange().getMax()/(1-_gamma);
 	
 	RMaxMDPLearner rmaxLearner(new _RMaxMDPLearner(mdp_learner, classifier, itr, vmax));
-	VIPlanner planner(new _FactoredVIPlanner(domain, rmaxLearner, _epsilon, _gamma));
-	VIPlannerAgent agent(new _VIPlannerAgent(planner, rmaxLearner));
+	
+	float gamma = .9;
+	Reward epsilon = .01;
+	int m = 100;
+	int run_limit = 0;
+	int time_limit = 0;
+	int h = 1;
+	
+	RTDPPlanner rtdp_planner(new _FlatRTDPPlanner(domain, rmaxLearner, gamma, epsilon, m, h, 50));
+	rtdp_planner->setRunLimit(run_limit);
+	rtdp_planner->setTimeLimit(time_limit);
+	Planner planner = rtdp_planner;
+	
+	//VIPlanner planner(new _FactoredVIPlanner(domain, rmaxLearner, _epsilon, _gamma));
+	Agent agent(new _Agent(planner, rmaxLearner));
 	return agent;
 }
 
 class _AcrobotMapper : public _StateMapper {
 public:
-	State getState(Domain domain, const observation_t* obs) {
+	virtual ~_AcrobotMapper() { }
+	virtual State getState(Domain domain, const observation_t* obs) {
 		State s(domain);
 		for (int i=0; i<2; i++) {
 			int x = int(obs->doubleArray[i]*3);

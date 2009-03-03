@@ -29,12 +29,14 @@ using namespace std;
 using namespace crl;
 using namespace cpputil;
 
-_OutcomeClusterLearner::_OutcomeClusterLearner(const Domain& domain, const vector<Outcome>& outcomes, Probability alpha)
+_OutcomeClusterLearner::_OutcomeClusterLearner(const Domain& domain, const vector<Outcome>& outcomes, Probability alpha, Size m, Size t_priors, float alpha_prior, float beta_prior)
 : _domain(domain), _outcomes(outcomes), _outcome_table(new _OutcomeTable(domain, _outcomes)),
   _cluster_indices(_domain, -1), _dp(new _IncrementDPMem(alpha)),
-  _cluster_priors(domain, vector<Size>(_outcomes.size(), 1)),
-  _reward_totals(new _FStateActionTable<Reward>(_domain, 0)),
-  _sa_counter(new _FCounter(_domain)) {
+  _cluster_priors(domain, vector<Size>(_outcomes.size(), t_priors)),
+  _reward_totals(new _FStateActionTable<Reward>(_domain, 10)),
+  _reward_Beta_alpha(new _FStateActionTable<Reward>(_domain, alpha_prior)),
+  _reward_Beta_beta(new _FStateActionTable<Reward>(_domain, beta_prior)),
+  _sa_counter(new _FCounter(_domain)), _m(m) {
 	//cerr << "+_OutcomeClusterLearner::_OutcomeClusterLearner" << endl;
 	//assignInitialClusters();
 	//cerr << "-_OutcomeClusterLearner::_OutcomeClusterLearner" << endl;
@@ -73,6 +75,14 @@ bool _OutcomeClusterLearner::observe(const State& s, const Action& a, const Obse
 //	}
 	Reward old_r = _reward_totals->getValue(s, a);
 	_reward_totals->setValue(s, a, old_r+o->getReward());
+	
+	Reward scaled_r = o->getReward()-_domain->getRewardRange().getMin();
+	scaled_r /= _domain->getRewardRange().getMax()-_domain->getRewardRange().getMin();
+	Reward old_alpha = _reward_Beta_alpha->getValue(s, a);
+	_reward_Beta_alpha->setValue(s, a, old_alpha+scaled_r);
+	Reward old_beta = _reward_Beta_beta->getValue(s, a);
+	_reward_Beta_beta->setValue(s, a, old_beta+1-scaled_r);
+	
 //	printClusters();
 	return learned;
 }
@@ -141,7 +151,22 @@ void _OutcomeClusterLearner::gibbsSweepClusters() {
 			}
 			//add and remove because we sample C_i|C_i,C_{-i}, not C_i|C_{-i}
 			candidate_cluster->addState(s);
-			Probability log_p = candidate_cluster->logNoModelP(s);
+			
+			
+			//here is the good stuff
+			
+			//this is a naive and inaccurate (but fast) way
+			//Probability log_p = candidate_cluster->logNoModelP(s);
+			
+			//this is the correct way
+			Probability log_p = 0;
+			for (Size i=0; i<_clusters.size(); i++) {
+				Cluster c = _clusters[i];
+				if (c->size() == 0)
+					continue;
+				log_p += c->logP();
+			}
+			
 			candidate_cluster->removeState(s);
 			Probability dp_p = _dp->P(candidate_index);
 			log_p += log(dp_p);
@@ -201,8 +226,10 @@ set<MDP> _OutcomeClusterLearner::sampleMDPs(Size k, Size burn, Size spacing) {
 //		printClusters();
 
 		ClusterMDP mdp(new _ClusterMDP(_domain, _outcomes, _clusters, _cluster_indices));
-		mdp->setRewardTotals(_reward_totals);
-		mdp->setCounter(_sa_counter);
+		mdp->setRewardBeta(_reward_Beta_alpha, _reward_Beta_beta);
+		mdp->setGSLRandom(_gsl_random);
+//		mdp->setRewardTotals(_reward_totals);
+//		mdp->setCounter(_sa_counter);
 		mdps.insert(mdp);
 //		mdp->printXML(cerr);
 	}

@@ -40,9 +40,23 @@ using namespace cpputil;
 
 gsl_rng* gsl_random = 0;
 
-int _m;
-float _gamma;
+double _gamma;
 Reward _epsilon;
+
+int _m = 10;
+float _alpha = .5;
+Size _t_priors = 1;
+
+float _alpha_prior = 1;
+float _beta_prior = 0;
+
+int _burn_period = 500;
+int _sample_spacing = 50;
+int _num_samples = 5;
+
+//0 for chain
+//1 for marble maze
+bool _domain_type = 0;
 
 vector<Outcome> the_outcomes;
 
@@ -79,7 +93,7 @@ public:
 	virtual bool observe(const Observation& o) {
 		bool learned;
 		if (learned = _Agent::observe(o)) {
-			set<MDP> mdps = _cluster_learner->sampleMDPs(5, 500, 50);
+			set<MDP> mdps = _cluster_learner->sampleMDPs(_num_samples, _burn_period, _sample_spacing);
 			_boss_planner->setMDPs(mdps);
 			_boss_planner->plan();
 		}
@@ -98,39 +112,66 @@ public:
 };
 
 void populateOutcomes(Domain domain) {
-	vector<int> steps1;
-	steps1.push_back(1);
-	Outcome rightOutcome(new _StepOutcome(domain, steps1));
-	the_outcomes.push_back(rightOutcome);
-	/*
-	vector<int> steps2;
-	steps2.push_back(0);
-	Outcome noOutcome(new _StepOutcome(domain, steps2));
-	the_outcomes.push_back(noOutcome);
-	*/
-	State origin(domain);
-	origin.setFactor(0, 0);
-	Outcome resetOutcome(new _FixedOutcome(origin));
-	the_outcomes.push_back(resetOutcome);
+	if (_domain_type == 0) {
+		vector<int> steps1;
+		steps1.push_back(1);
+		Outcome rightOutcome(new _StepOutcome(domain, steps1));
+		the_outcomes.push_back(rightOutcome);
+		/*
+		vector<int> steps2;
+		steps2.push_back(0);
+		Outcome noOutcome(new _StepOutcome(domain, steps2));
+		the_outcomes.push_back(noOutcome);
+		*/
+		State origin(domain);
+		origin.setFactor(0, 0);
+		Outcome resetOutcome(new _FixedOutcome(origin));
+		the_outcomes.push_back(resetOutcome);
+	}
+	if (_domain_type == 1) {
+		vector<int> steps;
+		steps.push_back(0);
+		steps.push_back(0);
+		steps.push_back(0);
+		
+		steps[0] = 1;
+		steps[1] = 0;
+		Outcome rightOutcome(new _StepOutcome(domain, steps));
+		the_outcomes.push_back(rightOutcome);
+		
+		steps[0] = 0;
+		steps[1] = 1;
+		Outcome upOutcome(new _StepOutcome(domain, steps));
+		the_outcomes.push_back(upOutcome);
+		
+		steps[0] = -1;
+		steps[1] = 0;
+		Outcome leftOutcome(new _StepOutcome(domain, steps));
+		the_outcomes.push_back(leftOutcome);
+		
+		steps[0] = 0;
+		steps[1] = -1;
+		Outcome downOutcome(new _StepOutcome(domain, steps));
+		the_outcomes.push_back(downOutcome);
+		
+		steps[0] = 0;
+		steps[1] = 0;
+		Outcome stillOutcome(new _StepOutcome(domain, steps));
+		the_outcomes.push_back(stillOutcome);
+		
+		steps[2] = 1;
+		Outcome purgatoryOutcome(new _StepOutcome(domain, steps));
+		the_outcomes.push_back(purgatoryOutcome);
+	}
 }
 
 Agent crl::getCRLAgent(Domain domain) {
 	populateOutcomes(domain);
 	QTable qtable(new _FQTable(domain));
+	
 	BOSSPlanner planner(new _BOSSPlanner(_epsilon, _gamma, qtable));
-	OutcomeClusterLearner mdp_learner(new _OutcomeClusterLearner(domain, the_outcomes, .5));
-	/*
-	KnownClassifier classifier(new _FKnownClassifier(domain, _m));
-	ActionIterator itr(new _ActionIncrementIterator(domain));
+	OutcomeClusterLearner mdp_learner(new _OutcomeClusterLearner(domain, the_outcomes, _alpha, _m, _t_priors, _alpha_prior, _beta_prior));
 
-	Reward vmax = domain->getRewardRange().getMax();
-	if (_gamma < 1)
-		vmax = domain->getRewardRange().getMax()/(1-_gamma);
-
-	RMaxMDPLearner rmaxLearner(new _RMaxMDPLearner(mdp_learner, classifier, itr, vmax));
-	 */
-
-	//VIPlanner planner(new _FactoredVIPlanner(domain, rmaxLearner, _epsilon, _gamma));
 	Agent agent(new _OutcomeClusterAgent(planner, mdp_learner));
 	return agent;
 }
@@ -160,21 +201,29 @@ int main(int argc, char** argv) {
 	try {
 		srand(time(0));
 
-		if (argc != 4 && argc != 5) {
-			cerr << "Usage: " << argv[0] << " <m> <gamma> <epsilon> [host:port]" << endl;
+		if (argc != 12 && argc != 13) {
+			cerr << "Usage: " << argv[0] << "<alpha> <gamma> <epsilon> <m> <t_priors> <alpha> <beta> <burn> <spacing> <samples> <type> [host:port]" << endl;
 			return 1;
 		}
-		_m = atoi(argv[1]);
+		_alpha = atof(argv[1]);
 		_gamma = atof(argv[2]);
 		_epsilon = atof(argv[3]);
+		_m = atoi(argv[4]);
+		_t_priors = atoi(argv[5]);
+		_alpha_prior = atof(argv[6]);
+		_beta_prior = atof(argv[7]);
+		_burn_period = atoi(argv[8]);
+		_sample_spacing = atoi(argv[9]);
+		_num_samples = atoi(argv[10]);
+		_domain_type = atoi(argv[11]);
 		char* host = 0;
 		short port = 0;
-		if (argc == 5) {
-			host = strtok(argv[4], ":");
+		if (argc == 13) {
+			host = strtok(argv[12], ":");
 			port = atoi(strtok(0, ":"));
 		}
 
-		sprintf(params, "m=%d gamma=%f epsilon=%f", _m, _gamma, _epsilon);
+		sprintf(params, "gamma=%f epsilon=%f burn=%d spacing=%d samples=%d type=%d", _gamma, _epsilon, _burn_period, _sample_spacing, _num_samples, _domain_type);
 
 	  	gsl_random = gsl_rng_alloc(gsl_rng_taus2);
 		glue_main_agent(host, port);

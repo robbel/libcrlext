@@ -105,6 +105,8 @@ class _Cluster {
 protected:
 	Domain _domain;
 	OutcomeTable _outcome_table;
+	std::set<State> _states;
+	_FActionTable<std::vector<Size> > _outcome_priors;
 	_FActionTable<std::vector<Size> > _outcome_counts;
 	_FActionTable<Size> _outcome_totals;
 	_FActionTable<std::vector<Probability> > _outcome_probs;
@@ -113,7 +115,7 @@ protected:
 	gsl_rng* _gsl_random;
 public:
 	_Cluster(const Domain& domain, OutcomeTable outcome_table, gsl_rng* gsl_random);
-	_Cluster(const Domain& domain, OutcomeTable outcome_table, _FActionTable<std::vector<Size> > _outcome_priors, gsl_rng* gsl_random);
+	_Cluster(const Domain& domain, OutcomeTable outcome_table, _FActionTable<std::vector<Size> > outcome_priors, gsl_rng* gsl_random);
 	virtual ~_Cluster() { }
 	virtual void setGSLRandom(gsl_rng* gsl_random);
 	void addState(const State& s);
@@ -126,6 +128,8 @@ public:
 	virtual Probability noModelP(const Action& a, const Outcome& o);
 	virtual Probability logNoModelP(const State& s);
 
+	virtual Probability logP();
+
 	void print();
 };
 typedef boost::shared_ptr<_Cluster> Cluster;
@@ -137,13 +141,17 @@ protected:
 	Domain _domain;
 	std::vector<Outcome> _outcomes;
 	_FStateTable<Cluster> _clusters;
-	FStateActionRewardTable _reward_totals;
+	_FStateActionTable<Reward> _rewards;
+	FStateActionRewardTable _reward_Beta_alpha;
+	FStateActionRewardTable _reward_Beta_beta;
 	FCounter _sa_counter;
 	_FStateActionTable<FStateDistribution> _T_map;
+	gsl_rng* _gsl_random;
 public:
 	_ClusterMDP(const Domain& domain, std::vector<Outcome> outcomes, std::vector<Cluster>& cluster_vec, _FStateTable<Index>& cluster_indices);
-	virtual void setRewardTotals(FStateActionRewardTable reward_totals) {_reward_totals=reward_totals;}
-	virtual void setCounter(FCounter sa_counter) {_sa_counter=sa_counter;}
+	virtual void setRewardBeta(FStateActionRewardTable reward_Beta_alpha, FStateActionRewardTable reward_Beta_beta);
+	virtual void setGSLRandom(gsl_rng* gsl_random) {_gsl_random = gsl_random;}
+	//virtual void setCounter(FCounter sa_counter) {_sa_counter=sa_counter;}
 	virtual StateIterator S();
 	virtual StateIterator predecessors(const State& s);
 	virtual ActionIterator A();
@@ -152,6 +160,7 @@ public:
 	virtual Reward R(const State& s, const Action& a);
 	virtual void printXML(std::ostream& os);
 	Cluster getCluster(const State& s) {return _clusters.getValue(s);}
+	Probability logP();
 };
 
 };
