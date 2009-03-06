@@ -23,6 +23,7 @@ if 'debug' in COMMAND_LINE_TARGETS:
 BuildDir(build, src, duplicate=0)
 
 poupart_sources = [build.File('env_poupart.cpp')]
+littman_sources = [build.File('env_littman.cpp')]
 headers = []
 
 env = Environment(tools = ["default", "tools"], toolpath = '.',
@@ -61,6 +62,15 @@ if has_crl and has_glue:
 	bin_targets += [env_poupart]
 else:
 	print "Cannot build env_poupart"
+
+if has_crl and has_glue:
+	env_littman = env.Program(bin.Entry('env_littman'), littman_sources,
+	                       LIBS=['crl', 'rlgnmenv', 'strxml',
+	                             'rlcrlenv', 'rlutils', 'rlgluenetdev',
+	                             'taskspecutils'])
+	bin_targets += [env_littman]
+else:
+	print "Cannot build env_littman"
 
 if prefix != Dir('.'):
 	for header in headers:

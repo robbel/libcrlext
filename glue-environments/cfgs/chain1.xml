@@ -1,5 +1,5 @@
 <Chain>
-	<ClusterAssignments count="3">101</ClusterAssignments>
+	<ClusterAssignments count="5">01010</ClusterAssignments>
 	<Clusters count="2">
 		<Cluster index="0">.8</Cluster>
 		<Cluster index="1">.3</Cluster>

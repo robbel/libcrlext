@@ -1,0 +1,71 @@
+<LittmanChain>
+	<ClusterAssignments count="15">02120211200121T</ClusterAssignments>
+	<Clusters count="3">
+		<Cluster index="0">
+			<Action index="0">
+				<left>.9</left>
+				<right>.1</right>
+				<stay>0</stay>
+			</Action>
+			<Action index="1">
+				<left>.1</left>
+				<right>.9</right>
+				<stay>0</stay>
+			</Action>
+			<Action index="2">
+				<left>0</left>
+				<right>0</right>
+				<stay>1</stay>
+			</Action>
+			<Action index="3">
+				<left>.4</left>
+				<right>.4</right>
+				<stay>.2</stay>
+			</Action>
+		</Cluster>
+		<Cluster index="1">
+			<Action index="0">
+				<left>0</left>
+				<right>0</right>
+				<stay>1</stay>
+			</Action>
+			<Action index="1">
+				<left>0</left>
+				<right>0</right>
+				<stay>1</stay>
+			</Action>
+			<Action index="2">
+				<left>0</left>
+				<right>0</right>
+				<stay>1</stay>
+			</Action>
+			<Action index="3">
+				<left>.4</left>
+				<right>.4</right>
+				<stay>.2</stay>
+			</Action>
+		</Cluster>
+		<Cluster index="2">
+			<Action index="0">
+				<left>.3</left>
+				<right>.5</right>
+				<stay>.2</stay>
+			</Action>
+			<Action index="1">
+				<left>.5</left>
+				<right>.3</right>
+				<stay>.2</stay>
+			</Action>
+			<Action index="2">
+				<left>0</left>
+				<right>0</right>
+				<stay>1</stay>
+			</Action>
+			<Action index="3">
+				<left>.4</left>
+				<right>.4</right>
+				<stay>.2</stay>
+			</Action>
+		</Cluster>
+	</Clusters>
+</LittmanChain>
