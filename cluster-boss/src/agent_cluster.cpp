@@ -56,7 +56,10 @@ int _num_samples = 5;
 
 //0 for chain
 //1 for marble maze
-bool _domain_type = 0;
+//2 for littman chain
+int _domain_type = 0;
+
+bool _do_rmax; //instead of BOSS
 
 vector<Outcome> the_outcomes;
 
@@ -64,39 +67,54 @@ class _OutcomeClusterAgent : public _Agent {
 protected:
 	BOSSPlanner _boss_planner;
 	OutcomeClusterLearner _cluster_learner;
+	Size num_steps;
 public:
 	_OutcomeClusterAgent(BOSSPlanner boss_planner, OutcomeClusterLearner cluster_learner)
 	: _Agent(boss_planner, cluster_learner),
 	  _boss_planner(boss_planner), _cluster_learner(cluster_learner) {
 		_cluster_learner->setGSLRandom(gsl_random);
+		num_steps = 0;
 	}
-	virtual ~_OutcomeClusterAgent() {
-		//_cluster_learner->print();
-		//_cluster_learner->inferClusters();
-		//_cluster_learner->printClusters();
-		/*
-		set<MDP> mdps = _boss_planner->getMDPs();
-		ContainerIterator<MDP,set<MDP> > itr(mdps);
-		char* path = strdup("dia/mdps.dia");
-		diastream os(path);
+	void drawMDPs(Size count) {
+		vector<MDP> mdps = _boss_planner->getMDPs();
+		ContainerIterator<MDP,vector<MDP> > itr(mdps);
+		ostringstream tos;
+		tos << "dia/mdp-" << _domain_type << "," << _do_rmax << ":" << count << ".dia";
+		diastream os(tos.str().c_str());
 		os << DiaBeginDoc();
 		int s_counter = 0;
 		while (itr.hasNext()) {
 			MDP mdp = itr.next();
 			//mdp->printXML(cerr);
-			ClusterMDP cmdp = boost::shared_polymorphic_downcast<_ClusterMDP>(mdp);
-			_cluster_learner->makeClusterBOSSVis(os, s_counter++, path, cmdp);
+			ClusterMDP cmdp = getClusterMDP(mdp);
+			_cluster_learner->makeClusterBOSSVis(os, s_counter++, cmdp);
 		}
 		os << DiaEndDoc();
-		//os.close();
-		delete path;
-		*/
+		os.close();
+	}
+	virtual ~_OutcomeClusterAgent() {
+		//_cluster_learner->print();
+		//_cluster_learner->inferClusters();
+		//_cluster_learner->printClusters();
+		
+		
 	}
 	virtual bool observe(const Observation& o) {
 		bool learned;
+		num_steps++;
 		if (learned = _Agent::observe(o)) {
-			set<MDP> mdps = _cluster_learner->sampleMDPs(_num_samples, _burn_period, _sample_spacing);
+			vector<MDP> mdps = _cluster_learner->sampleMDPs(_num_samples, _burn_period, _sample_spacing, _do_rmax);
+
+			for (Size i=0; i<mdps.size(); i++) {
+				if (_domain_type != 0)
+					getClusterMDP(mdps[i])->setUseBeta(false);
+				if (_do_rmax) {
+					getClusterMDP(mdps[i])->setRmaxM(_m);
+				}	
+			}
+//			vector<MDP> annealed_mdps = _cluster_learner->sampleMDPs(_num_samples, _burn_period, _sample_spacing, true);
 			_boss_planner->setMDPs(mdps);
+//			drawMDPs(num_steps);
 			_boss_planner->plan();
 		}
 		return learned;
@@ -107,9 +125,9 @@ public:
 		return _last_action;
 	}
 	virtual void end() {
-		Observation o(new _Observation(State(), 0));
-		_cluster_learner->observe(_last_state, _last_action, o);
-		_cluster_learner->printClusters();
+//		Observation o(new _Observation(State(), 0));
+//		_cluster_learner->observe(_last_state, _last_action, o);
+//		_cluster_learner->printClusters();
 	}
 };
 
@@ -117,14 +135,9 @@ void populateOutcomes(Domain domain) {
 	if (_domain_type == 0) {
 		vector<int> steps1;
 		steps1.push_back(1);
-		Outcome rightOutcome(new _StepOutcome(domain, steps1));
+		Outcome rightOutcome(new _StepOutcome(domain, steps1, true));
 		the_outcomes.push_back(rightOutcome);
-		/*
-		vector<int> steps2;
-		steps2.push_back(0);
-		Outcome noOutcome(new _StepOutcome(domain, steps2));
-		the_outcomes.push_back(noOutcome);
-		*/
+
 		State origin(domain);
 		origin.setFactor(0, 0);
 		Outcome resetOutcome(new _FixedOutcome(origin));
@@ -134,36 +147,50 @@ void populateOutcomes(Domain domain) {
 		vector<int> steps;
 		steps.push_back(0);
 		steps.push_back(0);
-		steps.push_back(0);
-		
-		steps[0] = 1;
-		steps[1] = 0;
-		Outcome rightOutcome(new _StepOutcome(domain, steps));
-		the_outcomes.push_back(rightOutcome);
 		
 		steps[0] = 0;
 		steps[1] = 1;
-		Outcome upOutcome(new _StepOutcome(domain, steps));
+		Outcome upOutcome(new _StepOutcome(domain, steps, false));
 		the_outcomes.push_back(upOutcome);
 		
-		steps[0] = -1;
+		steps[0] = 1;
 		steps[1] = 0;
-		Outcome leftOutcome(new _StepOutcome(domain, steps));
-		the_outcomes.push_back(leftOutcome);
+		Outcome rightOutcome(new _StepOutcome(domain, steps, false));
+		the_outcomes.push_back(rightOutcome);
 		
 		steps[0] = 0;
 		steps[1] = -1;
-		Outcome downOutcome(new _StepOutcome(domain, steps));
+		Outcome downOutcome(new _StepOutcome(domain, steps, false));
 		the_outcomes.push_back(downOutcome);
+		
+		steps[0] = -1;
+		steps[1] = 0;
+		Outcome leftOutcome(new _StepOutcome(domain, steps, false));
+		the_outcomes.push_back(leftOutcome);
 		
 		steps[0] = 0;
 		steps[1] = 0;
-		Outcome stillOutcome(new _StepOutcome(domain, steps));
+		Outcome stillOutcome(new _StepOutcome(domain, steps, false));
+		the_outcomes.push_back(stillOutcome);
+	}
+	if (_domain_type == 2) {
+		vector<int> steps;
+		steps.push_back(0);
+		
+		steps[0] = -1;
+		Outcome leftOutcome(new _StepOutcome(domain, steps, true));
+		the_outcomes.push_back(leftOutcome);
+		
+		steps[0] = 1;
+		Outcome rightOutcome(new _StepOutcome(domain, steps, true));
+		the_outcomes.push_back(rightOutcome);
+		
+		steps[0] = 0;
+		Outcome stillOutcome(new _StepOutcome(domain, steps, false));
 		the_outcomes.push_back(stillOutcome);
 		
-		steps[2] = 1;
-		Outcome purgatoryOutcome(new _StepOutcome(domain, steps));
-		the_outcomes.push_back(purgatoryOutcome);
+//		Outcome purgatoryOutcome(new _TerminalOutcome());
+//		the_outcomes.push_back(purgatoryOutcome);
 	}
 }
 
@@ -203,7 +230,7 @@ int main(int argc, char** argv) {
 	try {
 		srand(time(0));
 
-		if (argc != 12 && argc != 13) {
+		if (argc != 13 && argc != 14) {
 			cerr << "Usage: " << argv[0] << "<alpha> <gamma> <epsilon> <m> <t_priors> <alpha> <beta> <burn> <spacing> <samples> <type> [host:port]" << endl;
 			return 1;
 		}
@@ -218,14 +245,22 @@ int main(int argc, char** argv) {
 		_sample_spacing = atoi(argv[9]);
 		_num_samples = atoi(argv[10]);
 		_domain_type = atoi(argv[11]);
+		_do_rmax = atoi(argv[12]);
+		
 		char* host = 0;
 		short port = 0;
-		if (argc == 13) {
-			host = strtok(argv[12], ":");
+		if (argc == 14) {
+			host = strtok(argv[13], ":");
 			port = atoi(strtok(0, ":"));
 		}
 
-		sprintf(params, "gamma=%f epsilon=%f burn=%d spacing=%d samples=%d type=%d", _gamma, _epsilon, _burn_period, _sample_spacing, _num_samples, _domain_type);
+		if (!_do_rmax) {
+			sprintf(params, "gamma=%f epsilon=%f burn=%d spacing=%d samples=%d type=%d", _gamma, _epsilon, _burn_period, _sample_spacing, _num_samples, _domain_type);
+		}
+		else {
+			sprintf(params, "rmax gamma=%f epsilon=%f burn=%d type=%d", _gamma, _epsilon, _burn_period, _domain_type);
+			_num_samples = 1;
+		}
 
 	  	gsl_random = gsl_rng_alloc(gsl_rng_taus2);
 		glue_main_agent(host, port);

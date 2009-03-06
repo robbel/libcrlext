@@ -33,8 +33,8 @@ using namespace crl;
 using namespace std;
 using namespace cpputil;
 
-_StepOutcome::_StepOutcome(Domain domain, const vector<int>& deltas)
-: _domain(domain), _deltas(deltas) {
+_StepOutcome::_StepOutcome(Domain domain, const vector<int>& deltas, bool range_barrier)
+: _domain(domain), _deltas(deltas), _range_barrier(range_barrier) {
 
 }
 
@@ -59,7 +59,9 @@ State _StepOutcome::apply(const State& s) {
 		Factor f = s.getFactor(i)+_deltas[i];
 		const RangeVec& ranges = _domain->getStateRanges();
 		if (ranges[i].check(f))
-			sp.setFactor(i, f); 
+			sp.setFactor(i, f);
+		else if (!_range_barrier)
+			return State(); 
 	}
 	return sp;
 }
@@ -98,10 +100,11 @@ bool _OutcomeTable::observe(const State& s, const Action& a, const Observation& 
 //		return false;
 	//Size total = 0;
 	vector<Size>& counts = _outcomeCounts.getValue(s, a);
-
 	for (Size i=0; i<_outcomes.size(); i++) {
 		if (_outcomes[i]->match(s, sp)) {
 			counts[i] += 1;
+//			cerr << s << " x " << a << " -> " << sp << " : " << o->getReward()
+//			     <<  " (" << i << ")" << endl;
 			break;
 		}
 		//total += counts[i];
@@ -217,33 +220,26 @@ void _Cluster::calcProbs() {
 
 void _Cluster::calcProbs(const Action& a) {
 	vector<Size>& cluster_action_counts = _outcome_counts.getValue(a);
-	Size total = _outcome_totals.getValue(a);
+	vector<Size>& priors = _outcome_priors.getValue(a);
+	Size total = _outcome_totals.getValue(a)-0*priors[0]*priors.size();
 	Probability totalInv = 1.0/total;
 	vector<Probability>& probs_no_model = _outcome_probs_no_model.getValue(a);
 	for (Size i=0; i<probs_no_model.size(); i++)
-		probs_no_model[i] = totalInv*cluster_action_counts[i];
-		
-		
+		probs_no_model[i] = totalInv*(cluster_action_counts[i]-0*priors[i]);
+	
 	Size K = cluster_action_counts.size();
 	double* dirichlet_alpha = new double[K];
 	double* dirichlet_theta = new double[K];
-	bool b = false;
 	for (Size i=0; i<K; i++) {
 		dirichlet_alpha[i] = cluster_action_counts[i];
-		if (b)
-			cerr << " " << dirichlet_alpha[i];
 	}
-	if (b)
-		cerr << endl;
 	gsl_ran_dirichlet(_gsl_random, K, dirichlet_alpha, dirichlet_theta);
 	vector<Probability>& probs = _outcome_probs.getValue(a);
 	for (Size i=0; i<probs.size(); i++) {
 		probs[i] = dirichlet_theta[i];
-		if (b)
-			cerr << " " << dirichlet_theta[i];
 	}
-	if (b)
-		cerr << endl;
+	delete dirichlet_alpha;
+	delete dirichlet_theta;
 }
 
 Size _Cluster::size() {
@@ -256,6 +252,10 @@ vector<Size>& _Cluster::getCounts(const Action& a) {
 
 Probability _Cluster::P(const Action& a, const Outcome& o) {
 	Size index = _outcome_table->getOutcomeIndex(o);
+	return _outcome_probs.getValue(a)[index];
+}
+
+Probability _Cluster::P(const Action& a, Size index) {
 	return _outcome_probs.getValue(a)[index];
 }
 
@@ -283,23 +283,33 @@ Probability _Cluster::logNoModelP(const State& s) {
 
 Probability _Cluster::logP() {
 	Probability log_p = 0;
-	
+//	cerr << "  +_Cluster::logP" << endl;
 	ActionIterator aitr = ActionIterator(new _ActionIncrementIterator(_domain));
 	while (aitr->hasNext()) {
 		Action a = aitr->next();
+//		cerr << "   for " << a << endl;
 		
+		Probability a_log_p = 0;
+//		cerr << "    prior_cnts: [";
 		//matlab code line 1
 		//  ll = ll - sum( gammaln(prior_cnts) ) + gammaln( sum(prior_cnts) );
 		Size prior_sum = 0;
 		vector<Size>& priors = _outcome_priors.getValue(a);
 		for (Size i=0; i<priors.size(); i++) {
+//			cerr << priors[i];
+//			if (i != priors.size()-1)
+//				cerr << ", ";
 			prior_sum += priors[i];
-			log_p -= gsl_sf_lngamma(priors[i]);
+			a_log_p -= gsl_sf_lngamma(priors[i]);
 		}
-		log_p += gsl_sf_lngamma(prior_sum);
+		a_log_p += gsl_sf_lngamma(prior_sum);
+//		cerr << "]" << endl;
 		
+//		cerr << "    {line 1 = " << a_log_p << "}" << endl;
 		StateIterator sitr = StateIterator(new _StateSetIterator(_states));
 		
+		
+//		cerr << "    cnts: [" << endl;
 		//matlab code lines 2
 		//  ll = ll + sum( gammaln( sum(cnts,2)+1 ) );
   		sitr->reset();
@@ -307,12 +317,18 @@ Probability _Cluster::logP() {
 			State s = sitr->next();
 			vector<Size>& s_counts = _outcome_table->getOutcomeCounts(s, a);
 			Size s_total = 0;
+//			cerr << "     [";
 			for (Size i=0; i<s_counts.size(); i++) {
 				s_total += s_counts[i];
+//				cerr << s_counts[i];
+//				if (i != s_counts.size()-1)
+//					cerr << ", ";
 			}
-			log_p += gsl_sf_lngamma(s_total+1);
+//			cerr << "]" << endl;
+			a_log_p += gsl_sf_lngamma(s_total+1);
 		}
-		
+//		cerr << "    ]" << endl;
+//		cerr << "    {line 2 = " << a_log_p << "}" << endl;
 		
 		//matlab code line 3
 		//  ll = ll - sum( gammaln( cnts(:) + 1 ) );
@@ -326,23 +342,29 @@ Probability _Cluster::logP() {
 				sum_gamma_counts += gsl_sf_lngamma(s_counts[i]+1);
 			}
 		}
-		log_p -= sum_gamma_counts;
+		a_log_p -= sum_gamma_counts;
+//		cerr << "    {line 3 = " << a_log_p << "}" << endl;
 		
 		//matlab code line 4
   		//  ll = ll + sum( gammaln( sum(cnts,1)+prior_cnts) );
   		vector<Size>& outcome_counts = _outcome_counts.getValue(a);
   		Size total_count = 0;
 		for (Size i=0; i<priors.size(); i++) {
-			Size count = outcome_counts[i] + priors[i];
+			Size count = outcome_counts[i];
 			total_count += count;
-			log_p += gsl_sf_lngamma(count);
+			a_log_p += gsl_sf_lngamma(count);
 		}
+//		cerr << "    {line 4 = " << a_log_p << "}" << endl;
 		
 		//matlab code line 5
 		//  ll = ll - gammaln( sum(sum(cnts))+sum(prior_cnts) );
-		log_p -= gsl_sf_lngamma(total_count);
+		a_log_p -= gsl_sf_lngamma(total_count);
+//		cerr << "    {line 5 = " << a_log_p << "}" << endl;
+//		cerr << "   a_log_p = " << a_log_p << endl;
+		log_p += a_log_p;
 	}	
 	
+//	cerr << "  -_Cluster::logP = " << log_p << endl;
 	return log_p;
 }
 
@@ -361,8 +383,11 @@ void _Cluster::print() {
 	}
 }
 
-_ClusterMDP::_ClusterMDP(const Domain& domain, vector<Outcome> outcomes, vector<Cluster>& cluster_vec, _FStateTable<Index>& cluster_indices)
-: _domain(domain), _outcomes(outcomes), _clusters(domain), _rewards(domain, domain->getRewardRange().getMin()-1), _T_map(domain) {
+_ClusterMDP::_ClusterMDP(const Domain& domain, vector<Outcome> outcomes, vector<Cluster>& cluster_vec, _FStateTable<Index>& cluster_indices, Probability log_p)
+: _domain(domain), _outcomes(outcomes), _clusters(domain),
+  _cluster_vec(cluster_vec),
+  _rewards(domain, domain->getRewardRange().getMin()-1), 
+  _T_map(domain), _log_p(log_p) {
 	vector<Cluster> cluster_copies;
 	for (Size i=0; i<cluster_vec.size(); i++) {
 		Cluster c(new _Cluster(*(cluster_vec[i])));
@@ -378,11 +403,18 @@ _ClusterMDP::_ClusterMDP(const Domain& domain, vector<Outcome> outcomes, vector<
 			_clusters.setValue(s, c);
 		}
 	}
+	_use_Beta = false;
+	_m = 0;
 }
 
 void _ClusterMDP::setRewardBeta(FStateActionRewardTable reward_Beta_alpha, FStateActionRewardTable reward_Beta_beta) {
 	_reward_Beta_alpha = reward_Beta_alpha;
 	_reward_Beta_beta = reward_Beta_beta;
+}
+
+void _ClusterMDP::setRewardTotals(FStateActionRewardTable reward_totals, FCounter sa_counter) {
+	_reward_totals = reward_totals;
+	_sa_counter = sa_counter;
 }
 
 StateIterator _ClusterMDP::S() {
@@ -405,40 +437,91 @@ ActionIterator _ClusterMDP::A(const State& s) {
 	return aitr;
 }
 
+bool _ClusterMDP::isKnown(const State& s, const Action& a) {
+	Cluster c = _clusters.getValue(s);
+	if (c->getTotal(a) < _m)
+		return false;
+	Size total = 0;
+	ActionIterator aitr(new _ActionIncrementIterator(_domain));
+	while (aitr->hasNext())
+		total += _sa_counter->getCount(s, aitr->next());
+	return total >= _m;
+}
+
 StateDistribution _ClusterMDP::T(const State& s, const Action& a) {
 	Cluster c = _clusters.getValue(s);
-	if (!c) {
+	bool term = true;
+	for (Size i=0; i<s.size(); i++) {
+		if (s.getFactor(i) != _domain->getStateRanges()[i].getMax())
+			term = false;
+	}
+	if (term || !c || !isKnown(s, a)) {
 		StateDistribution sd(new _EmptyStateDistribution());
 		return sd;
 	}
-	FStateDistribution sd(new _FStateDistribution(_domain));
+	
+	FStateDistribution sd = _T_map.getValue(s, a);
+	if (sd) return sd;
+	
+	sd = FStateDistribution(new _FStateDistribution(_domain));
 		
 	//cerr << "building T(" << s << "," << a << ")" << endl;
 	for (Size i=0; i<_outcomes.size(); i++) {
 		Outcome o = _outcomes[i];
 		Probability p = c->P(a, o);
+		if (_m != 0)
+			p = c->noModelP(a, o);
 		State n = o->apply(s);
+		if (!n)
+			continue;
 		Size n_index = n.getIndex();
 		n_index += 1;
 		//cerr << " " << n << " : " << p << endl;
 		Probability leftover = sd->P(n);
 		sd->setP(n, p+leftover);
 	}
+	
+	_T_map.setValue(s, a, sd);
 	return sd;
 }
 
 Reward _ClusterMDP::R(const State& s, const Action& a) {
+	if (!isKnown(s, a)) {
+		return 0;
+	}
+	for (Size i=0; i<s.size(); i++) {
+		if (s.getFactor(i) != _domain->getStateRanges()[i].getMax())
+			return -1;
+	}
+	return 0;
+	/*
+	if (s.getFactor(0) == (Factor)_domain->getNumStates()-1)
+		return 0;
+	else
+		return -1;
 	Reward r = _rewards.getValue(s, a);
 	if (r == _domain->getRewardRange().getMin()-1) {
-		Reward alpha = _reward_Beta_alpha->getValue(s, a);
-		Reward beta = _reward_Beta_beta->getValue(s, a);
-		r = gsl_ran_beta(_gsl_random, alpha, beta);
-		r *= _domain->getRewardRange().getMax()-_domain->getRewardRange().getMin();
-		r += _domain->getRewardRange().getMin();
-		_rewards.setValue(s, a, r);
+		if (_use_Beta) {
+			Reward alpha = _reward_Beta_alpha->getValue(s, a);
+			Reward beta = _reward_Beta_beta->getValue(s, a);
+			r = gsl_ran_beta(_gsl_random, alpha, beta);
+			r *= _domain->getRewardRange().getMax()-_domain->getRewardRange().getMin();
+			r += _domain->getRewardRange().getMin();
+			_rewards.setValue(s, a, r);
+		}
+		else {
+			r = _reward_totals->getValue(s, a);
+			Size count = _sa_counter->getCount(s, a);
+			if (count == 0)
+				r = _domain->getRewardRange().getMax();
+			else
+				r /= count;
+			_rewards.setValue(s, a, r);
+		}
 //		cerr << alpha << ", " << beta << " -> " << r << endl;
 	}
 	return r;
+	*/
 }
 
 void _ClusterMDP::printXML(std::ostream& os) {
@@ -453,6 +536,6 @@ void _ClusterMDP::printXML(std::ostream& os) {
 
 
 Probability _ClusterMDP::logP() {
-	return 0;
+	return _log_p;
 }
 

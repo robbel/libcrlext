@@ -45,8 +45,9 @@ class _StepOutcome : public _Outcome {
 protected:
 	Domain _domain;
 	const std::vector<int> _deltas;
+	bool _range_barrier;
 public:
-	_StepOutcome(Domain domain, const std::vector<int>& deltas);
+	_StepOutcome(Domain domain, const std::vector<int>& deltas, bool range_barrier);
 	virtual ~_StepOutcome() { }
 	virtual bool match(const State& s, const State& sp);
 	virtual State apply(const State& s);
@@ -124,7 +125,9 @@ public:
 	void calcProbs(const Action& a);
 	Size size();
 	std::vector<Size>& getCounts(const Action& a);
+	Size getTotal(const Action& a) {return _outcome_totals.getValue(a);}
 	virtual Probability P(const Action& a, const Outcome& o);
+	virtual Probability P(const Action& a, Size index);
 	virtual Probability noModelP(const Action& a, const Outcome& o);
 	virtual Probability logNoModelP(const State& s);
 
@@ -141,16 +144,26 @@ protected:
 	Domain _domain;
 	std::vector<Outcome> _outcomes;
 	_FStateTable<Cluster> _clusters;
+	std::vector<Cluster> _cluster_vec;
 	_FStateActionTable<Reward> _rewards;
 	FStateActionRewardTable _reward_Beta_alpha;
 	FStateActionRewardTable _reward_Beta_beta;
+	FStateActionRewardTable _reward_totals;
 	FCounter _sa_counter;
 	_FStateActionTable<FStateDistribution> _T_map;
 	gsl_rng* _gsl_random;
+	Probability _log_p;
+	bool _use_Beta;
+	Size _m;
 public:
-	_ClusterMDP(const Domain& domain, std::vector<Outcome> outcomes, std::vector<Cluster>& cluster_vec, _FStateTable<Index>& cluster_indices);
+	_ClusterMDP(const Domain& domain, std::vector<Outcome> outcomes, std::vector<Cluster>& cluster_vec, _FStateTable<Index>& cluster_indices, Probability log_p);
 	virtual void setRewardBeta(FStateActionRewardTable reward_Beta_alpha, FStateActionRewardTable reward_Beta_beta);
+	virtual void setRewardTotals(FStateActionRewardTable reward_totals, FCounter sa_counter);
+	virtual void setUseBeta(bool use_Beta) {_use_Beta = use_Beta;}
+	virtual void setRmaxM(Size m) {_m = m;}
+	virtual bool isKnown(const State& s, const Action& a);
 	virtual void setGSLRandom(gsl_rng* gsl_random) {_gsl_random = gsl_random;}
+	Outcome getOutcome(Size index) {return _outcomes[index];}
 	//virtual void setCounter(FCounter sa_counter) {_sa_counter=sa_counter;}
 	virtual StateIterator S();
 	virtual StateIterator predecessors(const State& s);
@@ -162,6 +175,10 @@ public:
 	Cluster getCluster(const State& s) {return _clusters.getValue(s);}
 	Probability logP();
 };
+typedef boost::shared_ptr<_ClusterMDP> ClusterMDP;
+inline ClusterMDP getClusterMDP(MDP mdp) {
+	return boost::shared_polymorphic_downcast<_ClusterMDP>(mdp);
+}
 
 };
 

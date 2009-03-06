@@ -107,6 +107,10 @@ public:
 	 * Get the posterior of a possible sample
 	 */
 	Probability P(Size value);
+	/**
+	 * Get the log likelihood of all values drawn so far
+	 */
+	Probability logP();
 	void print();
 
 	virtual ~_DPMem() { }

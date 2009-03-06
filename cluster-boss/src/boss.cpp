@@ -37,7 +37,7 @@ _BOSSPlanner::_BOSSPlanner(Reward epsilon, float gamma, QTable qtable)
 
 Reward _BOSSPlanner::evaluateStateAction(const State& s, const Action& a) {
 	Reward q = numeric_limits<Reward>::max()*-1;
-	ContainerIterator<MDP,set<MDP> > mitr(_mdps);
+	ContainerIterator<MDP,vector<MDP> > mitr(_mdps);
 	while (mitr.hasNext()) {
 		_mdp = mitr.next();
 		Reward pq = _VIPlanner::evaluateStateAction(s, a);
@@ -47,7 +47,7 @@ Reward _BOSSPlanner::evaluateStateAction(const State& s, const Action& a) {
 	return q;
 }
 
-void _BOSSPlanner::setMDPs(set<MDP> mdps) {
+void _BOSSPlanner::setMDPs(vector<MDP> mdps) {
 	_mdps = mdps;
 }
 

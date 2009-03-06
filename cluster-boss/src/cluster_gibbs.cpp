@@ -33,7 +33,7 @@ _OutcomeClusterLearner::_OutcomeClusterLearner(const Domain& domain, const vecto
 : _domain(domain), _outcomes(outcomes), _outcome_table(new _OutcomeTable(domain, _outcomes)),
   _cluster_indices(_domain, -1), _dp(new _IncrementDPMem(alpha)),
   _cluster_priors(domain, vector<Size>(_outcomes.size(), t_priors)),
-  _reward_totals(new _FStateActionTable<Reward>(_domain, 10)),
+  _reward_totals(new _FStateActionTable<Reward>(_domain, 0)),
   _reward_Beta_alpha(new _FStateActionTable<Reward>(_domain, alpha_prior)),
   _reward_Beta_beta(new _FStateActionTable<Reward>(_domain, beta_prior)),
   _sa_counter(new _FCounter(_domain)), _m(m) {
@@ -44,19 +44,14 @@ _OutcomeClusterLearner::_OutcomeClusterLearner(const Domain& domain, const vecto
 void _OutcomeClusterLearner::setGSLRandom(gsl_rng* gsl_random) {
 	_gsl_random = gsl_random;
 }
-void _OutcomeClusterLearner::inferClusters() {
-	for (Size i=0; i<1000; i++) {
-		gibbsSweepClusters();
-		printClusters();
-	}
-}
+
 void _OutcomeClusterLearner::print() {
 	_outcome_table->print();
 }
 bool _OutcomeClusterLearner::observe(const State& s, const Action& a, const Observation& o) {
 	_sa_counter->observe(s, a, o);
 	bool learned = false;
-	if (_sa_counter->getCount(s, a) <= 10)
+	if (_sa_counter->getCount(s, a) <= _m)// && _sa_counter->getCount(s, a) >= _m/2)
 		learned =  true;
 //	cerr << "+_OutcomeClusterLearner::observe" << endl;
 //	cerr << s << " x " << a << " -> " << o->getState() << endl;
@@ -97,6 +92,7 @@ void _OutcomeClusterLearner::printClusters() {
 			cerr << i;
 	}
 	cerr << endl;
+	/*
 	for (Size i=0; i<_clusters.size(); i++) {
 		if (_clusters[i]->size() == 0)
 			continue;
@@ -104,7 +100,7 @@ void _OutcomeClusterLearner::printClusters() {
 		_clusters[i]->print();
 		cerr << endl;
 	}
-	
+	*/
 /*
 	cerr << "cluster dump" << endl;
 	for (Size i=0; i<_clusters.size(); i++) {
@@ -118,8 +114,8 @@ Cluster _OutcomeClusterLearner::createNewCluster() {
 	return new_cluster;
 }
 
-void _OutcomeClusterLearner::gibbsSweepClusters() {
-	//cerr << "+gibbsSweepClusters" << endl;
+void _OutcomeClusterLearner::gibbsSweepClusters(double temperature) {
+//	cerr << "+gibbsSweepClusters" << endl;
 	//StateIterator sitr(new _StateSetIterator(_clustered_states));
 	StateIterator sitr(new _StateIncrementIterator(_domain));
 	while (sitr->hasNext()) {
@@ -142,7 +138,9 @@ void _OutcomeClusterLearner::gibbsSweepClusters() {
 		//store the unnormalized likelihood of each cluster in this vector
 		vector<Probability> cluster_likelihoods;
 		Probability max_log_p = -1*numeric_limits<Probability>::max();
+//		cerr << "+resample " << s << endl;
 		for (Size candidate_index=0; candidate_index<_clusters.size(); candidate_index++) {
+//			cerr << " candidate = " << candidate_index << endl;
 			Cluster candidate_cluster = _clusters[candidate_index];
 			//there are some placeholder empty clusters that must be ignored for now
 			if (candidate_cluster->size() == 0 && candidate_index != new_index) {
@@ -160,20 +158,25 @@ void _OutcomeClusterLearner::gibbsSweepClusters() {
 			
 			//this is the correct way
 			Probability log_p = 0;
+//			cerr << " +P(C|D)" << endl;
 			for (Size i=0; i<_clusters.size(); i++) {
 				Cluster c = _clusters[i];
 				if (c->size() == 0)
 					continue;
 				log_p += c->logP();
 			}
+//			cerr << " -P(C|D) = " << log_p << endl;
 			
 			candidate_cluster->removeState(s);
 			Probability dp_p = _dp->P(candidate_index);
 			log_p += log(dp_p);
+			//anealing step
+			log_p *= 1.0/temperature;
 			if (log_p > max_log_p)
 				max_log_p = log_p;
 			cluster_likelihoods.push_back(log_p);
 		}
+//		cerr << "-resample" << endl;
 		//cerr << "unnormalized cluster likelihoods are:";
 		Probability p_sum = 0;
 		for (Size candidate_index=0; candidate_index<cluster_likelihoods.size(); candidate_index++) {
@@ -204,35 +207,57 @@ void _OutcomeClusterLearner::gibbsSweepClusters() {
 		chosen_cluster->addState(s);
 		_cluster_indices.setValue(s, chosen_index);
 	}
-	//cerr << "after a sweep, clusters are:" << endl;
-	sitr->reset();
-	while (sitr->hasNext()) {
-		State s = sitr->next();
-		//cerr << " " << s << " : " << _cluster_indices.getValue(s) << endl;
-	}
-	//cerr << "-gibbsSweepClusters" << endl;
+	//printClusters();
+//	cerr << "-gibbsSweepClusters" << endl;
 }
 
-set<MDP> _OutcomeClusterLearner::sampleMDPs(Size k, Size burn, Size spacing) {
+vector<MDP> _OutcomeClusterLearner::sampleMDPs(Size k, Size burn, Size spacing, bool anneal) {
 //	cerr << "+_OutcomeClusterLearner::sampleMDPs" << endl;
-	set<MDP> mdps;
+	vector<MDP> mdps;
 
-	for (Size i=0; i<burn; i++)
-		gibbsSweepClusters();
+	Probability max_ll = 1;
+	double temperature = 1;
+	if (anneal) {
+		temperature = (burn+k*spacing)*.1;
+	}
+//	cerr << "burn" << endl;
+	for (Size i=0; i<burn; i++) {
+		gibbsSweepClusters(temperature);
+		if (anneal) temperature -= .1;
+	}
 	for (Size j=0; j<k; j++) {
-		for (Size i=0; j!=0 && i<spacing; i++)
-			gibbsSweepClusters();
+		for (Size i=0; j!=0 && i<spacing; i++) {
+			gibbsSweepClusters(temperature);
+			if (anneal) temperature -= .1;
+		}
 			
+//		cerr << "sample" << endl;
 //		printClusters();
 
-		ClusterMDP mdp(new _ClusterMDP(_domain, _outcomes, _clusters, _cluster_indices));
+		Probability mdp_ll = 0;
+		for (Size i=0; i<_clusters.size(); i++) {
+			if (_clusters[i]->size() == 0)
+				continue;
+			mdp_ll += _clusters[i]->logP();
+		}
+		mdp_ll += _dp->logP();
+		
+
+		ClusterMDP mdp(new _ClusterMDP(_domain, _outcomes, _clusters, _cluster_indices, mdp_ll));
 		mdp->setRewardBeta(_reward_Beta_alpha, _reward_Beta_beta);
+		mdp->setRewardTotals(_reward_totals, _sa_counter);
 		mdp->setGSLRandom(_gsl_random);
 //		mdp->setRewardTotals(_reward_totals);
 //		mdp->setCounter(_sa_counter);
-		mdps.insert(mdp);
+		if (max_ll == 1 || mdp_ll > max_ll) {
+			max_ll = mdp_ll;
+			mdps.insert(mdps.begin(), mdp);
+		}
+		else
+			mdps.push_back(mdp);
 //		mdp->printXML(cerr);
 	}
+//	printClusters();
 //	cerr << endl;
 //	cerr << "-_OutcomeClusterLearner::sampleMDPs" << endl;
 	return mdps;

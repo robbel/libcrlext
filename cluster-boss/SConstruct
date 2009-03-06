@@ -28,7 +28,7 @@ BuildDir(build, src, duplicate=0)
 
 acrobot_sources = [build.File('acrobot_agent.cpp')]
 cluster_sources = map(build.File, ['agent_cluster.cpp', 'dpmem.cpp', 'outcomes.cpp',
-								   'cluster_gibbs.cpp', 'boss.cpp'])#, 'cluster_boss_dia.cpp'])
+								   'cluster_gibbs.cpp', 'boss.cpp', 'cluster_boss_dia.cpp'])
 headers = ['crl/dpmem.hpp', 'crl/outcomes.hpp', 'crl/cluster_gibbs.hpp', 'crl/boss.hpp']
 	
 env = Environment(tools = ["default", "tools"], toolpath = '.',
@@ -67,7 +67,7 @@ if has_crl and has_glue:
 	                       LIBS=['strxml', 'crl', 'rlgnmagent',
 	                             'rlcrlagent', 'rlutils', 'rlgluenetdev',
 	                             'taskspecutils', 'gsl', 'gslcblas', 'm',
-	                             ])#'diastream', 'gzstream', 'z'])
+	                             'diastream', 'gzstream', 'z'])
 	bin_targets += [agent_cluster]
 else:
 	print "Cannot build agent_cluster"

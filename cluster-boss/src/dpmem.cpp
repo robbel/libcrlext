@@ -20,6 +20,8 @@
 
 #include <iostream>
 #include <cpputil.hpp>
+#include <math.h>
+#include <gsl/gsl_sf_gamma.h>
 
 #include "crl/dpmem.hpp"
 
@@ -71,7 +73,18 @@ Size _DPMem::count(Size value) {
 Probability _DPMem::P(Size value) {
 	if (value >= _counts.size() || _counts[value] == 0)
 		return _alpha/(_total+_alpha);
-	return 1.0*_counts[value]/_total;
+	return 1.0*_counts[value]/(_total+_alpha);
+}
+
+Probability _DPMem::logP() {
+	Probability log_alpha = log(_alpha);
+	Probability log_p = 0;
+	for (Size i=0; i<_counts.size(); i++)
+		if (_counts[i] > 1)
+			log_p += log_alpha+gsl_sf_lngamma(_counts[i]-1);
+	for (Size t=0; t<_total; t++)
+		log_p -= log(_alpha+t);
+	return log_p;
 }
 
 void _DPMem::print() {

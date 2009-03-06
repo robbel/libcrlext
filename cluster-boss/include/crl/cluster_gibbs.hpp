@@ -51,17 +51,16 @@ public:
 	virtual ~_OutcomeClusterLearner() { }
 	void setGSLRandom(gsl_rng* gsl_random);
 	Cluster createNewCluster();
-	void gibbsSweepClusters();
-	void inferClusters();
+	void gibbsSweepClusters(double temperature);
 	void print();
 	virtual bool observe(const State& s, const Action& a, const Observation& o);
 	void printClusters();
 	/**
 	 * Sample k MDPs, with a specified burn period and spacing between draws
 	 */
-	std::set<MDP> sampleMDPs(Size k, Size burn, Size spacing);
+	std::vector<MDP> sampleMDPs(Size k, Size burn, Size spacing, bool anneal);
 	
-//	void makeClusterBOSSVis(diastream& os, int offset, const char* path, ClusterMDP cmdp);
+	void makeClusterBOSSVis(diastream& os, int offset, ClusterMDP cmdp);
 };
 typedef boost::shared_ptr<_OutcomeClusterLearner> OutcomeClusterLearner;
 
