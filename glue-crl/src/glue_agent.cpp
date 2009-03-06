@@ -38,25 +38,14 @@ action_t _this_action;
 action_t _last_action;
 observation_t _last_observation;
 taskspec_t _tss;
-//
-//typedef struct {
-//	char *version;             
-//	char problem_type;
-//	double discount_factor;
-//	int num_int_observations;            /*
-//	int_range_t *int_observations;       /* array of integral observation dimensions */
-//	int num_double_observations;         /* length of double_observations array */
-//	double_range_t *double_observations; /* array of real observation dimensions */
-//	int charcount_observations;          /* number of characters in observation */
-//	int num_int_actions;            /* length of int_actions array */
-//	int_range_t *int_actions;       /* array of integral action dimensions */
-//	int num_double_actions;         /* length of double_actions array */
-//	double_range_t *double_actions; /* array of real action dimensions */
-//	int charcount_actions;          /* number of characters in action */
-//	double_range_t reward;      /* range of (environmentally determined) reward */
-//	char *extra_spec;           /* string of extra specifications (not parsed) */
-//} taskspec_t;
-//
+
+State _StateMapper::getState(Domain domain, const observation_t* obs) {
+	State s(domain);
+	for (Size i=0; i<domain->getNumStateFactors(); i++)
+		s.setFactor(i, obs->intArray[i]);
+	return s;
+}
+
 void agent_init(const char* task_spec)
 {
 	/*Seed the random number generator*/
