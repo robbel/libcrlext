@@ -188,7 +188,7 @@ void _OutcomeClusterLearner::gibbsSweepClusters(double temperature) {
 		}
 		//cerr << endl;
 		//now sample
-		Size chosen_index = -1;
+		Index chosen_index = -1;
 		Probability r = randDouble()*p_sum;
 		Probability c = 0;
 		for (Size candidate_index=0; candidate_index<cluster_likelihoods.size(); candidate_index++) {
