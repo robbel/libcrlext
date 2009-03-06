@@ -116,7 +116,7 @@ _VIPlannerAgent::_VIPlannerAgent(VIPlanner planner, Learner learner)
 
 bool _VIPlannerAgent::observe(const Observation& o) {
 	bool learned;
-	if (learned = _Agent::observe(o)) {
+	if ((learned = _Agent::observe(o))) {
 		getVIPlanner(_planner)->plan();
 	}
 	return learned;

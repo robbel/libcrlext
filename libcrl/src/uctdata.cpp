@@ -67,7 +67,7 @@ Action _IUCTQTable::GetUCTAction(Size state_hash, Size& hash_a, bool explore) {
 	for (Size t=0; t<_num_actions; t++){
 		if (!inTree(state_hash,t)) {
 			if (explore) {
-				pq.insert(pair<double,Size>(INT_MAX, t));	// not attempted actions have very high valus.
+				pq.insert(pair<double,Size>(std::numeric_limits<int>::max(), t));	// not attempted actions have very high valus.
 			}
 		}else{
 			CActionInfoHash& action_info = state_info->_actions[t]; // for sure action t is in the tree
@@ -76,7 +76,7 @@ Action _IUCTQTable::GetUCTAction(Size state_hash, Size& hash_a, bool explore) {
 				pq.insert(pair<double,Size>(Vi, t));
 			}else{
 				if (explore) {
-					pq.insert(pair<double,Size>(INT_MAX,t));
+					pq.insert(pair<double,Size>(std::numeric_limits<int>::max(),t));
 				}
 			}
 		}
