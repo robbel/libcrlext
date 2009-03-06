@@ -90,7 +90,7 @@ public:
 	Outcome getOutcome(Size index) {
 		return _outcomes[index];
 	}
-	Size getOutcomeIndex(Outcome o) {
+	Index getOutcomeIndex(Outcome o) {
 		for (Size i=0; i<_outcomes.size(); i++)
 			if (o == _outcomes[i])
 				return i;
