@@ -169,7 +169,7 @@ public:
 		return getIndex() < r.getIndex();
 	}
 	bool operator==(const RLType& r) const {
-		return getIndex() == r.getIndex();
+		return _ranges == r._ranges && getIndex() == r.getIndex();
 	}
 	/**
 	 * returns true if this is an actual state or action
