@@ -79,14 +79,14 @@ else:
 if has_glue:
 	glue_maze_env = env.Program(bin.Entry('glue_maze_env'), glue_env_sources,
 	                            LIBS=['mazes', 'strxml', 'crl', 'rlgnmenv', 'rlcrlenv',
-	                                  'rlutils', 'rlgluenetdev', 'taskspecutils'])
+	                                  'rlutils', 'rlgluenetdev'])
 	bin_targets += [glue_maze_env]
 
 	expert_maze_agent = env.Program(bin.Entry('expert_maze_agent'),
 	                                expert_maze_agent_sources,
 	                                LIBS=['strxml', 'crl', 'rlgnmagent',
 	                                      'rlcrlagent', 'rlutils', 'rlgluenetdev',
-	                                      'taskspecutils', 'mazes'])
+	                                      'mazes'])
 	bin_targets += [expert_maze_agent]
 else:
 	print "Cannot build glue_maze_env or expert_maze_agent"
