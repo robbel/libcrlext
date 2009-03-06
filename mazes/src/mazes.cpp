@@ -111,7 +111,7 @@ _SlipMaze::_SlipMaze(const Maze& maze, const SlipConfig& config)
 	_domain = Domain(new _Domain());
 	_domain->addStateFactor(0, getWidth()-1);
 	_domain->addStateFactor(0, getHeight()-1);
-	_domain->addStateFactor(0, 1);
+//	_domain->addStateFactor(0, 1);
 	_domain->addActionFactor(0, 3);
 	Reward min_r = _config->getRewardPit();
 	if (_config->getRewardStep() < min_r)
@@ -137,9 +137,10 @@ MDP _SlipMaze::getMDP() {
 			State s(_domain);
 			s.setFactor(0, x);
 			s.setFactor(1, y);
-			s.setFactor(2, 0);
+//			s.setFactor(2, 0);
 			
 			if (getTile(x, y) == 'G') {
+				/*
 				State purg = s;
 				purg.setFactor(2, 1);
 				for (int i=0; i<4; i++) {
@@ -148,10 +149,12 @@ MDP _SlipMaze::getMDP() {
 					mdp->setT(s, a, purg, 1);
 					mdp->setR(s, a, _config->getRewardGoal());
 				}
+				*/
 				continue;	
 			}
 			
 			if (getTile(x, y) == '#') {
+				/*
 				State purg = s;
 				purg.setFactor(2, 1);
 				for (int i=0; i<4; i++) {
@@ -160,6 +163,7 @@ MDP _SlipMaze::getMDP() {
 					mdp->setT(s, a, purg, 1);
 					mdp->setR(s, a, _config->getRewardPit());
 				}
+				*/
 				continue;	
 			}
 			
@@ -220,7 +224,7 @@ crl::State _SlipMaze::getTileState(char c) {
 			State s(_domain);
 			s.setFactor(0, x);
 			s.setFactor(1, y);
-			s.setFactor(2, 0);
+//			s.setFactor(2, 0);
 			return s;
 		}
 	return State();
@@ -230,7 +234,7 @@ crl::State _SlipMaze::getState(size_t x, size_t y) {
 	State s(_domain);
 	s.setFactor(0, x);
 	s.setFactor(1, y);
-	s.setFactor(2, 0);
+//	s.setFactor(2, 0);
 	return s;
 }
 

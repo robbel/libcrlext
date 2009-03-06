@@ -1,10 +1,16 @@
-<Maze width="3" height="1">
+<Maze width="3" height="3">
 	<tiles>
-		S.G
+		S..
+		...
+		..G
 	</tiles>
 	<verticalWalls>
 		..
+		||
+		..
 	</verticalWalls>
 	<horizontalWalls>
+		...
+		...
 	</horizontalWalls>
 </Maze>
