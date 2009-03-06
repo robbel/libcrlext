@@ -57,8 +57,7 @@ bin_targets = []
 if has_crl and has_glue:
 	env_poupart = env.Program(bin.Entry('env_poupart'), poupart_sources,
 	                       LIBS=['crl', 'rlgnmenv', 'strxml',
-	                             'rlcrlenv', 'rlutils', 'rlgluenetdev',
-	                             'taskspecutils'])
+	                             'rlcrlenv', 'rlutils', 'rlgluenetdev'])
 	bin_targets += [env_poupart]
 else:
 	print "Cannot build env_poupart"
@@ -66,8 +65,7 @@ else:
 if has_crl and has_glue:
 	env_littman = env.Program(bin.Entry('env_littman'), littman_sources,
 	                       LIBS=['crl', 'rlgnmenv', 'strxml',
-	                             'rlcrlenv', 'rlutils', 'rlgluenetdev',
-	                             'taskspecutils'])
+	                             'rlcrlenv', 'rlutils', 'rlgluenetdev'])
 	bin_targets += [env_littman]
 else:
 	print "Cannot build env_littman"
