@@ -50,6 +50,8 @@ def backupOldExperiments(log_dir, experiment_name):
         return
     
     archive_dir = exp_dir+'/.archive/'+date
+    print "Backing up previous experiment to", archive_dir
+    print
     makeDirectory(archive_dir)
     
     files = os.listdir(exp_dir)
@@ -347,8 +349,6 @@ def runExperimentor():
         sys.exit(1)
     
     if not resume_previous:
-        print "Backing up previous experiment"
-        print
         backupOldExperiments(log_dir, experiment_name)
     
     makeDirectory(exp_dir)
