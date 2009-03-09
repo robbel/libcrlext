@@ -36,7 +36,7 @@ float getX(State s, int offset) {
 }
 float getY(State s, int offset) {
 	if (s.size() > 1)
-		return s.getFactor(1)*45+offset*200;
+		return s.getFactor(1)*45+offset*500;
 	return offset*45;
 }
 
@@ -44,7 +44,7 @@ void _OutcomeClusterLearner::makeClusterBOSSVis(diastream& os, int offset, Clust
 	vector<Cluster> seen_clusters;
 	
 	FQTable qtable(new _FQTable(_domain));
-	VIPlanner vip(new _VIPlanner(cmdp, .01, 1, qtable));
+	VIPlanner vip(new _VIPlanner(cmdp, .01, .95, qtable));
 	vip->plan();
 	
 	

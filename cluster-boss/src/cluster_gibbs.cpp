@@ -82,14 +82,20 @@ bool _OutcomeClusterLearner::observe(const State& s, const Action& a, const Obse
 	return learned;
 }
 void _OutcomeClusterLearner::printClusters() {
+	Size num_clusters = 0;
+	for (Size i=0; i<_clusters.size(); i++) {
+		if (_clusters[i]->size() != 0)
+			num_clusters++;
+	}
+//	cerr << num_clusters << " clusters" << endl;
 	StateIterator sitr(new _StateIncrementIterator(_domain));
 	while (sitr->hasNext()) {
 		State s = sitr->next();
 		Index i = _cluster_indices.getValue(s);
 		if (i == -1)
-			cerr << "?";
+			cerr << "? ";
 		else
-			cerr << i;
+			cerr << i << " ";
 	}
 	cerr << endl;
 	/*
@@ -113,6 +119,9 @@ Cluster _OutcomeClusterLearner::createNewCluster() {
 	Cluster new_cluster(new _Cluster(_domain, _outcome_table, _cluster_priors, _gsl_random));
 	return new_cluster;
 }
+
+extern time_t total_cluster_logp;
+extern time_t count_cluster_logp;
 
 void _OutcomeClusterLearner::gibbsSweepClusters(double temperature) {
 //	cerr << "+gibbsSweepClusters" << endl;
@@ -207,9 +216,19 @@ void _OutcomeClusterLearner::gibbsSweepClusters(double temperature) {
 		chosen_cluster->addState(s);
 		_cluster_indices.setValue(s, chosen_index);
 	}
+//	if (count_cluster_logp != 0) {
+//		double time_per_cluster = 1.0*total_cluster_logp/count_cluster_logp;
+//		cerr << "avg = " << time_per_cluster << " with count = " << count_cluster_logp << endl;
+//		cerr << _domain->getNumStates()*_domain->getNumStates()*_domain->getNumStates() << endl;
+//		total_cluster_logp = 0;
+//		count_cluster_logp = 0;
+//	}
 	//printClusters();
 //	cerr << "-gibbsSweepClusters" << endl;
 }
+
+//ohhhh owww
+extern int _domain_type;
 
 vector<MDP> _OutcomeClusterLearner::sampleMDPs(Size k, Size burn, Size spacing, bool anneal) {
 //	cerr << "+_OutcomeClusterLearner::sampleMDPs" << endl;
@@ -222,6 +241,7 @@ vector<MDP> _OutcomeClusterLearner::sampleMDPs(Size k, Size burn, Size spacing, 
 	}
 //	cerr << "burn" << endl;
 	for (Size i=0; i<burn; i++) {
+//		cerr << "sweep " << i << endl;
 		gibbsSweepClusters(temperature);
 		if (anneal) temperature -= .1;
 	}
@@ -231,8 +251,9 @@ vector<MDP> _OutcomeClusterLearner::sampleMDPs(Size k, Size burn, Size spacing, 
 			if (anneal) temperature -= .1;
 		}
 			
-//		cerr << "sample" << endl;
-//		printClusters();
+//		cerr << "sample " << j << endl;
+		//if (0 && _domain_type == 1)
+//			printClusters();
 
 		Probability mdp_ll = 0;
 		for (Size i=0; i<_clusters.size(); i++) {

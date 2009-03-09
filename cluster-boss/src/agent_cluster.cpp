@@ -85,10 +85,11 @@ public:
 		int s_counter = 0;
 		while (itr.hasNext()) {
 			MDP mdp = itr.next();
-			//mdp->printXML(cerr);
+//			mdp->printXML(cerr);
 			ClusterMDP cmdp = getClusterMDP(mdp);
 			_cluster_learner->makeClusterBOSSVis(os, s_counter++, cmdp);
 		}
+//		cerr << endl;
 		os << DiaEndDoc();
 		os.close();
 	}
@@ -114,7 +115,8 @@ public:
 			}
 //			vector<MDP> annealed_mdps = _cluster_learner->sampleMDPs(_num_samples, _burn_period, _sample_spacing, true);
 			_boss_planner->setMDPs(mdps);
-//			drawMDPs(num_steps);
+			//if (_domain_type == 1)
+				drawMDPs(num_steps);
 			_boss_planner->plan();
 		}
 		return learned;

@@ -114,6 +114,7 @@ protected:
 	_FActionTable<std::vector<Probability> > _outcome_probs_no_model;
 	Size _num_states;
 	gsl_rng* _gsl_random;
+	Probability _log_p;
 public:
 	_Cluster(const Domain& domain, OutcomeTable outcome_table, gsl_rng* gsl_random);
 	_Cluster(const Domain& domain, OutcomeTable outcome_table, _FActionTable<std::vector<Size> > outcome_priors, gsl_rng* gsl_random);
@@ -131,6 +132,7 @@ public:
 	virtual Probability noModelP(const Action& a, const Outcome& o);
 	virtual Probability logNoModelP(const State& s);
 
+	virtual Probability calcLogP();
 	virtual Probability logP();
 
 	void print();
