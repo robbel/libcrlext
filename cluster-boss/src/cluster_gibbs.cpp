@@ -29,6 +29,11 @@ using namespace std;
 using namespace crl;
 using namespace cpputil;
 
+//ohhhh owww
+extern int _domain_type;
+extern time_t total_cluster_logp;
+extern time_t count_cluster_logp;
+
 _OutcomeClusterLearner::_OutcomeClusterLearner(const Domain& domain, const vector<Outcome>& outcomes, Probability alpha, Size m, Size t_priors, float alpha_prior, float beta_prior)
 : _domain(domain), _outcomes(outcomes), _outcome_table(new _OutcomeTable(domain, _outcomes)),
   _cluster_indices(_domain, -1), _dp(new _IncrementDPMem(alpha)),
@@ -49,6 +54,7 @@ void _OutcomeClusterLearner::print() {
 	_outcome_table->print();
 }
 bool _OutcomeClusterLearner::observe(const State& s, const Action& a, const Observation& o) {
+	_last_state = s;
 	_sa_counter->observe(s, a, o);
 	bool learned = false;
 	if (_sa_counter->getCount(s, a) <= _m)// && _sa_counter->getCount(s, a) >= _m/2)
@@ -64,10 +70,7 @@ bool _OutcomeClusterLearner::observe(const State& s, const Action& a, const Obse
 		_clusters[_cluster_indices.getValue(s)]->addState(s);
 	//_outcome_table->print();
 //	cerr << "-_OutcomeClusterLearner::observe" << endl;
-//	for (Size i=0; i<1; i++) {
-//		gibbsSweepClusters();
-//		printClusters();
-//	}
+
 	Reward old_r = _reward_totals->getValue(s, a);
 	_reward_totals->setValue(s, a, old_r+o->getReward());
 	
@@ -91,6 +94,8 @@ void _OutcomeClusterLearner::printClusters() {
 	StateIterator sitr(new _StateIncrementIterator(_domain));
 	while (sitr->hasNext()) {
 		State s = sitr->next();
+		if (_domain_type == 1 && s.getFactor(2) == 1)
+			continue; //maze purgatory
 		Index i = _cluster_indices.getValue(s);
 		if (i == -1)
 			cerr << "? ";
@@ -120,15 +125,14 @@ Cluster _OutcomeClusterLearner::createNewCluster() {
 	return new_cluster;
 }
 
-extern time_t total_cluster_logp;
-extern time_t count_cluster_logp;
-
 void _OutcomeClusterLearner::gibbsSweepClusters(double temperature) {
 //	cerr << "+gibbsSweepClusters" << endl;
 	//StateIterator sitr(new _StateSetIterator(_clustered_states));
 	StateIterator sitr(new _StateIncrementIterator(_domain));
 	while (sitr->hasNext()) {
 		State s = sitr->next();
+		if (_domain_type == 1 && s.getFactor(2) == 1)
+			continue; //maze purgatory
 		//first we desample s's current cluster
 		Index current_index = _cluster_indices.getValue(s);
 		if (current_index != -1) {
@@ -227,8 +231,6 @@ void _OutcomeClusterLearner::gibbsSweepClusters(double temperature) {
 //	cerr << "-gibbsSweepClusters" << endl;
 }
 
-//ohhhh owww
-extern int _domain_type;
 
 vector<MDP> _OutcomeClusterLearner::sampleMDPs(Size k, Size burn, Size spacing, bool anneal) {
 //	cerr << "+_OutcomeClusterLearner::sampleMDPs" << endl;
@@ -251,9 +253,8 @@ vector<MDP> _OutcomeClusterLearner::sampleMDPs(Size k, Size burn, Size spacing, 
 			if (anneal) temperature -= .1;
 		}
 			
-//		cerr << "sample " << j << endl;
 		//if (0 && _domain_type == 1)
-//			printClusters();
+			//printClusters();
 
 		Probability mdp_ll = 0;
 		for (Size i=0; i<_clusters.size(); i++) {

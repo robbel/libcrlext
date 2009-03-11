@@ -151,6 +151,9 @@ _Cluster::_Cluster(const Domain& domain, OutcomeTable outcome_table, gsl_rng* gs
 	_log_p = 0;
 }
 
+//oh my poor code
+extern int _domain_type;
+
 _Cluster::_Cluster(const Domain& domain, OutcomeTable outcome_table, _FActionTable<std::vector<Size> > outcome_priors, gsl_rng* gsl_random)
 : _domain(domain), _outcome_table(outcome_table),
   _outcome_priors(outcome_priors),
@@ -240,9 +243,13 @@ void _Cluster::calcProbs(const Action& a) {
 	}
 	gsl_ran_dirichlet(_gsl_random, K, dirichlet_alpha, dirichlet_theta);
 	vector<Probability>& probs = _outcome_probs.getValue(a);
+	Probability sum = 0;
 	for (Size i=0; i<probs.size(); i++) {
 		probs[i] = dirichlet_theta[i];
+		sum += probs[i];
 	}
+	if (sum < .99)
+		cerr << "wtf? " << sum << endl;
 	delete dirichlet_alpha;
 	delete dirichlet_theta;
 }
@@ -292,6 +299,7 @@ time_t count_cluster_logp = 0;
 Probability _Cluster::logP() {
 	return _log_p;
 }
+extern int _domain_type;
 Probability _Cluster::calcLogP() {
 	time_t start = time_in_milli();
 	Probability log_p = 0;
@@ -317,6 +325,8 @@ Probability _Cluster::calcLogP() {
   		sitr->reset();
 		while (sitr->hasNext()) {
 			State s = sitr->next();
+			if (_domain_type == 1 && s.getFactor(2) == 1)
+				continue; //maze purgatory
 			vector<Size>& s_counts = _outcome_table->getOutcomeCounts(s, a);
 			Size s_total = 0;
 			for (Size i=0; i<s_counts.size(); i++) {
@@ -441,27 +451,48 @@ bool _ClusterMDP::isKnown(const State& s, const Action& a) {
 	return total >= _m;
 }
 
-//oh my poor code
-extern int _domain_type;
 
 bool isPit(const State& s) {
-	if (s.getFactor(0) == 6 && s.getFactor(1) == 1 ||
-	    s.getFactor(0) == 0 && s.getFactor(1) == 2 ||
-	    s.getFactor(0) == 4 && s.getFactor(1) == 2 ||
-	    s.getFactor(0) == 0 && s.getFactor(1) == 3 ||
-	    s.getFactor(0) == 2 && s.getFactor(1) == 4 ||
-	    s.getFactor(0) == 0 && s.getFactor(1) == 5 ||
-	    s.getFactor(0) == 8 && s.getFactor(1) == 5 ||
-	    s.getFactor(0) == 4 && s.getFactor(1) == 6 ||
-	    s.getFactor(0) == 1 && s.getFactor(1) == 8 ||
-	    s.getFactor(0) == 3 && s.getFactor(1) == 8 ||
-	    s.getFactor(0) == 6 && s.getFactor(1) == 8)
-		return true;
+	if (false) {
+		if (s.getFactor(0) == 6 && s.getFactor(1) == 1 ||
+		    s.getFactor(0) == 0 && s.getFactor(1) == 2 ||
+		    s.getFactor(0) == 4 && s.getFactor(1) == 2 ||
+		    s.getFactor(0) == 0 && s.getFactor(1) == 3 ||
+		    s.getFactor(0) == 2 && s.getFactor(1) == 4 ||
+		    s.getFactor(0) == 0 && s.getFactor(1) == 5 ||
+		    s.getFactor(0) == 8 && s.getFactor(1) == 5 ||
+		    s.getFactor(0) == 4 && s.getFactor(1) == 6 ||
+		    s.getFactor(0) == 1 && s.getFactor(1) == 8 ||
+		    s.getFactor(0) == 3 && s.getFactor(1) == 8 ||
+		    s.getFactor(0) == 6 && s.getFactor(1) == 8)
+			return true;
+	}
+	if (false) {
+		if (s.getFactor(0) == 2 && s.getFactor(1) == 3)
+			return true;
+	}
+	if (true) {
+		if (s.getFactor(0) == 1 && s.getFactor(1) == 1 ||
+		    s.getFactor(0) == 4 && s.getFactor(1) == 1 ||
+		    s.getFactor(0) == 4 && s.getFactor(1) == 2 ||
+		    s.getFactor(0) == 3 && s.getFactor(1) == 3)
+			return true;
+	}
 	return false;	
 }
 bool isGoal(const State& s) {
-	if (s.getFactor(0) == 8 && s.getFactor(1) == 8)
-		return true;
+	if (false) {
+		if (s.getFactor(0) == 8 && s.getFactor(1) == 8)
+			return true;
+	}
+	if (false) {
+		if (s.getFactor(0) == 3 && s.getFactor(1) == 3)
+			return true;
+	}
+	if (true) {
+		if (s.getFactor(0) == 5 && s.getFactor(1) == 5)
+			return true;
+	}
 	return false;	
 }
 
@@ -491,16 +522,16 @@ StateDistribution _ClusterMDP::T(const State& s, const Action& a) {
 	if (sd) return sd;
 	
 	sd = FStateDistribution(new _FStateDistribution(_domain));
-		
+	
 	//cerr << "building T(" << s << "," << a << ")" << endl;
 	for (Size i=0; i<_outcomes.size(); i++) {
 		Outcome o = _outcomes[i];
-		Probability p = c->P(a, o);
-		if (_m != 0)
-			p = c->noModelP(a, o);
 		State n = o->apply(s);
 		if (!n)
 			continue;
+		Probability p = c->P(a, o);
+		if (_m != 0)
+			p = c->noModelP(a, o);
 		Size n_index = n.getIndex();
 		n_index += 1;
 		//cerr << " " << n << " : " << p << endl;

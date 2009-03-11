@@ -85,7 +85,7 @@ public:
 		int s_counter = 0;
 		while (itr.hasNext()) {
 			MDP mdp = itr.next();
-//			mdp->printXML(cerr);
+			//mdp->printXML(cerr);
 			ClusterMDP cmdp = getClusterMDP(mdp);
 			_cluster_learner->makeClusterBOSSVis(os, s_counter++, cmdp);
 		}
@@ -116,7 +116,7 @@ public:
 //			vector<MDP> annealed_mdps = _cluster_learner->sampleMDPs(_num_samples, _burn_period, _sample_spacing, true);
 			_boss_planner->setMDPs(mdps);
 			//if (_domain_type == 1)
-				drawMDPs(num_steps);
+			//drawMDPs(num_steps);
 			_boss_planner->plan();
 		}
 		return learned;
@@ -149,31 +149,32 @@ void populateOutcomes(Domain domain) {
 		vector<int> steps;
 		steps.push_back(0);
 		steps.push_back(0);
-		
-		steps[0] = 0;
-		steps[1] = 1;
-		Outcome upOutcome(new _StepOutcome(domain, steps, false));
-		the_outcomes.push_back(upOutcome);
-		
-		steps[0] = 1;
-		steps[1] = 0;
-		Outcome rightOutcome(new _StepOutcome(domain, steps, false));
-		the_outcomes.push_back(rightOutcome);
-		
-		steps[0] = 0;
-		steps[1] = -1;
-		Outcome downOutcome(new _StepOutcome(domain, steps, false));
-		the_outcomes.push_back(downOutcome);
-		
-		steps[0] = -1;
-		steps[1] = 0;
-		Outcome leftOutcome(new _StepOutcome(domain, steps, false));
-		the_outcomes.push_back(leftOutcome);
+		steps.push_back(0);
 		
 		steps[0] = 0;
 		steps[1] = 0;
 		Outcome stillOutcome(new _StepOutcome(domain, steps, false));
 		the_outcomes.push_back(stillOutcome);
+		
+		steps[0] = 0;
+		steps[1] = -1;
+		Outcome northOutcome(new _StepOutcome(domain, steps, true));
+		the_outcomes.push_back(northOutcome);
+		
+		steps[0] = 1;
+		steps[1] = 0;
+		Outcome eastOutcome(new _StepOutcome(domain, steps, true));
+		the_outcomes.push_back(eastOutcome);
+		
+		steps[0] = 0;
+		steps[1] = 1;
+		Outcome southOutcome(new _StepOutcome(domain, steps, true));
+		the_outcomes.push_back(southOutcome);
+		
+		steps[0] = -1;
+		steps[1] = 0;
+		Outcome westOutcome(new _StepOutcome(domain, steps, true));
+		the_outcomes.push_back(westOutcome);
 	}
 	if (_domain_type == 2) {
 		vector<int> steps;
