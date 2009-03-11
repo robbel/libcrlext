@@ -1,0 +1,25 @@
+<Maze width="6" height="6">
+	<tiles>
+		S.....
+		.#..#.
+		....#.
+		...#..
+		......
+		.....G
+	</tiles>
+	<verticalWalls>
+		.....
+		.|.|.
+		...|.
+		....|
+		.....
+		..|.|
+	</verticalWalls>
+	<horizontalWalls>
+		.-....
+		-.....
+		.---..
+		--....
+		...-..
+	</horizontalWalls>
+</Maze>
