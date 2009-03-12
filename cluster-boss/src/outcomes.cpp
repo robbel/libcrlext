@@ -475,6 +475,8 @@ bool isPit(const State& s) {
 		if (s.getFactor(0) == 1 && s.getFactor(1) == 1 ||
 		    s.getFactor(0) == 4 && s.getFactor(1) == 1 ||
 		    s.getFactor(0) == 4 && s.getFactor(1) == 2 ||
+		    s.getFactor(0) == 0 && s.getFactor(1) == 4 ||
+		    s.getFactor(0) == 1 && s.getFactor(1) == 4 ||
 		    s.getFactor(0) == 3 && s.getFactor(1) == 3)
 			return true;
 	}
