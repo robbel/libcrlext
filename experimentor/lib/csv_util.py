@@ -44,6 +44,44 @@ def averageCSVs(in_csvs):
         avg_csv.append(avg_line)
     return avg_csv
 
+    
+def mean_confidence_interval(data, confidence=0.95):
+    from numpy import mean, array, sqrt
+    import scipy.stats  
+    a = 1.0*array(data)
+    n = len(a)
+    m, se = mean(a), scipy.stats.stderr(a)
+    # calls the inverse CDF of the Student's t distribution
+    h = se * scipy.stats.t._ppf((1+confidence)/2., n-1)
+    return h
+    
+def errorCSVs(in_csvs):
+    err_csv = []
+    lengths = [len(csv) for csv in in_csvs]
+    length = lengths[0]
+    for l in lengths:
+        if l != length:
+            raise "in_csvs not all same size"
+    for i in range(length):
+        lines = [csv[i] for csv in in_csvs]
+        line_lengths = [len(line) for line in lines]
+        line_length = line_lengths[0]
+        for l in line_lengths:
+            if l != line_length:
+                raise "in_csvs not all same size"
+        err_line = []
+        for j in range(line_length):
+            try:
+                vals = [float(line[j]) for line in lines]
+                err = mean_confidence_interval(vals)
+                err_line.append(str(err))
+            except:
+                err_line.append(str(-1))
+        err_csv.append(err_line)
+    return err_csv
+    
+ 
+
 def augmentCSVs(in_csvs):
     out_csv = []
     widths = [max(line_width) for line_width in [[len(line) for line in csv] for csv in in_csvs]]

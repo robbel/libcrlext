@@ -206,8 +206,10 @@ def averageResults(instanceDir):
     if len(resultCSVs) != 0:
         avgCSV = averageCSVs(resultCSVs)
         writeCSV(avgCSV, instanceDir+'/results.csv')
+        errCSV = errorCSVs(resultCSVs)
+        writeCSV(errCSV, instanceDir+'/errors.csv')
     
-def augmentResults(exp_dir, names):
+def augmentResults(exp_dir, names, type='results'):
     instanceDirs = [exp_dir+'/'+d for d in os.listdir(exp_dir)]
     resultCSVs = {}
     for name in names:
@@ -217,20 +219,21 @@ def augmentResults(exp_dir, names):
             continue
         try:
             for name in names:
-                res_file = dir+'/results'+name+'.csv'
+                res_file = dir+'/'+type+name+'.csv'
                 csv = readCSV(res_file)
                 resultCSVs[name].append(csv)
         except:
             pass
     for name, csvs in resultCSVs.items():
         augmentedCSV = augmentCSVs(csvs)
-        writeCSV(augmentedCSV, exp_dir+'/results'+name+'.csv')
-        print exp_dir+'/results'+name+'.csv'
+        writeCSV(augmentedCSV, exp_dir+'/'+type+name+'.csv')
+        print exp_dir+'/'+type+name+'.csv'
 
-def separateResults(dir, title):
-    if not checkIfExists(dir, 'results.csv'):
+def separateResults(dir, title, type='results'):
+    if not checkIfExists(dir, type+'.csv'):
         return
-    csv = readCSV(dir+'/results.csv')
+    csv = readCSV(dir+'/'+type+'.csv')
+
     data_top = 0
     while csv[data_top][0]:
         data_top += 1
@@ -242,7 +245,7 @@ def separateResults(dir, title):
         name = name_data[0][0]
         names.add(name)
         data = [[title]]+getCSVRows(name_data, 1, None)
-        writeCSV(data, dir+'/results'+name+'.csv')
+        writeCSV(data, dir+'/'+type+name+'.csv')
     return names
 
 def printUsage():
@@ -391,10 +394,12 @@ def runExperimentor():
             instanceDir = instanceDirs[i]
             averageResults(instanceDir)
             names_instance = separateResults(instanceDir, instance.name)
+            names_instance = separateResults(instanceDir, instance.name, 'errors')
             if names_instance:
                 names = names.union(names_instance)
         if len(names):
             augmentResults(exp_dir, names)
+            augmentResults(exp_dir, names, 'errors')
     except Exception, e:
         print e
     except KeyboardInterrupt:
