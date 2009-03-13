@@ -71,8 +71,13 @@ def errorCSVs(in_csvs):
                 raise "in_csvs not all same size"
         err_line = []
         for j in range(line_length):
+            vals = []
             try:
                 vals = [float(line[j]) for line in lines]
+            except:
+                err_line.append(in_csvs[0][i][j])
+                continue
+            try:
                 err = mean_confidence_interval(vals)
                 err_line.append(str(err))
             except:
