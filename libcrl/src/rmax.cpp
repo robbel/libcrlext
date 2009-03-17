@@ -91,7 +91,7 @@ Reward _RMaxMDPLearner::R(const State& s, const Action& a) {
 	return _heuristic->getPotential(s, a);
 }
 bool _RMaxMDPLearner::observe(const State& s, const Action& a, const Observation& o) {
-	bool learned_model = _learner->observe(s, a, o);
 	bool learned_known = _classifier->observe(s, a, o);
+	bool learned_model = _learner->observe(s, a, o);
 	return learned_model && learned_known;
 }
