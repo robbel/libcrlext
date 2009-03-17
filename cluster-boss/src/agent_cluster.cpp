@@ -116,7 +116,7 @@ public:
 //			vector<MDP> annealed_mdps = _cluster_learner->sampleMDPs(_num_samples, _burn_period, _sample_spacing, true);
 			_boss_planner->setMDPs(mdps);
 			//if (_domain_type == 1)
-			//drawMDPs(num_steps);
+			drawMDPs(num_steps);
 			_boss_planner->plan();
 		}
 		return learned;

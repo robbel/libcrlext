@@ -32,11 +32,11 @@ using namespace std;
 using namespace crl;
 
 float getX(State s, int offset) {
-	return s.getFactor(0)*12;
+	return s.getFactor(0)+offset*7;
 }
 float getY(State s, int offset) {
 	if (s.size() > 1)
-		return s.getFactor(1)*45+offset*500;
+		return s.getFactor(1);
 	return offset*45;
 }
 
@@ -56,7 +56,7 @@ void _OutcomeClusterLearner::makeClusterBOSSVis(diastream& os, int offset, Clust
 		float sx = getX(s, offset);
 		float sy = getY(s, offset);
 		
-		if (s.getIndex() == 0) {
+		if (0 && s.getIndex() == 0) {
 			ostringstream tos;
 			tos << "LL = " << cmdp->logP();
 			os << DiaText(sx, sy-1, tos.str());
@@ -69,17 +69,27 @@ void _OutcomeClusterLearner::makeClusterBOSSVis(diastream& os, int offset, Clust
 			 cluster_index++);
 		if (cluster_index >= seen_clusters.size())
 			seen_clusters.push_back(c);
-		string color = "#FFAAAA";
-		if (cluster_index == 1)
-			color = "#AAFFAA";
-		if (cluster_index == 2)
-			color = "#AAAAFF";
-		if (cluster_index == 3)
-			color = "#FFAAFF";
-		if (cluster_index == 4)
-			color = "#FFFFAA";
+
+		const char* colors[] = {
+			"#FFAAAA", "#AAFFAA", "#AAAAFF", "#FFAAFF",
+			"#FFFFAA", "#AAFFFF", "#AAAAAA", "#AAFF00",
+			"#FF0000", "#00FF00", "#0000FF", "#FF00FF",
+			"#FFFF00", "#00FFFF", "#00FFAA", "#FFFFFF",
+			"#AA0000", "#00AA00", "#0000AA", "#AA00AA",
+			"#AAAA00", "#00AAAA", "#00AAFF", "#FFAA00",
+		};
+		string color = "#AFAFAF";
+		if (cluster_index < 24)
+			color = colors[cluster_index];
 		
-		os << DiaBox(sx, sy, sx+10, sy+35, color);
+		if (s.getFactor(2) == 0) {
+			os << DiaBox(sx, sy, sx+1, sy+1, color);
+			if (0) {
+				ostringstream tos;
+				tos << cluster_index;
+				os << DiaText(sx, sy, tos.str());
+			}
+		}
 	}
 	
 	
@@ -94,11 +104,26 @@ void _OutcomeClusterLearner::makeClusterBOSSVis(diastream& os, int offset, Clust
 		float sy = getY(s, offset);
 		
 		Action best_action = vip->getAction(s);
-		
+		Action a = best_action;
+		float dx = .5+sx;
+		float dy = .5+sy;
+		if (a.getFactor(0) == 0) {
+			os << DiaArrow(dx, dy+.25, dx, dy-.25);
+		}
+		if (a.getFactor(0) == 1) {
+			os << DiaArrow(dx-.25, dy, dx+.25, dy);
+		}
+		if (a.getFactor(0) == 2) {
+			os << DiaArrow(dx, dy-.25, dx, dy+.25);
+		}
+		if (a.getFactor(0) == 3) {
+			os << DiaArrow(dx+.25, dy, dx-.25, dy);
+		}
+		os << DiaEndGroup();
+		continue;
 		ostringstream tos;
-		tos << s << "(" << best_action << ") = " << qtable->getV(s);
+		tos << best_action.getIndex();
 		os << DiaText(sx, sy, tos.str());
-		
 		os << DiaText(sx+1, sy+1, "a,o(s)");
 		os << DiaText(sx+5, sy+1, "a,o(c)");
 		
