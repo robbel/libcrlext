@@ -49,29 +49,8 @@ Agent crl::getCRLAgent(Domain domain) {
 	return agent;
 }
 
-class _AcrobotMapper : public _StateMapper {
-public:
-	State getState(Domain domain, const observation_t* obs) {
-		State s(domain);
-		for (int i=0; i<2; i++) {
-			int x = int(obs->doubleArray[i]*3);
-			if (x>10) x = 10;
-			if (x<-10) x = -10;
-			s.setFactor(i, x);
-		}
-		for (int i=2; i<4; i++) {
-			int x = int(obs->doubleArray[i]*3);
-			if (x>3) x = 3;
-			if (x<-3) x = -3;
-			s.setFactor(i, x);
-		}
-		cerr << s << endl;
-		return s;
-	}
-};
-
 StateMapper crl::getStateMapper() {
-	return StateMapper(new _AcrobotMapper());
+	return StateMapper();
 }
 
 char params[256];
