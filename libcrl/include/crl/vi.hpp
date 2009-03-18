@@ -23,10 +23,8 @@
 
 #include <iostream>
 #include "crl/crl.hpp"
-#include "crl/fdomain.hpp"
-#include "crl/hdomain.hpp"
-#include "crl/mdomain.hpp"
-
+#include "crl/flat_tables.hpp"
+#include "crl/hash_tables.hpp"
 
 namespace crl {
 
@@ -111,18 +109,6 @@ public:
 	}
 };
 typedef boost::shared_ptr<_HashedVIPlanner> HashedVIPlanner;
-
-/**
- * VI planner using a map
- */
-class _MappedVIPlanner : public _VIPlanner {
-public:
-	_MappedVIPlanner(MDP mdp, Reward epsilon, float gamma)
-	: _VIPlanner(mdp, epsilon, gamma) {
-		_qtable = MQTable(new _MQTable(0));
-	}
-};
-typedef boost::shared_ptr<_MappedVIPlanner> MappedVIPlanner;
 
 /**
  * An agent that uses any learner, and replans w/ VI whenever the model changes.

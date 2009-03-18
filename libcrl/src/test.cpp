@@ -20,8 +20,8 @@
 
 #include <iostream>
 #include "crl/crl.hpp"
-#include "crl/fdomain.hpp"
-#include "crl/hdomain.hpp"
+#include "crl/flat_tables.hpp"
+#include "crl/hash_tables.hpp"
 #include "crl/vi.hpp"
 #include "crl/uct.hpp"
 #include "crl/ps.hpp"

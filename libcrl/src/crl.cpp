@@ -20,7 +20,7 @@
 
 #include <iostream>
 #include "crl/crl.hpp"
-#include "crl/fdomain.hpp"
+#include "crl/flat_tables.hpp"
 
 using namespace std;
 using namespace crl;
@@ -33,11 +33,11 @@ void _Domain::addStateFactor(Factor min, Factor max) {
 	FactorRange r(min, max);
 	_state_ranges.push_back(r);
 	_state_index_components.push_back(_num_states);
-	_num_states *= r.getSpan()+1;	
+	_num_states *= r.getSpan()+1;
 }
 void _Domain::addActionFactor(Factor min, Factor max) {
 	FactorRange r(min, max);
-	_action_ranges.push_back(r);	
+	_action_ranges.push_back(r);
 	_action_index_components.push_back(_num_actions);
 	_num_actions *= r.getSpan()+1;
 }
@@ -63,7 +63,7 @@ void _QTable::print(std::ostream& os, StateIterator sitr, ActionIterator aitr) {
 		aitr->reset();
 		while (aitr->hasNext()) {
 			Action a = aitr->next();
-			os << " Q(" << a << ") = " << getQ(s, a) << endl;	
+			os << " Q(" << a << ") = " << getQ(s, a) << endl;
 		}
 	}
 }
@@ -94,17 +94,17 @@ void _MDP::printXML(std::ostream& os) {
 
 _Agent::_Agent(Planner planner)
 : _planner(planner) {
-	
+
 }
 _Agent::_Agent(Planner planner, Learner learner)
 : _planner(planner), _learner(learner) {
-	
+
 }
 void _Agent::begin(const State& s) {
 	_last_state = s;
 }
 void _Agent::end() {
-	
+
 }
 bool _Agent::observe(const Observation& o) {
 	bool learned = false;
@@ -112,7 +112,7 @@ bool _Agent::observe(const Observation& o) {
 		learned = _learner->observe(_last_state, _last_action, o);
 	_last_state = o->getState();
 	return learned;
-}	
+}
 Action _Agent::getAction(const State& s) {
 	_last_action = _planner->getAction(s);
 	return _last_action;
@@ -120,7 +120,7 @@ Action _Agent::getAction(const State& s) {
 
 _Experiment::_Experiment(const Environment& environment, const Agent& agent, int num_trials)
 : _environment(environment), _agent(agent), _num_trials(num_trials) {
-	
+
 }
 Reward _Experiment::runExperiment() {
 	Reward total = 0;

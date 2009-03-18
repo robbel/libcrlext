@@ -17,9 +17,9 @@
     You should have received a copy of the GNU Lesser General Public License
     along with CRL.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 #include <iostream>
-#include "crl/fdomain.hpp"
+#include "crl/flat_tables.hpp"
 
 using namespace std;
 using namespace crl;
@@ -30,13 +30,13 @@ _FQTable::_FQTable(const Domain& domain)
   _best_qs(_domain->getNumStates(), 0) {
 
 }
-  
+
 _FQTable::_FQTable(const Domain& domain, Reward initial)
 : _FStateActionTable<Reward>(domain, initial), _best_actions(_domain->getNumStates()),
   _best_qs(_domain->getNumStates(), initial) {
 
 }
-  
+
 _FQTable::_FQTable(const Domain& domain, Heuristic potential)
 : _QTable(potential),
   _FStateActionTable<Reward>(domain, 0), _best_actions(_domain->getNumStates()),
@@ -62,7 +62,7 @@ void _FQTable::setQ(const State& s, const Action& a, Reward r) {
 			if (q > _best_qs[index]) {
 				_best_qs[index] = q;
 				_best_actions[index] = fa;
-			} 
+			}
 		}
 	}
 	if (r > _best_qs[index]) {
@@ -86,7 +86,7 @@ State _FStateDistribution::sample() {
 		if (c >= i)
 			return s;
 	}
-	
+
 	throw DistributionException("exceeded sum of probabilities");
 }
 void _FStateDistribution::setP(const State& s, Probability p) {
@@ -139,11 +139,11 @@ void _FMDP::setT(const State& s, const Action& a, const State& n, Probability p)
 	ss->insert(s);
 	FStateDistribution sd = _T_map.getValue(s, a);
 	if (!sd) {
-		sd = FStateDistribution(new _FStateDistribution(_domain)); 
-		_T_map.setValue(s, a, sd); 
+		sd = FStateDistribution(new _FStateDistribution(_domain));
+		_T_map.setValue(s, a, sd);
 	}
 	sd->setP(n, p);
-}	
+}
 void _FMDP::setR(const State& s, const Action& a, Reward r) {
 	_known_states.insert(s);
 	_known_actions.insert(a);
@@ -165,7 +165,7 @@ void _FMDP::clear() {
 _FCounter::_FCounter(const Domain& domain)
 : _domain(domain), _count_sa(new _FStateActionTable<Index>(domain)),
   _count_sa_s(new _FStateActionTable<SCountTable>(domain)) {
-	
+
 }
 
 StateIterator _FCounter::iterator(const State& s, const Action& a) {
@@ -193,7 +193,7 @@ Size _FCounter::getCount(const State& s, const Action& a, const State& n) {
 bool _FCounter::observe(const State& s, const Action& a, const Observation& o) {
 	Size c_sa = _count_sa->getValue(s, a);
 	_count_sa->setValue(s, a, c_sa+1);
-	
+
 	SCountTable c_ns = _count_sa_s->getValue(s, a);
 	if (!c_ns) {
 		c_ns = SCountTable(new _FStateTable<Index>(_domain));
@@ -203,29 +203,29 @@ bool _FCounter::observe(const State& s, const Action& a, const Observation& o) {
 		Size c_sa_s = c_ns->getValue(o->getState());
 		c_ns->setValue(o->getState(), c_sa_s+1);
 	}
-	
+
 	return true;
 }
 
 _FMDPLearner::_FMDPLearner(const Domain& domain)
 : _FMDP(domain), _counter(new _FCounter(domain)) {
-	
+
 }
 
 _FMDPLearner::~_FMDPLearner() {
-	
+
 }
 
 bool _FMDPLearner::observe(const State& s, const Action& a, const Observation& o) {
 	Reward total_r = R(s, a)*_counter->getCount(s, a);
 	total_r += o->getReward();
-	
+
 	_counter->observe(s, a, o);
-	
+
 	Size c_sa = _counter->getCount(s, a);
-	
+
 	Probability c_inv = 1.0/c_sa;
-	
+
 	clear(s, a);
 	StateIterator itr = _counter->iterator(s, a);
 	while (itr->hasNext()) {
@@ -233,8 +233,8 @@ bool _FMDPLearner::observe(const State& s, const Action& a, const Observation& o
 		Size c_sa_n = _counter->getCount(s, a, n);
 		setT(s, a, n, c_inv*c_sa_n);
 	}
-	
+
 	setR(s, a, c_inv*total_r);
-	
+
 	return true;
 }

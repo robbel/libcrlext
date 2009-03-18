@@ -17,7 +17,7 @@
     You should have received a copy of the GNU Lesser General Public License
     along with CRL.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 #ifndef RTDP_HPP_
 #define RTDP_HPP_
 
@@ -26,8 +26,8 @@
 
 #include "crl/crl.hpp"
 #include "crl/vi.hpp"
-#include "crl/fdomain.hpp"
-#include "crl/hdomain.hpp"
+#include "crl/flat_tables.hpp"
+#include "crl/hash_tables.hpp"
 
 
 namespace crl {
@@ -53,22 +53,22 @@ protected:
 	 * A table to keep track of how many times a state has gone through a roll-out
 	 */
 	SCountTable _s_counts;
-	
+
 	/**
 	 * discount rate
 	 */
 	Reward _gamma;
-	
+
 	/**
 	 * Likelihood that a roll-out explores a random action
 	 */
 	Probability _epsilon;
-	
+
 	/**
 	 * Max number of times a state can be in a roll-out
 	 */
 	Index _m;
-	
+
 	/**
 	 * Max number of roll-outs per call to getAction
 	 */
@@ -81,26 +81,26 @@ protected:
 	 * Max depth for a roll-out
 	 */
 	Size _max_depth;
-	
+
 	/**
 	 * used for its ability to perform Bellman backups
 	 */
 	VIPlanner _vi_planner;
-	
+
 	/**
 	 * Perform a simulation/roll-out starting at s. Returns the biggest
 	 * Bellman residual.
 	 */
 	Reward runSimulation(const State& s, Size depth=0);
-	
+
 	_RTDPPlanner(Domain domain, MDP mdp, QTable qtable, SCountTable s_counts,
 	             Reward gamma, Reward epsilon, Index m, Size max_depth);
 public:
 	virtual ~_RTDPPlanner() { }
-	
+
 	void setRunLimit(Size run_limit) {_run_limit=run_limit;}
 	void setTimeLimit(time_t time_limit) {_time_limit=time_limit;}
-	
+
 	/**
 	 * from _Planner
 	 */

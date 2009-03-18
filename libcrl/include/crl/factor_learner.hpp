@@ -24,10 +24,10 @@
 #include <boost/shared_ptr.hpp>
 #include "crl/common.hpp"
 #include "crl/crl.hpp"
-#include "crl/fdomain.hpp"
+#include "crl/flat_tables.hpp"
 
 namespace crl {
-	
+
 typedef _StateActionTable<SizeVec> _SAFCountTable;
 typedef boost::shared_ptr<_SAFCountTable> SAFCountTable;
 typedef _StateActionTable<ProbabilityVec> _SAFProbTable;
@@ -42,12 +42,12 @@ protected:
 	SizeVec _delayed_dep;
 	SizeVec _concurrent_dep;
 	SizeVec _action_dep;
-	
+
 	SACountTable _sa_count;
 	SAFCountTable _sa_f_count;
-	
+
 	SAFProbTable _prob_table;
-	
+
 	State mapState(const State& s, const State& n);
 	Action mapAction(const Action& a);
 public:
@@ -57,13 +57,13 @@ public:
 	virtual void addConcurrentDependency(Size index);
 	virtual void addActionDependency(Size index);
 	virtual void pack();
-	
+
 	virtual bool observe(const State& s, const Action& a, const Observation& o);
-	
-	virtual StateDistribution augmentDistribution(StateDistribution sd, const State& s, const Action& a); 
+
+	virtual StateDistribution augmentDistribution(StateDistribution sd, const State& s, const Action& a);
 };
 typedef boost::shared_ptr<_FactorLearner> FactorLearner;
-	
+
 class _FactorMDPLearner : public _MDPLearner {
 protected:
 	Domain _domain;
@@ -72,7 +72,7 @@ public:
 	_FactorMDPLearner(const Domain& domain);
 	virtual ~_FactorMDPLearner() { }
 
-	void addFactorLearner(FactorLearner& factor_learner); 
+	void addFactorLearner(FactorLearner& factor_learner);
 
 	virtual StateIterator S();
 	virtual StateIterator predecessors(const State& s);
@@ -80,9 +80,9 @@ public:
 	virtual ActionIterator A(const State& s);
 	virtual StateDistribution T(const State& s, const Action& a);
 	virtual Reward R(const State& s, const Action& a);
-	
+
 	virtual bool observe(const State& s, const Action& a, const Observation& o);
-	
+
 };
 typedef boost::shared_ptr<_FactorMDPLearner> FactorMDPLearner;
 

@@ -22,7 +22,7 @@
 
 #include <boost/shared_ptr.hpp>
 #include "crl/crl.hpp"
-#include "crl/fdomain.hpp"
+#include "crl/flat_tables.hpp"
 
 namespace crl {
 

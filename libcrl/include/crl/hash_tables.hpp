@@ -28,6 +28,8 @@
 #include <boost/shared_ptr.hpp>
 #include <cpputil.hpp>
 #include "crl/crl.hpp"
+#include "crl/common.hpp"
+#include "crl/tables.hpp"
 
 struct SizeHash {
 	inline size_t operator()(const crl::Size& s) const {
@@ -80,6 +82,16 @@ public:
 	}
 };
 
+template <class T>
+class _HStateTable : public _HashTable<T> {
+
+};
+
+template <class T>
+class _HActionTable : public _HashTable<T> {
+
+};
+
 /**
  * A state/action pair table that uses a hash map as
  * its underlying data structure
@@ -119,6 +131,7 @@ public:
  */
 class _HQTable : public _QTable, _HStateActionTable<Reward> {
 protected:
+	Domain _domain;
 	std_hash_map<Size,Action,SizeHash> _best_actions;
 	std_hash_map<Size,Reward,SizeHash> _best_qs;
 	Reward _initial;
@@ -139,6 +152,25 @@ public:
 	}
 };
 typedef boost::shared_ptr<_HQTable> HQTable;
+
+class _HStateDistribution : public _Distribution<State> {
+	const Domain _domain;
+	_HStateTable<Probability> _prob_hash;
+	_StateSet _known_states;
+public:
+	_HStateDistribution(const Domain& domain);
+	virtual StateIterator iterator() {
+		StateIterator itr(new _StateSetIterator(_known_states));
+		return itr;
+	}
+	virtual Probability P(const State& s) {
+		return _prob_hash.getValue(s);
+	}
+	virtual State sample();
+	void setP(const State& s, Probability p);
+	void clear();
+};
+typedef boost::shared_ptr<_HStateDistribution> HStateDistribution;
 
 }
 

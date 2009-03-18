@@ -323,56 +323,8 @@ public:
 	}
 };
 typedef boost::shared_ptr<_ActionRandomIterator> ActionRandomIterator;
-/**
- * An interface for a table that uses states as keys
- */
-template <class T>
-class _StateTable {
-public:
-	virtual ~_StateTable() { }
-
-	virtual T& getValue(const State& s) = 0;
-	virtual void setValue(const State& s, T t) = 0;
-	virtual StateIterator iterator() = 0;
-};
-typedef _StateTable<Index> _SCountTable;
-typedef boost::shared_ptr<_SCountTable> SCountTable;
-
-/**
- * An interface for a table that uses actions as keys
- */
-template <class T>
-class _ActionTable {
-public:
-	virtual ~_ActionTable() { }
-
-	virtual T& getValue(const Action& a) = 0;
-	virtual void setValue(const Action& a, T t) = 0;
-	virtual ActionIterator iterator() = 0;
-};
-typedef _ActionTable<Size> _ACountTable;
-typedef boost::shared_ptr<_ACountTable> ACountTable;
 
 
-/**
- * An interface for a table that uses state/action pairs as keys
- */
-template <class T>
-class _StateActionTable {
-public:
-	virtual ~_StateActionTable() { }
-
-	virtual T& getValue(const State& s, const Action& a) = 0;
-	virtual void setValue(const State& s, const Action& a, T t) = 0;
-};
-typedef _StateActionTable<Index> _SACountTable;
-typedef boost::shared_ptr<_SACountTable> SACountTable;
-
-typedef _StateActionTable<SCountTable> _SASCountTable;
-typedef boost::shared_ptr<_SASCountTable> SASCountTable;
-
-typedef _StateActionTable<Reward> _SARTable;
-typedef boost::shared_ptr<_SARTable> SARTable;
 
 /**
  * An interface for a distribution that can be sampled from

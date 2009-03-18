@@ -17,7 +17,7 @@
     You should have received a copy of the GNU Lesser General Public License
     along with CRL.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 #ifndef Domain_H_
 #define Domain_H_
 
@@ -27,6 +27,8 @@
 #include <boost/shared_ptr.hpp>
 #include <cpputil.hpp>
 #include "crl/crl.hpp"
+#include "crl/common.hpp"
+#include "crl/tables.hpp"
 
 namespace crl {
 
@@ -41,11 +43,11 @@ protected:
 public:
 	_FlatTable(Size size)
 	: _size(size), _values(_size) {
-		
+
 	}
 	_FlatTable(Size size, T initial)
 	: _size(size), _values(_size, initial) {
-		
+
 	}
 	virtual ~_FlatTable() { }
 	virtual T& getValue(const RLType& r) {
@@ -129,9 +131,9 @@ public:
 	: _domain(domain), _sa_values(domain->getNumStates(),
 	  std::vector<T>(domain->getNumActions(), initial)) { }
 	virtual void clear() {
-		_sa_values = std::vector<std::vector<T> >(_domain->getNumStates(), std::vector<T>(_domain->getNumActions()));	
+		_sa_values = std::vector<std::vector<T> >(_domain->getNumStates(), std::vector<T>(_domain->getNumActions()));
 	}
-	
+
 	virtual T& getValue(const State& s, const Action& a) {
 		return _sa_values[s.getIndex()][a.getIndex()];
 	}
@@ -148,7 +150,7 @@ class _FQTable : public _QTable, _FStateActionTable<Reward> {
 protected:
 	std::vector<Action> _best_actions;
 	std::vector<Reward> _best_qs;
-	
+
 	void checkInitial(const State& s) {
 		if (!_potential || _best_actions[s.getIndex()])
 			return;
@@ -169,7 +171,7 @@ public:
 	_FQTable(const Domain& domain);
 	_FQTable(const Domain& domain, Reward initial);
 	_FQTable(const Domain& domain, Heuristic potential);
-	
+
 	virtual Reward getQ(const State& s, const Action& a) {
 		checkInitial(s);
 		return _FStateActionTable<Reward>::getValue(s, a);
@@ -212,7 +214,7 @@ typedef boost::shared_ptr<_FStateDistribution> FStateDistribution;
  * A flat MDP that can have its dynamics set explicitely.
  */
 class _FMDP : public _MDP {
-protected: 
+protected:
 	const Domain _domain;
 	_FStateActionTable<FStateDistribution> _T_map;
 	_FStateActionTable<Reward> _R_map;
@@ -247,7 +249,7 @@ inline FMDP getFMDP(const MDP& mdp) {
 }
 
 /**
- * A class that keeps track of times states/actions have 
+ * A class that keeps track of times states/actions have
  * been observed.
  */
 class _FCounter : public _Learner {
