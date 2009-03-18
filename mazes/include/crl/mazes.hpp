@@ -17,7 +17,7 @@
     You should have received a copy of the GNU Lesser General Public License
     along with strxml.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 #ifndef MAZES_HPP_
 #define MAZES_HPP_
 
@@ -26,8 +26,8 @@
 #include <boost/multi_array.hpp>
 #include <boost/shared_ptr.hpp>
 #include <crl/crl.hpp>
-#include <crl/fdomain.hpp>
-#include <crl/mdomain.hpp>
+#include <crl/flat_tables.hpp>
+#include <crl/hash_tables.hpp>
 #include <strxml.hpp>
 
 namespace crl {
@@ -39,18 +39,18 @@ protected:
 	boost::multi_array<char,2> _tiles;
 	boost::multi_array<bool,2> _vertical_walls;
 	boost::multi_array<bool,2> _horizontal_walls;
-	
+
 public:
 	_Maze(size_t width, size_t height);
 	virtual ~_Maze() { }
 	size_t getWidth() {return _width;}
 	size_t getHeight() {return _height;}
-	
+
 	bool getWallNorth(size_t x, size_t y);
 	bool getWallEast(size_t x, size_t y);
 	bool getWallSouth(size_t x, size_t y);
 	bool getWallWest(size_t x, size_t y);
-	
+
 	void setWallNorth(size_t x, size_t y, bool wall);
 	void setWallEast(size_t x, size_t y, bool wall);
 	void setWallSouth(size_t x, size_t y, bool wall);
@@ -121,8 +121,8 @@ protected:
 	std::vector<Location> _spawns;
 	std::vector<Location> _flags;
 public:
-	
-	
+
+
 	_FlagMaze(const Maze& maze, const SlipConfig& config);
 	virtual ~_FlagMaze();
 	virtual Domain getDomain();
@@ -138,12 +138,12 @@ class _FlagMDP : public _MDP {
 protected:
 	FlagMaze _fm;
 	Domain _domain;
-	
-	Probability updateDistribution(MStateDistribution& sd,
+
+	Probability updateDistribution(HStateDistribution& sd,
 			    			   	   std::vector<Location> locs,
                         	   	   std::vector<int> directions,
                         	   	   std::vector<int> turns,
-							   	   std::vector<int> flags); 
+							   	   std::vector<int> flags);
 public:
 	_FlagMDP(FlagMaze& fm);
 	virtual ~_FlagMDP();

@@ -17,12 +17,11 @@
     You should have received a copy of the GNU Lesser General Public License
     along with strxml.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 #include <sstream>
 #include <strxml.hpp>
 #include <cpputil.hpp>
-#include <crl/fdomain.hpp>
-#include <crl/mdomain.hpp>
+#include <crl/flat_tables.hpp>
 #include "crl/mazes.hpp"
 
 using namespace std;
@@ -36,7 +35,7 @@ _Maze::_Maze(size_t width, size_t height)
   _tiles(extents[width][height]),
   _vertical_walls(extents[width-1][height]),
   _horizontal_walls(extents[width][height-1]) {
-	
+
 }
 
 bool _Maze::getWallEast(size_t x, size_t y) {
@@ -87,10 +86,10 @@ void _Maze::setTile(size_t x, size_t y, char tile) {
 	_tiles[x][y] = tile;
 }
 
-_SlipConfig::_SlipConfig() 
+_SlipConfig::_SlipConfig()
 : _slip_forward(1), _slip_left(0), _slip_right(0),
   _reward_goal(1), _reward_pit(-1), _reward_step(0) {
-	
+
 }
 
 _SlipConfig::_SlipConfig(crl::Probability slip_forward,
@@ -98,16 +97,16 @@ _SlipConfig::_SlipConfig(crl::Probability slip_forward,
 					     crl::Probability slip_right,
 					     crl::Reward reward_goal,
 					     crl::Reward reward_pit,
-					     crl::Reward reward_step) 
+					     crl::Reward reward_step)
 : _slip_forward(slip_forward), _slip_left(slip_left), _slip_right(slip_right),
   _reward_goal(reward_goal), _reward_pit(reward_pit), _reward_step(reward_step) {
-	
+
 }
 
-		    
+
 _SlipMaze::_SlipMaze(const Maze& maze, const SlipConfig& config)
 : _Maze(*maze), _config(config) {
-  	
+
 	_domain = Domain(new _Domain());
 	_domain->addStateFactor(0, getWidth()-1);
 	_domain->addStateFactor(0, getHeight()-1);
@@ -138,9 +137,9 @@ MDP _SlipMaze::getMDP() {
 			s.setFactor(0, x);
 			s.setFactor(1, y);
 			s.setFactor(2, 0);
-			
+
 			if (getTile(x, y) == 'G') {
-				
+
 				State purg = s;
 				purg.setFactor(2, 1);
 				for (int i=0; i<4; i++) {
@@ -149,12 +148,12 @@ MDP _SlipMaze::getMDP() {
 					mdp->setT(s, a, purg, 1);
 					mdp->setR(s, a, _config->getRewardGoal());
 				}
-				
-				continue;	
+
+				continue;
 			}
-			
+
 			if (getTile(x, y) == '#') {
-				
+
 				State purg = s;
 				purg.setFactor(2, 1);
 				for (int i=0; i<4; i++) {
@@ -163,10 +162,10 @@ MDP _SlipMaze::getMDP() {
 					mdp->setT(s, a, purg, 1);
 					mdp->setR(s, a, _config->getRewardPit());
 				}
-				
-				continue;	
+
+				continue;
 			}
-			
+
 			State s_n = s;
 			s_n.setFactor(1, y-1);
 			State s_e = s;
@@ -175,7 +174,7 @@ MDP _SlipMaze::getMDP() {
 			s_s.setFactor(1, y+1);
 			State s_w = s;
 			s_w.setFactor(0, x-1);
-			
+
 			for (int i=0; i<4; i++) {
 				Action a(_domain);
 				a.setFactor(0, i);
@@ -203,7 +202,7 @@ MDP _SlipMaze::getMDP() {
 					if (!getWallWest(x, y)) s_f = s_w;
 					if (!getWallNorth(x, y)) s_r = s_n;
 					if (!getWallSouth(x, y)) s_l = s_s;
-					break;	
+					break;
 				}
 				Probability p = 0;
 				mdp->setT(s, a, s_f, p+_config->getSlipForward());
@@ -213,7 +212,7 @@ MDP _SlipMaze::getMDP() {
 				mdp->setT(s, a, s_l, p+_config->getSlipLeft());
 			}
 		}
-	return mdp;	
+	return mdp;
 }
 
 crl::State _SlipMaze::getTileState(char c) {
@@ -243,11 +242,11 @@ StateSet _SlipMaze::getTerminalStates() {
 	for (size_t x=0; x<getWidth(); x++)
 		for (size_t y=0; y<getHeight(); y++) {
 			if (getTile(x, y) == '#' || getTile(x, y) == 'G')
-				ss->insert(getState(x, y));	
+				ss->insert(getState(x, y));
 		}
-		
-	
-	return ss;	
+
+
+	return ss;
 }
 
 Maze crl::readMaze(istream& is) {
@@ -258,8 +257,8 @@ Maze crl::readMaze(istream& is) {
 	size_t width = atoi(xobj("width").c_str());
 	size_t height = atoi(xobj("height").c_str());
 	Maze maze(new _Maze(width, height));
-	
-	
+
+
 	string v_str = xobj["verticalWalls"].getText();
 	istringstream v_is(v_str.c_str());
 	for (size_t y=0; y<height; y++) {
@@ -269,7 +268,7 @@ Maze crl::readMaze(istream& is) {
 			maze->setWallEast(x, y, c=='|');
 		}
 	}
-	
+
 	string h_str = xobj["horizontalWalls"].getText();
 	istringstream h_is(h_str.c_str());
 	for (size_t y=0; y<height-1; y++) {
@@ -279,7 +278,7 @@ Maze crl::readMaze(istream& is) {
 			maze->setWallSouth(x, y, c=='-');
 		}
 	}
-	
+
 	string tile_str = xobj["tiles"].getText();
 	istringstream tile_is(tile_str.c_str());
 	for (size_t y=0; y<height; y++) {
@@ -295,13 +294,13 @@ Maze crl::readMaze(istream& is) {
 			}
 		}
 	}
-	
+
 	return maze;
 }
 
 SlipConfig crl::readSlipConfig(std::istream& is) {
 	SlipConfig cfg(new _SlipConfig());
-	
+
 	XMLObject xobj;
 	is >> xobj;
 	if (xobj.getName() != "SlipConfig")
@@ -311,11 +310,11 @@ SlipConfig crl::readSlipConfig(std::istream& is) {
 	cfg->setSlipLeft(atof(slipObj["left"].getText().c_str()));
 	cfg->setSlipRight(atof(slipObj["right"].getText().c_str()));
 	XMLObject rewardObj = xobj["Reward"];
-	
+
 	cfg->setRewardGoal(atof(rewardObj["goal"].getText().c_str()));
 	cfg->setRewardPit(atof(rewardObj["pit"].getText().c_str()));
 	cfg->setRewardStep(atof(rewardObj["step"].getText().c_str()));
-	
+
 	return cfg;
 }
 

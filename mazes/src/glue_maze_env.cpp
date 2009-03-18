@@ -24,7 +24,7 @@
 #include <rlgnmenv.h>
 #include <cpputil.hpp>
 #include <crl/crl.hpp>
-#include <crl/fdomain.hpp>
+#include <crl/flat_tables.hpp>
 #include <crl/environment.hpp>
 #include "crl/glue_env.hpp"
 #include "crl/mazes.hpp"
@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
 	try {
 		const char* maze_path;
 		const char* config_path;
-		
+
 		if (argc != 3 && argc != 4) {
 			cout << "Usage: " << argv[0] << " <maze_path> <config_path> [host:port]" << endl;
 			return 1;
@@ -89,15 +89,15 @@ int main(int argc, char** argv) {
 			host = strtok(argv[3], ":");
 			port = atoi(strtok(0, ":"));
 		}
-		
+
 		maze_path = argv[1];
 		config_path = argv[2];
-		
+
 		ifstream in_maze(maze_path);
 		Maze m = readMaze(in_maze);
 		ifstream in_cfg(config_path);
 		SlipConfig cfg = readSlipConfig(in_cfg);
-		
+
 		bool is_slip_maze = true;
 		for (size_t x=0; is_slip_maze && x<m->getWidth(); x++)
 			for (size_t y=0; is_slip_maze && y<m->getHeight(); y++) {
@@ -105,25 +105,25 @@ int main(int argc, char** argv) {
 					is_slip_maze = false;
 				}
 			}
-		
+
 		if (is_slip_maze)
 			_slip_maze = SlipMaze(new _SlipMaze(m, cfg));
 		else
 			_flag_maze = FlagMaze(new _FlagMaze(m, cfg));
-		
-		
-		
+
+
+
 		sprintf(paramBuf, "maze=%s sf=%f sl=%f sr=%f rg=%f rp=%f rs=%f",
 		        maze_path, cfg->getSlipForward(), cfg->getSlipLeft(),
 		        cfg->getSlipRight(), cfg->getRewardGoal(), cfg->getRewardPit(),
 		        cfg->getRewardStep());
-		
+
 		glue_main_env(host, port);
 		return 0;
 	}
 	catch (cpputil::Exception e) {
 		cerr << e << endl;
-		return 1;	
+		return 1;
 	}
 }
 

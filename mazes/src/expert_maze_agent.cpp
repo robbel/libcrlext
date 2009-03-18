@@ -28,7 +28,7 @@
 #include <crl/uct.hpp>
 #include <crl/ps.hpp>
 #include <crl/rtdp.hpp>
-#include <crl/fdomain.hpp>
+#include <crl/flat_tables.hpp>
 #include <crl/mazes.hpp>
 #include <rlgnmagent.h>
 #include "crl/glue_agent.hpp"

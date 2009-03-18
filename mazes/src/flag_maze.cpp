@@ -17,12 +17,11 @@
     You should have received a copy of the GNU Lesser General Public License
     along with strxml.  If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 #include <sstream>
 #include <strxml.hpp>
 #include <cpputil.hpp>
-#include <crl/fdomain.hpp>
-#include <crl/mdomain.hpp>
+#include <crl/flat_tables.hpp>
 #include "crl/mazes.hpp"
 
 using namespace std;
@@ -33,7 +32,7 @@ using namespace crl;
 _FlagMaze::_FlagMaze(const Maze& maze, const SlipConfig& config)
 : _Maze(*maze), _config(config), _domain(new _Domain()) {
 //	_domain = Domain(new _Domain());
-	
+
 	Reward min_r = _config->getRewardPit();
 	if (_config->getRewardStep() < min_r)
 		min_r = _config->getRewardStep();
@@ -45,7 +44,7 @@ _FlagMaze::_FlagMaze(const Maze& maze, const SlipConfig& config)
 	if (_config->getRewardGoal() > max_r)
 		max_r = _config->getRewardGoal();
 	_domain->setRewardRange(min_r, max_r);
-	
+
 	_domain->addStateFactor(0, 1);//purgatory
 	for (size_t x=0; x<getWidth(); x++)
 		for (size_t y=0; y<getHeight(); y++) {
@@ -92,7 +91,7 @@ set<vector<int> > getFlagOrderings(int collectors_left, set<int> flags_left) {
 		sv.insert(vector<int>());
 		return sv;
 	}
-		
+
 	for (set<int>::iterator itr=flags_left.begin(); itr!=flags_left.end(); itr++) {
 		int flag = *itr;
 		set<int> next_flags_left(flags_left);
@@ -104,8 +103,8 @@ set<vector<int> > getFlagOrderings(int collectors_left, set<int> flags_left) {
 			sv.insert(ordering);
 		}
 	}
-		
-	return sv;	
+
+	return sv;
 }
 
 /**
@@ -127,14 +126,14 @@ StateSet _FlagMaze::getTerminalStates() {
 		for (size_t i=0; i<flag_order.size(); i++) {
 			int f = flag_order[i];
 			s.setFactor(1+2*i, _flags[f].x);
-			s.setFactor(2+2*i, _flags[f].y);	
+			s.setFactor(2+2*i, _flags[f].y);
 		}
 		for (Size i=0; i<_flags.size(); i++)
 			s.setFactor(1+2*_spawns.size()+i, 1);
 		ss->insert(s);
 	}
-	
-	return ss;	
+
+	return ss;
 }
 
 
@@ -153,8 +152,8 @@ StateIterator _FlagMDP::S() {
 }
 StateIterator _FlagMDP::predecessors(const State& s) {
 	StateSet ss(new _StateSet());
-	
-	
+
+
 	if (s.getFactor(0) == 1) {
 		State p = s;
 		p.setFactor(0, 0);
@@ -162,47 +161,47 @@ StateIterator _FlagMDP::predecessors(const State& s) {
 		SharedStateSetIterator itr(new _SharedStateSetIterator(ss));
 		return itr;
 	}
-	
+
 	vector<Location> flagLocs = _fm->getFlags();
 	vector<Location> spawns = _fm->getSpawns();
 	vector<Location> locs;
 	vector<int> directions;
 	vector<int> flags;
-	
+
 	for (size_t i=0; i<flagLocs.size(); i++) {
 		flags.push_back(s.getFactor(1+2*spawns.size()+i));
 	}
-	
+
 	for (size_t i=0; i<spawns.size(); i++) {
 		int x = s.getFactor(1+2*i);
 		int y = s.getFactor(2+2*i);
 		locs.push_back(Location(x, y));
 		directions.push_back(0);
 	}
-	
+
 	while (true) {
 		bool all_3 = true;
 		for (size_t i=0; all_3 && i<directions.size(); i++)
 			all_3 = all_3 && (directions[i]==3);
 		if (all_3)
 			break;
-			
+
 		vector<int> pre_flags;
 		for (size_t i=0; i<flagLocs.size(); i++)
-			pre_flags.push_back(0);	
+			pre_flags.push_back(0);
 		while (true) {
-			
-			bool all_1 = true;	
+
+			bool all_1 = true;
 			for (size_t i=0; all_1 && i<pre_flags.size(); i++)
 				all_1 = all_1 && (pre_flags[i]==1);
 			if (all_1)
 				break;
-				
+
 			bool good_flags = true;
 			for (size_t i=0; good_flags && i<pre_flags.size(); i++)
 				if (pre_flags[i] == 1 && flags[i] == 0)
 					good_flags = false;
-					
+
 			if (good_flags) {
 				State p = s;
 				for (size_t i=0; i<locs.size(); i++) {
@@ -224,7 +223,7 @@ StateIterator _FlagMDP::predecessors(const State& s) {
 				}
 				ss->insert(p);
 			}
-				
+
 			for (size_t i=0; i<pre_flags.size(); i++) {
 				pre_flags[i] += 1;
 				if (pre_flags[i] > 1)
@@ -233,7 +232,7 @@ StateIterator _FlagMDP::predecessors(const State& s) {
 					break;
 			}
 		}
-			
+
 		for (size_t i=0; i<directions.size(); i++) {
 			directions[i] += 1;
 			if (directions[i] > 3)
@@ -242,7 +241,7 @@ StateIterator _FlagMDP::predecessors(const State& s) {
 				break;
 		}
 	}
-	
+
 	SharedStateSetIterator itr(new _SharedStateSetIterator(ss));
 	return itr;
 }
@@ -258,12 +257,12 @@ ActionIterator _FlagMDP::A(const State& s) {
 }
 
 
-Probability _FlagMDP::updateDistribution(MStateDistribution& sd,
+Probability _FlagMDP::updateDistribution(HStateDistribution& sd,
 								 	     vector<Location> locs,
                                  		 vector<int> directions,
                                  		 vector<int> turns,
 								 		 vector<int> flags) {
-										 	 			
+
 	vector<Location> flagLocs = _fm->getFlags();
 	vector<Location> spawns = _fm->getSpawns();
 	SlipConfig config = _fm->getConfig();
@@ -303,12 +302,12 @@ Probability _FlagMDP::updateDistribution(MStateDistribution& sd,
 		for (size_t j=0; j<flags.size(); j++) {
 			if (!flags[j] && x == flagLocs[j].x && y == flagLocs[j].y)
 				flags[j] = 1;
-		}		
+		}
 	}
-	
+
 	State s(_fm->getDomain());
 	s.setFactor(0, 0);
-	
+
 	for (size_t i=0; i<dsts.size(); i++) {
 		s.setFactor(1+2*i, dsts[i].x);
 		s.setFactor(2+2*i, dsts[i].y);
@@ -317,24 +316,24 @@ Probability _FlagMDP::updateDistribution(MStateDistribution& sd,
 		s.setFactor(1+2*(spawns.size())+i, flags[i]);
 	}
 	sd->setP(s, p+sd->P(s));
-	
+
 	return p;
 }
 
 StateDistribution _FlagMDP::T(const State& s, const Action& a) {
 	vector<Location> flagLocs = _fm->getFlags();
 	vector<Location> spawns = _fm->getSpawns();
-	MStateDistribution sd(new _MStateDistribution());
+	HStateDistribution sd(new _HStateDistribution(_domain));
 	if (s.getFactor(0) == 1) {
 		sd->setP(s, 1);
 		return sd;
 	}
-	
+
 	vector<Location> locs;
 	vector<int> directions;
 	vector<int> turn_stack;
 	vector<int> flags;
-	
+
 	for (size_t i=0; i<spawns.size(); i++) {
 		int x = s.getFactor(1+2*i);
 		int y = s.getFactor(2+2*i);
@@ -342,31 +341,31 @@ StateDistribution _FlagMDP::T(const State& s, const Action& a) {
 		directions.push_back(a.getFactor(i));
 		turn_stack.push_back(-1);
 	}
-	
+
 	bool all_flags = true;
-	
+
 	for (size_t i=0; i<flagLocs.size(); i++) {
 		int f = s.getFactor(1+2*(spawns.size())+i);
 		all_flags = all_flags && f;
 		flags.push_back(f);
 	}
-	
+
 	if (all_flags) {
 		State n = s;
 		n.setFactor(0, 1);
 		sd->setP(n, 1);
 		return sd;
 	}
-	Probability c = 0;		
+	Probability c = 0;
 	while (true) {
-		
+
 		c += updateDistribution(sd, locs, directions, turn_stack, flags);
 		bool all_1 = true;
 		for (size_t i=0; all_1 && i<turn_stack.size(); i++)
 			all_1 = all_1 && (turn_stack[i]==1);
 		if (all_1)
 			break;
-			
+
 		for (size_t i=0; i<turn_stack.size(); i++) {
 			turn_stack[i] += 1;
 			if (turn_stack[i] > 1)
@@ -375,13 +374,13 @@ StateDistribution _FlagMDP::T(const State& s, const Action& a) {
 				break;
 		}
 	}
-	
+
 	c = 0;
 	StateIterator itr = sd->iterator();
 	while (itr->hasNext()) {
 		c += sd->P(itr->next());
 	}
-	
+
 	return sd;
 }
 Reward _FlagMDP::R(const State& s, const Action& a) {
@@ -401,27 +400,27 @@ Observation _FlagMDP::sample(const State& s, const Action& a) {
 		Observation o(new _Observation(s, 0));
 		return o;
 	}
-	
+
 	vector<Location> flagLocs = _fm->getFlags();
 	vector<Location> spawns = _fm->getSpawns();
 	SlipConfig config = _fm->getConfig();
-	
+
 	bool all_flags = true;
-	
+
 	for (size_t i=0; i<flagLocs.size(); i++) {
 		int f = s.getFactor(1+2*(spawns.size())+i);
 		all_flags = all_flags && f;
 	}
-	
+
 	if (all_flags) {
 		State n = s;
 		n.setFactor(0, 1);
 		Observation o(new _Observation(n, config->getRewardGoal()));
 		return o;
 	}
-	
+
 	State n = s;
-	
+
 	for (size_t i=0; i<spawns.size(); i++) {
 		int direction = a.getFactor(i);
 		int x = s.getFactor(1+2*i);
@@ -448,7 +447,7 @@ Observation _FlagMDP::sample(const State& s, const Action& a) {
 			x--;
 		n.setFactor(1+2*i, x);
 		n.setFactor(2+2*i, y);
-		
+
 		for (size_t j=0; j<flagLocs.size(); j++) {
 			if (x == flagLocs[j].x && y == flagLocs[j].y) {
 				n.setFactor(1+2*(spawns.size())+i, 1);
