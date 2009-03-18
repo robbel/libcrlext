@@ -27,12 +27,7 @@ namespace crl {
 
 class _StateMapper {
 public:
-	State getState(Domain domain, const observation_t* obs) {
-		State s(domain);
-		for (Size i=0; i<domain->getNumStateFactors(); i++)
-			s.setFactor(i, obs->intArray[i]);
-		return s;
-	}
+	State getState(Domain domain, const observation_t* obs);
 };
 typedef boost::shared_ptr<_StateMapper> StateMapper;
 
