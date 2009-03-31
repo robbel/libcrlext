@@ -23,7 +23,7 @@
 #include <crl/crl.hpp>
 #include <crl/rmax.hpp>
 #include <crl/rtdp.hpp>
-#include <crl/fdomain.hpp>
+#include <crl/flat_tables.hpp>
 #include <rlgnmagent.h>
 #include "crl/glue_agent.hpp"
 
@@ -38,25 +38,25 @@ Agent crl::getCRLAgent(Domain domain) {
 	FMDPLearner mdp_learner(new _FMDPLearner(domain));
 	KnownClassifier classifier(new _FKnownClassifier(domain, _m));
 	ActionIterator itr(new _ActionIncrementIterator(domain));
-	
+
 	Reward vmax = domain->getRewardRange().getMax();
 	if (_gamma < 1)
 		vmax = domain->getRewardRange().getMax()/(1-_gamma);
-	
+
 	RMaxMDPLearner rmaxLearner(new _RMaxMDPLearner(mdp_learner, classifier, itr, vmax));
-	
+
 	float gamma = .9;
 	Reward epsilon = .01;
 	int m = 100;
 	int run_limit = 0;
 	int time_limit = 0;
 	int h = 1;
-	
+
 	RTDPPlanner rtdp_planner(new _FlatRTDPPlanner(domain, rmaxLearner, gamma, epsilon, m, h, 50));
 	rtdp_planner->setRunLimit(run_limit);
 	rtdp_planner->setTimeLimit(time_limit);
 	Planner planner = rtdp_planner;
-	
+
 	//VIPlanner planner(new _FactoredVIPlanner(domain, rmaxLearner, _epsilon, _gamma));
 	Agent agent(new _Agent(planner, rmaxLearner));
 	return agent;
@@ -106,10 +106,10 @@ const char* agent_message(const char* inMessage) {
 
 int main(int argc, char** argv) {
 	srand(time(0));
-	
+
 	if (argc != 4 && argc != 5) {
 		cerr << "Usage: " << argv[0] << " <m> <gamma> <epsilon> [host:port]" << endl;
-		return 1;	
+		return 1;
 	}
 	_m = atoi(argv[1]);
 	_gamma = atof(argv[2]);
@@ -120,10 +120,10 @@ int main(int argc, char** argv) {
 		host = strtok(argv[4], ":");
 		port = atoi(strtok(0, ":"));
 	}
-	
+
 	sprintf(params, "m=%d gamma=%f epsilon=%f", _m, _gamma, _epsilon);
-	
+
 	glue_main_agent(host, port);
-	
+
 	return 0;
 }

@@ -26,8 +26,8 @@
 #include <gsl/gsl_rng.h>
 
 #include <crl/crl.hpp>
-#include <crl/hdomain.hpp>
-#include <crl/fdomain.hpp>
+#include <crl/hash_tables.hpp>
+#include <crl/flat_tables.hpp>
 
 namespace crl {
 

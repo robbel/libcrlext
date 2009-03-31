@@ -26,7 +26,7 @@
 #include <crl/crl.hpp>
 #include <crl/rmax.hpp>
 #include <crl/vi.hpp>
-#include <crl/fdomain.hpp>
+#include <crl/flat_tables.hpp>
 #include <rlgnmagent.h>
 #include <crl/glue_agent.hpp>
 #include "crl/outcomes.hpp"
@@ -97,8 +97,8 @@ public:
 		//_cluster_learner->print();
 		//_cluster_learner->inferClusters();
 		//_cluster_learner->printClusters();
-		
-		
+
+
 	}
 	virtual bool observe(const Observation& o) {
 		bool learned;
@@ -111,7 +111,7 @@ public:
 					getClusterMDP(mdps[i])->setUseBeta(false);
 				if (_do_rmax) {
 					getClusterMDP(mdps[i])->setRmaxM(_m);
-				}	
+				}
 			}
 //			vector<MDP> annealed_mdps = _cluster_learner->sampleMDPs(_num_samples, _burn_period, _sample_spacing, true);
 			_boss_planner->setMDPs(mdps);
@@ -150,27 +150,27 @@ void populateOutcomes(Domain domain) {
 		steps.push_back(0);
 		steps.push_back(0);
 		steps.push_back(0);
-		
+
 		steps[0] = 0;
 		steps[1] = 0;
 		Outcome stillOutcome(new _StepOutcome(domain, steps, false));
 		the_outcomes.push_back(stillOutcome);
-		
+
 		steps[0] = 0;
 		steps[1] = -1;
 		Outcome northOutcome(new _StepOutcome(domain, steps, true));
 		the_outcomes.push_back(northOutcome);
-		
+
 		steps[0] = 1;
 		steps[1] = 0;
 		Outcome eastOutcome(new _StepOutcome(domain, steps, true));
 		the_outcomes.push_back(eastOutcome);
-		
+
 		steps[0] = 0;
 		steps[1] = 1;
 		Outcome southOutcome(new _StepOutcome(domain, steps, true));
 		the_outcomes.push_back(southOutcome);
-		
+
 		steps[0] = -1;
 		steps[1] = 0;
 		Outcome westOutcome(new _StepOutcome(domain, steps, true));
@@ -179,19 +179,19 @@ void populateOutcomes(Domain domain) {
 	if (_domain_type == 2) {
 		vector<int> steps;
 		steps.push_back(0);
-		
+
 		steps[0] = -1;
 		Outcome leftOutcome(new _StepOutcome(domain, steps, true));
 		the_outcomes.push_back(leftOutcome);
-		
+
 		steps[0] = 1;
 		Outcome rightOutcome(new _StepOutcome(domain, steps, true));
 		the_outcomes.push_back(rightOutcome);
-		
+
 		steps[0] = 0;
 		Outcome stillOutcome(new _StepOutcome(domain, steps, false));
 		the_outcomes.push_back(stillOutcome);
-		
+
 //		Outcome purgatoryOutcome(new _TerminalOutcome());
 //		the_outcomes.push_back(purgatoryOutcome);
 	}
@@ -200,7 +200,7 @@ void populateOutcomes(Domain domain) {
 Agent crl::getCRLAgent(Domain domain) {
 	populateOutcomes(domain);
 	QTable qtable(new _FQTable(domain));
-	
+
 	BOSSPlanner planner(new _BOSSPlanner(_epsilon, _gamma, qtable));
 	OutcomeClusterLearner mdp_learner(new _OutcomeClusterLearner(domain, the_outcomes, _alpha, _m, _t_priors, _alpha_prior, _beta_prior));
 
@@ -249,7 +249,7 @@ int main(int argc, char** argv) {
 		_num_samples = atoi(argv[10]);
 		_domain_type = atoi(argv[11]);
 		_do_rmax = atoi(argv[12]);
-		
+
 		char* host = 0;
 		short port = 0;
 		if (argc == 14) {
