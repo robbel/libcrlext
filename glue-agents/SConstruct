@@ -60,12 +60,11 @@ bin_targets = []
 if has_crl and has_glue:
 	agent_vi_rmax = env.Program(bin.Entry('agent_vi_rmax'), vi_rmax_sources,
 	                       LIBS=['strxml', 'crl', 'rlgnmagent',
-	                             'rlcrlagent', 'rlutils', 'rlgluenetdev',
-	                             'taskspecutils'])
+	                             'rlcrlagent', 'rlutils', 'rlgluenetdev'])
 	bin_targets += [agent_vi_rmax]
 else:
 	print "Cannot build agent_vi_rmax"
-
+	
 if prefix != Dir('.'):
 	for header in headers:
 		env.Alias('install', env.InstallPerm(prefix_inc.Dir('crl'), inc.Entry(header), 0644))
