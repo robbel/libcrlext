@@ -26,7 +26,6 @@
 #include <rlgnmenv.h>
 #include <cpputil.hpp>
 #include <crl/crl.hpp>
-#include <crl/fdomain.hpp>
 #include "crl/glue_env.hpp"
 
 using namespace std;
@@ -45,7 +44,7 @@ protected:
 public:
 	_WalkEnv(const Domain& domain);
 	virtual ~_WalkEnv() { }
-	
+
 	virtual State begin();
 	virtual bool isTerminated();
 	virtual Observation getObservation(const Action& a);
@@ -54,7 +53,7 @@ typedef boost::shared_ptr<_WalkEnv> WalkEnv;
 
 _WalkEnv::_WalkEnv(const Domain& domain)
 : _domain(domain) {
-	
+
 }
 
 State _WalkEnv::begin() {
@@ -72,26 +71,26 @@ Observation _WalkEnv::getObservation(const Action& a) {
 	int delta = 1 ;
 	if (randDouble()<slip)
 		delta = -1;
-	
+
 	if (a.getFactor(0) == 0) {
 		r *= -1;
 		delta *= -1;
 	}
-	
+
 	int l = _current.getFactor(0)+delta;
 	_current = State(_domain);
 	_current.setFactor(0, l);
 	Observation o(new _Observation(_current, r));
-	
+
 	if (oo) {
 		ostringstream os;
 		os << "<State>"
-		   <<  "<Object>" 
+		   <<  "<Object>"
 		   <<   "<Attribute type=\"x\" value=\"" << l << "\"/>"
 		   <<  "</Object>"
 		   << "</State>";
-		   
-	}		
+
+	}
 	return o;
 }
 
@@ -123,11 +122,11 @@ const char* env_message(const char* inMessage) {
 int main(int argc, char** argv) {
 	if (argc != 1 && argc != 2 && argc != 4 && argc != 5) {
 		cerr << "Usage: " << argv[0] << " [range reward slip] [-oo]" << endl;
-		return 1;	
+		return 1;
 	}
 	if (argc >= 4) {
 		range = atoi(argv[1]);
-		reward = atof(argv[2]);	
+		reward = atof(argv[2]);
 		slip = atof(argv[3]);
 		if (argc == 5) {
 			oo = !strcmp(argv[4], "-oo");
@@ -136,11 +135,11 @@ int main(int argc, char** argv) {
 	else if (argc == 2) {
 		oo = !strcmp(argv[1], "-oo");
 	}
-	
+
 	sprintf(paramBuf, "range=%d reward=%f slip=%f", range, reward, slip);
-	
+
 	glue_main_env(0, 0);
-	
+
 	return 0;
 }
 

@@ -23,7 +23,6 @@
 
 #include <rlglue/RL_common.h>
 #include <crl/crl.hpp>
-#include <crl/fdomain.hpp>
 
 void populateState(crl::Domain domain, crl::State s, observation_t* obs);
 void populateAction(crl::Domain domain, crl::Action a, action_t* act);

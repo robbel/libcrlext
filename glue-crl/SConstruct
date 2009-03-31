@@ -84,7 +84,7 @@ bin_targets = []
 librlcrlagent = env.SharedLibrary(lib.File('librlcrlagent'+shared_lib_suffix), agent_sources)
 librlcrlenv = env.SharedLibrary(lib.File('librlcrlenv'+shared_lib_suffix), env_sources)
 lib_targets += [librlcrlagent, librlcrlenv]
-random_agent = env.Program(bin.Entry('random_agent'), random_agent_sources, LIBS=['crl', 'librlcrlagent', 'rlgnmagent', 'rlutils', 'rlgluenetdev', 'taskspecutils'])
+random_agent = env.Program(bin.Entry('random_agent'), random_agent_sources, LIBS=['crl', 'librlcrlagent', 'rlgnmagent', 'rlutils', 'rlgluenetdev'])
 walk_env = env.Program(bin.Entry('walk_env'), walk_env_sources,
                        LIBS=['crl', 'librlcrlenv', 'rlgnmenv',
                              'rlutils',

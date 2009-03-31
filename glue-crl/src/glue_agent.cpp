@@ -24,7 +24,7 @@
 #include <rlglue/utils/C/RLStruct_util.h>
 #include <rlglue/utils/C/TaskSpec_Parser.h>
 #include <crl/crl.hpp>
-#include <crl/fdomain.hpp>
+//#include <crl/fdomain.hpp>
 #include "crl/glue_agent.hpp"
 #include "crl/glue_util.hpp"
 
@@ -51,12 +51,12 @@ void agent_init(const char* task_spec)
 	/*Seed the random number generator*/
 	srand(time(0));
 	/*Here is where you might allocate storage for parameters (value function or policy, last action, last observation, etc)*/
-	
+
 	/*Here you would parse the task spec if you felt like it*/
 	decode_taskspec(&_tss, task_spec);
-	
+
 	if (_tss.num_int_observations == 0) {
-		_tss.num_int_observations = 4;	
+		_tss.num_int_observations = 4;
 		_tss.int_observations = new int_range_t[4];
 		for (int i=0; i<2; i++) {
 			_tss.int_observations[i].min = -10;
@@ -67,7 +67,7 @@ void agent_init(const char* task_spec)
 			_tss.int_observations[i].max = 3;
 		}
 	}
-	
+
 	_domain_agent = Domain(new _Domain());
 	for (int i=0; i<_tss.num_int_observations; i++) {
 		int min = (int)_tss.int_observations[i].min;
@@ -80,13 +80,13 @@ void agent_init(const char* task_spec)
 		_domain_agent->addActionFactor(min, max);
 	}
 	_domain_agent->setRewardRange(_tss.reward.min, _tss.reward.max);
-	
+
 	_agent = getCRLAgent(_domain_agent);
 	_state_mapper = getStateMapper();
 	if (!_state_mapper) {
 		_state_mapper = StateMapper(new _StateMapper());
 	}
-	
+
 	/*Allocate memory for a one-dimensional integer action using utility functions from RLStruct_util*/
 	allocateRLStruct(&_this_action, _domain_agent->getNumActionFactors(), 0, 0);
 
@@ -101,11 +101,11 @@ const action_t* agent_start(const observation_t* this_observation) {
 	else
 		a = Action(_domain_agent, 0);
 	populateAction(_domain_agent, a, &_this_action);
-	
+
 	/* In a real action you might want to store the last observation and last action*/
 	replaceRLStruct(&_this_action, &_last_action);
 	replaceRLStruct(this_observation, &_last_observation);
-	
+
 	return &_this_action;
 }
 
@@ -118,18 +118,18 @@ const action_t* agent_step(double reward, const observation_t* this_observation)
 	Observation o(new _Observation(n, reward));
 	if (_agent);
 	_agent->observe(o);
-	
+
 	Action a;
 	if (_agent)
 		a = _agent->getAction(n);
 	else
 		a = Action(_domain_agent, 0);
 	populateAction(_domain_agent, a, &_this_action);
-        
+
 	/* In a real action you might want to store the last observation and last action*/
 	replaceRLStruct(&_this_action, &_last_action);
 	replaceRLStruct(this_observation, &_last_observation);
-	
+
 	return &_last_action;
 }
 

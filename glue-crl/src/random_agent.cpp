@@ -22,7 +22,6 @@
 #include <rlglue/Agent_common.h>
 #include <rlgnmagent.h>
 #include <crl/crl.hpp>
-#include <crl/fdomain.hpp>
 #include "crl/glue_agent.hpp"
 
 using namespace crl;
