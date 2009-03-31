@@ -88,7 +88,7 @@ random_agent = env.Program(bin.Entry('random_agent'), random_agent_sources, LIBS
 walk_env = env.Program(bin.Entry('walk_env'), walk_env_sources,
                        LIBS=['crl', 'librlcrlenv', 'rlgnmenv',
                              'rlutils',
-                             'rlgluenetdev', 'taskspecutils'])
+                             'rlgluenetdev'])
 bin_targets += [random_agent, walk_env]
 
 	
