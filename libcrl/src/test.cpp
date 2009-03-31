@@ -26,7 +26,6 @@
 #include "crl/uct.hpp"
 #include "crl/ps.hpp"
 #include "crl/sparse_sampling.hpp"
-#include "crl/mdomain.hpp"
 #include "crl/environment.hpp"
 
 using namespace std;
