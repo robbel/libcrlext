@@ -28,7 +28,7 @@
 #include <rlgnmenv.h>
 #include <cpputil.hpp>
 #include <crl/crl.hpp>
-#include <crl/fdomain.hpp>
+#include <crl/flat_tables.hpp>
 #include "crl/glue_env.hpp"
 
 using namespace std;
@@ -157,7 +157,7 @@ int main(int argc, char** argv) {
 	XMLObject clusterAssignments = xobj["ClusterAssignments"];
 	num_links = atoi(clusterAssignments("count").c_str());
 	link_assignments = clusterAssignments.getText();
-	
+
 	XMLObject clusters = xobj["Clusters"];
 	probs.resize(atoi(clusters("count").c_str()));
 	for (int i=0; i<clusters.size(); i++) {

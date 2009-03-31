@@ -29,7 +29,7 @@
 #include <rlgnmenv.h>
 #include <cpputil.hpp>
 #include <crl/crl.hpp>
-#include <crl/fdomain.hpp>
+#include <crl/flat_tables.hpp>
 #include "crl/glue_env.hpp"
 
 using namespace std;
@@ -191,8 +191,8 @@ bool _LittmanChainEnv::isTerminated() {
 }
 
 Observation _LittmanChainEnv::getObservation(const Action& a) {
-	
-	
+
+
 //	cerr << _current << " x " << a << " -> ";
 	Factor link = _current.getFactor(0);
 //	if (link == 5)
@@ -202,7 +202,7 @@ Observation _LittmanChainEnv::getObservation(const Action& a) {
 	Probability left = c.left(a);
 	Probability right = c.right(a);
 	Probability stay = c.stay(a);
-	
+
 	Probability r = randDouble();
 	if (r < left) {
 		if (link > 0)
@@ -212,7 +212,7 @@ Observation _LittmanChainEnv::getObservation(const Action& a) {
 		link++;
 	}
 	else if (r < left+right+stay) {
-		
+
 	}
 	_current.setFactor(0, link);
 //	cerr << _current << endl;
@@ -267,7 +267,7 @@ int main(int argc, char** argv) {
 	XMLObject clusterAssignments = xobj["ClusterAssignments"];
 	num_links = atoi(clusterAssignments("count").c_str());
 	link_assignments = clusterAssignments.getText();
-	
+
 	XMLObject clustersObj = xobj["Clusters"];
 	Size numClusters = atoi(clustersObj("count").c_str());
 	clusters.resize(numClusters);
