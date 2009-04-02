@@ -125,7 +125,10 @@ Cluster _OutcomeClusterLearner::createNewCluster() {
 	return new_cluster;
 }
 
+time_t total_sweep = 0;
+time_t count_sweep = 0;
 void _OutcomeClusterLearner::gibbsSweepClusters(double temperature) {
+	time_t start_time = time_in_milli();
 //	cerr << "+gibbsSweepClusters" << endl;
 	//StateIterator sitr(new _StateSetIterator(_clustered_states));
 	StateIterator sitr(new _StateIncrementIterator(_domain));
@@ -220,13 +223,20 @@ void _OutcomeClusterLearner::gibbsSweepClusters(double temperature) {
 		chosen_cluster->addState(s);
 		_cluster_indices.setValue(s, chosen_index);
 	}
-//	if (count_cluster_logp != 0) {
-//		double time_per_cluster = 1.0*total_cluster_logp/count_cluster_logp;
-//		cerr << "avg = " << time_per_cluster << " with count = " << count_cluster_logp << endl;
-//		cerr << _domain->getNumStates()*_domain->getNumStates()*_domain->getNumStates() << endl;
+	
+	
+	time_t end_time = time_in_milli();
+	total_sweep += end_time-start_time;
+	count_sweep++;
+	
+	if (true && count_cluster_logp != 0) {
+		double time_per_cluster = 1.0*total_cluster_logp/count_cluster_logp;
+		double time_per_sweep = 1.0*total_sweep/count_sweep;
+		cerr << "cluster avg = " << time_per_cluster << " with count = " << count_cluster_logp << endl;
+		cerr << "sweep avg = " << time_per_sweep << " with count = " << count_sweep << endl;
 //		total_cluster_logp = 0;
 //		count_cluster_logp = 0;
-//	}
+	}
 	//printClusters();
 //	cerr << "-gibbsSweepClusters" << endl;
 }

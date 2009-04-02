@@ -33,6 +33,20 @@ using namespace crl;
 using namespace std;
 using namespace cpputil;
 
+vector<double> ln_gamma_cache;
+inline double cached_ln_gamma(Size x) {
+	if (true)
+		return gsl_sf_lngamma(x);
+//	cerr << "cached_ln_gamma(" << x << ")" << endl;
+	while (x >= ln_gamma_cache.size()) {
+		int v = ln_gamma_cache.size()+1;
+		ln_gamma_cache.push_back(gsl_sf_lngamma(v));
+//		cerr << "max = " << v << endl;
+	}
+//	cerr << "return " << ln_gamma_cache[x] << endl;
+	return ln_gamma_cache[x-1];
+}
+
 _StepOutcome::_StepOutcome(Domain domain, const vector<int>& deltas, bool range_barrier)
 : _domain(domain), _deltas(deltas), _range_barrier(range_barrier) {
 
@@ -248,8 +262,6 @@ void _Cluster::calcProbs(const Action& a) {
 		probs[i] = dirichlet_theta[i];
 		sum += probs[i];
 	}
-	if (sum < .99)
-		cerr << "wtf? " << sum << endl;
 	delete dirichlet_alpha;
 	delete dirichlet_theta;
 }
@@ -314,9 +326,9 @@ Probability _Cluster::calcLogP() {
 		vector<Size>& priors = _outcome_priors.getValue(a);
 		for (Size i=0; i<priors.size(); i++) {
 			prior_sum += priors[i];
-			a_log_p -= gsl_sf_lngamma(priors[i]);
+			a_log_p -= cached_ln_gamma(priors[i]);
 		}
-		a_log_p += gsl_sf_lngamma(prior_sum);
+		a_log_p += cached_ln_gamma(prior_sum);
 		
 		StateIterator sitr = StateIterator(new _StateSetIterator(_states));
 		
@@ -332,7 +344,7 @@ Probability _Cluster::calcLogP() {
 			for (Size i=0; i<s_counts.size(); i++) {
 				s_total += s_counts[i];
 			}
-			a_log_p += gsl_sf_lngamma(s_total+1);
+			a_log_p += cached_ln_gamma(s_total+1);
 		}
 		
 		//matlab code line 3
@@ -344,7 +356,7 @@ Probability _Cluster::calcLogP() {
 			State s = sitr->next();
 			vector<Size>& s_counts = _outcome_table->getOutcomeCounts(s, a);
 			for (Size i=0; i<s_counts.size(); i++) {
-				sum_gamma_counts += gsl_sf_lngamma(s_counts[i]+1);
+				sum_gamma_counts += cached_ln_gamma(s_counts[i]+1);
 			}
 		}
 		a_log_p -= sum_gamma_counts;
@@ -356,12 +368,12 @@ Probability _Cluster::calcLogP() {
 		for (Size i=0; i<priors.size(); i++) {
 			Size count = outcome_counts[i];
 			total_count += count;
-			a_log_p += gsl_sf_lngamma(count);
+			a_log_p += cached_ln_gamma(count);
 		}
 		
 		//matlab code line 5
 		//  ll = ll - gammaln( sum(sum(cnts))+sum(prior_cnts) );
-		a_log_p -= gsl_sf_lngamma(total_count);
+		a_log_p -= cached_ln_gamma(total_count);
 		log_p += a_log_p;
 	}	
 	

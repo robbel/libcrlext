@@ -44,20 +44,22 @@ Agent crl::getCRLAgent(Domain domain) {
 		vmax = domain->getRewardRange().getMax()/(1-_gamma);
 
 	RMaxMDPLearner rmaxLearner(new _RMaxMDPLearner(mdp_learner, classifier, itr, vmax));
-
+/*
 	float gamma = .9;
 	Reward epsilon = .01;
 	int m = 100;
 	int run_limit = 0;
 	int time_limit = 0;
 	int h = 1;
-
+*/
+	/*
 	RTDPPlanner rtdp_planner(new _FlatRTDPPlanner(domain, rmaxLearner, gamma, epsilon, m, h, 50));
 	rtdp_planner->setRunLimit(run_limit);
 	rtdp_planner->setTimeLimit(time_limit);
 	Planner planner = rtdp_planner;
-
-	//VIPlanner planner(new _FactoredVIPlanner(domain, rmaxLearner, _epsilon, _gamma));
+	*/
+	
+	VIPlanner planner(new _FactoredVIPlanner(domain, rmaxLearner, _epsilon, _gamma));
 	Agent agent(new _Agent(planner, rmaxLearner));
 	return agent;
 }
@@ -65,6 +67,16 @@ Agent crl::getCRLAgent(Domain domain) {
 class _AcrobotMapper : public _StateMapper {
 public:
 	virtual ~_AcrobotMapper() { }
+	virtual Domain getDomain(Domain old_domain) {
+		Domain domain(new _Domain());
+		domain->addStateFactor(-10, 10);
+		domain->addStateFactor(-10, 10);
+		domain->addStateFactor(-3, 3);
+		domain->addStateFactor(-3, 3);
+		domain->addActionFactor(0, 7);
+		domain->setRewardRange(old_domain->getRewardRange().getMin(),old_domain->getRewardRange().getMax());
+		return domain;
+	}
 	virtual State getState(Domain domain, const observation_t* obs) {
 		State s(domain);
 		for (int i=0; i<2; i++) {
@@ -79,7 +91,7 @@ public:
 			if (x<-3) x = -3;
 			s.setFactor(i, x);
 		}
-		cerr << s << endl;
+		//cerr << s << endl;
 		return s;
 	}
 };
@@ -115,7 +127,7 @@ int main(int argc, char** argv) {
 	_gamma = atof(argv[2]);
 	_epsilon = atof(argv[3]);
 	char* host = 0;
-	short port = 0;
+	short port = 5096;
 	if (argc == 5) {
 		host = strtok(argv[4], ":");
 		port = atoi(strtok(0, ":"));
