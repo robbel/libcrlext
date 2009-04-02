@@ -39,13 +39,6 @@ action_t _last_action;
 observation_t _last_observation;
 taskspec_t _tss;
 
-State _StateMapper::getState(Domain domain, const observation_t* obs) {
-	State s(domain);
-	for (Size i=0; i<domain->getNumStateFactors(); i++)
-		s.setFactor(i, obs->intArray[i]);
-	return s;
-}
-
 void agent_init(const char* task_spec)
 {
 	/*Seed the random number generator*/
@@ -81,15 +74,17 @@ void agent_init(const char* task_spec)
 	}
 	_domain_agent->setRewardRange(_tss.reward.min, _tss.reward.max);
 
-	_agent = getCRLAgent(_domain_agent);
+	/*Allocate memory for a one-dimensional integer action using utility functions from RLStruct_util*/
+	allocateRLStruct(&_this_action, _domain_agent->getNumActionFactors(), 0, 0);
+	
 	_state_mapper = getStateMapper();
 	if (!_state_mapper) {
 		_state_mapper = StateMapper(new _StateMapper());
 	}
-
-	/*Allocate memory for a one-dimensional integer action using utility functions from RLStruct_util*/
-	allocateRLStruct(&_this_action, _domain_agent->getNumActionFactors(), 0, 0);
-
+	
+	_domain_agent = _state_mapper->getDomain(_domain_agent);
+	
+	_agent = getCRLAgent(_domain_agent);
 }
 
 const action_t* agent_start(const observation_t* this_observation) {
