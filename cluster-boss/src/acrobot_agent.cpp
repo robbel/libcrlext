@@ -35,8 +35,8 @@ float _gamma;
 Reward _epsilon;
 
 Agent crl::getCRLAgent(Domain domain) {
-	FMDPLearner mdp_learner(new _FMDPLearner(domain));
-	KnownClassifier classifier(new _FKnownClassifier(domain, _m));
+	HMDPLearner mdp_learner(new _HMDPLearner(domain));
+	KnownClassifier classifier(new _HKnownClassifier(domain, _m));
 	ActionIterator itr(new _ActionIncrementIterator(domain));
 
 	Reward vmax = domain->getRewardRange().getMax();
@@ -58,40 +58,43 @@ Agent crl::getCRLAgent(Domain domain) {
 	rtdp_planner->setTimeLimit(time_limit);
 	Planner planner = rtdp_planner;
 	*/
-	
+
 	VIPlanner planner(new _FactoredVIPlanner(domain, rmaxLearner, _epsilon, _gamma));
 	Agent agent(new _Agent(planner, rmaxLearner));
 	return agent;
 }
 
 class _AcrobotMapper : public _StateMapper {
+	taskspec_t* _task_spec;
 public:
 	virtual ~_AcrobotMapper() { }
-	virtual Domain getDomain(Domain old_domain) {
+	virtual Domain getDomain(Domain old_domain, taskspec_t* task_spec) {
+		_task_spec = task_spec;
 		Domain domain(new _Domain());
+		domain->addStateFactor(-20, 20);
+		domain->addStateFactor(-20, 20);
 		domain->addStateFactor(-10, 10);
 		domain->addStateFactor(-10, 10);
-		domain->addStateFactor(-3, 3);
-		domain->addStateFactor(-3, 3);
 		domain->addActionFactor(0, 7);
 		domain->setRewardRange(old_domain->getRewardRange().getMin(),old_domain->getRewardRange().getMax());
 		return domain;
 	}
 	virtual State getState(Domain domain, const observation_t* obs) {
+
 		State s(domain);
-		for (int i=0; i<2; i++) {
-			int x = int(obs->doubleArray[i]*3);
-			if (x>10) x = 10;
-			if (x<-10) x = -10;
-			s.setFactor(i, x);
+
+		for (Size i=0; i<domain->getNumStateFactors(); i++) {
+			cerr << obs->doubleArray[i] << " ";
+			Index to_range = domain->getStateRanges()[i].getSpan();
+			Index to_offset = domain->getStateRanges()[i].getMin();
+			double from_range = _task_spec->double_observations[i].max-_task_spec->double_observations[i].min;
+			double from_offset = _task_spec->double_observations[i].min;
+			double r = (obs->doubleArray[i]-from_offset)/from_range;
+			Index f = r*to_range+to_offset;
+			s.setFactor(i, f);
 		}
-		for (int i=2; i<4; i++) {
-			int x = int(obs->doubleArray[i]*3);
-			if (x>3) x = 3;
-			if (x<-3) x = -3;
-			s.setFactor(i, x);
-		}
-		//cerr << s << endl;
+		cerr << endl;
+		cerr << s << endl;
 		return s;
 	}
 };
@@ -127,7 +130,7 @@ int main(int argc, char** argv) {
 	_gamma = atof(argv[2]);
 	_epsilon = atof(argv[3]);
 	char* host = 0;
-	short port = 5096;
+	short port = 0;
 	if (argc == 5) {
 		host = strtok(argv[4], ":");
 		port = atoi(strtok(0, ":"));
