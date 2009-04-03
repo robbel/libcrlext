@@ -225,6 +225,7 @@ protected:
 	_FStateTable<StateSet> _predecessors;
 public:
 	_FMDP(const Domain& domain);
+	virtual ~_FMDP() { }
 	const Domain getDomain() {return _domain;}
 	virtual StateIterator S();
 	virtual StateIterator predecessors(const State& s);
@@ -259,7 +260,7 @@ protected:
 	SASCountTable _count_sa_s;
 public:
 	_FCounter(const Domain& domain);
-	~_FCounter() { }
+	virtual ~_FCounter() { }
 	/**
 	 * returns an iterator over all observed next states to s,a
 	 */
@@ -278,7 +279,7 @@ protected:
 	FCounter _counter;
 public:
 	_FMDPLearner(const Domain& domain);
-	~_FMDPLearner();
+	virtual ~_FMDPLearner();
 	virtual bool observe(const State& s, const Action& a, const Observation& o);
 	virtual StateIterator S() {return _FMDP::S();}
 	virtual StateIterator predecessors(const State& s) {return _FMDP::predecessors(s);}

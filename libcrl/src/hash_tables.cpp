@@ -91,3 +91,136 @@ void _HQTable::setQ(const State& s, const Action& a, Reward r) {
 	}
 }
 
+
+_HCounter::_HCounter(const Domain& domain)
+: _domain(domain), _count_sa(new _HStateActionTable<Index>(domain)),
+  _count_sa_s(new _HStateActionTable<SCountTable>(domain)) {
+
+}
+
+StateIterator _HCounter::iterator(const State& s, const Action& a) {
+	SCountTable c_ns = _count_sa_s->getValue(s, a);
+	if (!c_ns) {
+		StateIterator itr(new _EmptyStateIterator());
+		return itr;
+	}
+	return c_ns->iterator();
+}
+
+Size _HCounter::getCount(const State& s, const Action& a) {
+	return _count_sa->getValue(s, a);
+}
+
+Size _HCounter::getCount(const State& s, const Action& a, const State& n) {
+	SCountTable c_ns = _count_sa_s->getValue(s, a);
+	if (!c_ns) {
+		return 0;
+	}
+	Size c_sa_s = c_ns->getValue(n);
+	return c_sa_s;
+}
+
+bool _HCounter::observe(const State& s, const Action& a, const Observation& o) {
+	Size c_sa = _count_sa->getValue(s, a);
+	_count_sa->setValue(s, a, c_sa+1);
+
+	SCountTable c_ns = _count_sa_s->getValue(s, a);
+	if (!c_ns) {
+		c_ns = SCountTable(new _HStateTable<Index>());
+		_count_sa_s->setValue(s, a, c_ns);
+	}
+	if (o->getState()) {
+		Size c_sa_s = c_ns->getValue(o->getState());
+		c_ns->setValue(o->getState(), c_sa_s+1);
+	}
+
+	return true;
+}
+
+
+_HMDP::_HMDP(const Domain& domain)
+: _domain(domain), _T_map(domain), _R_map(domain, 0, 1000),
+  _empty_T(new _HStateDistribution(domain)),
+  _predecessors() {
+
+}
+StateIterator _HMDP::S() {
+	return StateSetIterator(new _StateSetIterator(_known_states));
+}
+StateIterator _HMDP::predecessors(const State& s) {
+	StateSet& ss = _predecessors.getValue(s);
+	if (!ss) {
+		EmptyStateIterator itr;
+		return itr;
+	}
+	StateIterator itr(new _StateSetIterator(ss));
+	return itr;
+}
+ActionIterator _HMDP::A() {
+	return ActionSetIterator(new _ActionSetIterator(_known_actions));
+}
+ActionIterator _HMDP::A(const State& s) {
+	return A();
+}
+void _HMDP::setT(const State& s, const Action& a, const State& n, Probability p) {
+	_known_states.insert(s);
+	_known_actions.insert(a);
+	StateSet ss = _predecessors.getValue(n);
+	if (!ss) {
+		ss = StateSet(new _StateSet());
+		_predecessors.setValue(n, ss);
+	}
+	ss->insert(s);
+	HStateDistribution sd = _T_map.getValue(s, a);
+	if (!sd) {
+		sd = HStateDistribution(new _HStateDistribution(_domain));
+		_T_map.setValue(s, a, sd);
+	}
+	sd->setP(n, p);
+}
+void _HMDP::setR(const State& s, const Action& a, Reward r) {
+	_known_states.insert(s);
+	_known_actions.insert(a);
+	_R_map.setValue(s, a, r);
+}
+void _HMDP::clear(const State& s, const Action& a) {
+	HStateDistribution sd = _T_map.getValue(s, a);
+	if (sd)
+		sd->clear();
+}
+void _HMDP::clear() {
+	_T_map.clear();
+}
+
+
+_HMDPLearner::_HMDPLearner(const Domain& domain)
+: _HMDP(domain), _counter(new _HCounter(domain)) {
+
+}
+
+_HMDPLearner::~_HMDPLearner() {
+
+}
+
+bool _HMDPLearner::observe(const State& s, const Action& a, const Observation& o) {
+	Reward total_r = R(s, a)*_counter->getCount(s, a);
+	total_r += o->getReward();
+
+	_counter->observe(s, a, o);
+
+	Size c_sa = _counter->getCount(s, a);
+
+	Probability c_inv = 1.0/c_sa;
+
+	clear(s, a);
+	StateIterator itr = _counter->iterator(s, a);
+	while (itr->hasNext()) {
+		State n = itr->next();
+		Size c_sa_n = _counter->getCount(s, a, n);
+		setT(s, a, n, c_inv*c_sa_n);
+	}
+
+	setR(s, a, c_inv*total_r);
+
+	return true;
+}

@@ -60,7 +60,7 @@ _Cluster::_Cluster(Domain domain)
 
 StateDistribution _Cluster::T(const State& s, const Action& a) {
 	FStateDistribution sd(new _FStateDistribution(_domain));
-
+/*
 	OutcomeDistribution od = _action_outcome_distributions->getValue(a);
 	OutcomeIterator oitr = od->iterator();
 	while (oitr->hasNext()) {
@@ -73,13 +73,13 @@ StateDistribution _Cluster::T(const State& s, const Action& a) {
 			sd->setP(s, p+sd->P(s));
 		}
 	}
-
+*/
 	return sd;
 }
 
 Probability _Cluster::P(const State& s, const Action& a, const State& n) {
 	Probability p = 0;
-
+/*
 	OutcomeDistribution od = _action_outcome_distributions->getValue(a);
 	OutcomeIterator oitr = od->iterator();
 	while (oitr->hasNext()) {
@@ -87,7 +87,7 @@ Probability _Cluster::P(const State& s, const Action& a, const State& n) {
 		StateDistribution osd = o->T(s);
 		p += od->P(o)*osd->P(n);
 	}
-
+*/
 	return p;
 }
 

@@ -69,7 +69,7 @@ class _HashTable {
 protected:
 	hm_t _values;
 public:
-	_HashTable(Size num_buckets=100)
+	_HashTable(Size num_buckets=1000)
 	: _values(alloc_hash_map<Size,T,SizeHash>(num_buckets)) {
 
 	}
@@ -83,13 +83,35 @@ public:
 };
 
 template <class T>
-class _HStateTable : public _HashTable<T> {
-
+class _HStateTable : public _HashTable<T>, public _StateTable<T> {
+	_StateSet _states;
+public:
+	virtual T& getValue(const State& s) {
+		return _HashTable<T>::getValue(s);
+	}
+	virtual void setValue(const State& s, T t) {
+		_HashTable<T>::setValue(s, t);
+	}
+	virtual StateIterator iterator() {
+		StateIterator sitr(new _StateSetIterator(_states));
+		return sitr;
+	}
 };
 
 template <class T>
-class _HActionTable : public _HashTable<T> {
-
+class _HActionTable : public _HashTable<T>, public _ActionTable<T> {
+	_ActionSet _actions;
+public:
+	virtual T& getValue(const Action& a) {
+		return _HashTable<T>::getValue(a);
+	}
+	virtual void setValue(const Action& a, T t) {
+		_HashTable<T>::setValue(a, t);
+	}
+	virtual ActionIterator iterator() {
+		ActionIterator aitr(new _ActionSetIterator(_actions));
+		return aitr;
+	}
 };
 
 /**
@@ -171,6 +193,82 @@ public:
 	void clear();
 };
 typedef boost::shared_ptr<_HStateDistribution> HStateDistribution;
+
+/**
+ * A class that keeps track of times states/actions have
+ * been observed.
+ */
+class _HCounter : public _Learner {
+protected:
+	Domain _domain;
+	SACountTable _count_sa;
+	SASCountTable _count_sa_s;
+public:
+	_HCounter(const Domain& domain);
+	~_HCounter() { }
+	/**
+	 * returns an iterator over all observed next states to s,a
+	 */
+	virtual StateIterator iterator(const State& s, const Action& a);
+	virtual Size getCount(const State& s, const Action& a);
+	virtual Size getCount(const State& s, const Action& a, const State& n);
+	virtual bool observe(const State& s, const Action& a, const Observation& o);
+};
+typedef boost::shared_ptr<_HCounter> HCounter;
+
+class _HMDP : public _MDP {
+protected:
+	const Domain _domain;
+	_HStateActionTable<HStateDistribution> _T_map;
+	_HStateActionTable<Reward> _R_map;
+	_StateSet _known_states;
+	_ActionSet _known_actions;
+	StateDistribution _empty_T;
+	_HStateTable<StateSet> _predecessors;
+public:
+	_HMDP(const Domain& domain);
+	const Domain getDomain() {return _domain;}
+	virtual StateIterator S();
+	virtual StateIterator predecessors(const State& s);
+	virtual ActionIterator A();
+	virtual ActionIterator A(const State& s);
+	virtual StateDistribution T(const State& s, const Action& a) {
+		HStateDistribution& sd = _T_map.getValue(s, a);
+		if (sd) return sd;
+		return _empty_T;
+	}
+	virtual Reward R(const State& s, const Action& a) {
+		return _R_map.getValue(s, a);
+	}
+	virtual void setT(const State& s, const Action& a, const State& n, Probability p);
+	virtual void setR(const State& s, const Action& a, Reward r);
+	virtual void clear(const State& s, const Action& a);
+	virtual void clear();
+};
+typedef boost::shared_ptr<_HMDP> HMDP;
+inline HMDP getHMDP(const MDP& mdp) {
+	return boost::shared_polymorphic_downcast<_HMDP>(mdp);
+}
+
+/**
+ * An mdp learner that updates its dynamics based on experience.
+ */
+class _HMDPLearner : public _MDPLearner, public _HMDP {
+protected:
+	HCounter _counter;
+public:
+	_HMDPLearner(const Domain& domain);
+	virtual ~_HMDPLearner();
+	virtual bool observe(const State& s, const Action& a, const Observation& o);
+	virtual StateIterator S() {return _HMDP::S();}
+	virtual StateIterator predecessors(const State& s) {return _HMDP::predecessors(s);}
+	virtual ActionIterator A() {return _HMDP::A();}
+	virtual ActionIterator A(const State& s) {return _HMDP::A(s);}
+	virtual StateDistribution T(const State& s, const Action& a) {return _HMDP::T(s, a);}
+	virtual Reward R(const State& s, const Action& a) {return _HMDP::R(s, a);}
+};
+typedef boost::shared_ptr<_HMDPLearner> HMDPLearner;
+
 
 }
 

@@ -26,7 +26,7 @@ using namespace crl;
 
 _FKnownClassifier::_FKnownClassifier(const Domain& domain, Size m)
 : _counter(new _FCounter(domain)), _m(m) {
-	
+
 }
 
 bool _FKnownClassifier::isKnown(const State& s, const Action& a) {
@@ -40,18 +40,35 @@ bool _FKnownClassifier::observe(const State& s, const Action& a, const Observati
 	return isKnown(s, a);
 }
 
+
+_HKnownClassifier::_HKnownClassifier(const Domain& domain, Size m)
+: _counter(new _HCounter(domain)), _m(m) {
+
+}
+
+bool _HKnownClassifier::isKnown(const State& s, const Action& a) {
+	Size count = _counter->getCount(s, a);
+//	cout << s << ", " << a << " : " << count << endl;
+	return count >= _m;
+}
+
+bool _HKnownClassifier::observe(const State& s, const Action& a, const Observation& o) {
+	_counter->observe(s, a, o);
+	return isKnown(s, a);
+}
+
 _RMaxMDPLearner::_RMaxMDPLearner(
   const MDPLearner& learner,
   const KnownClassifier& classifier,
   const ActionIterator& action_iterator,
   const Heuristic& heuristic
-) 
+)
 : _learner(learner),
   _classifier(classifier),
   _action_iterator(action_iterator),
   _heuristic(heuristic),
   _empty_dist(new _EmptyStateDistribution()) {
-	
+
 }
 
 _RMaxMDPLearner::_RMaxMDPLearner(
@@ -64,7 +81,7 @@ _RMaxMDPLearner::_RMaxMDPLearner(
   _action_iterator(action_iterator),
   _heuristic(new _FlatHeuristic(vmax)),
   _empty_dist(new _EmptyStateDistribution()) {
-	
+
 }
 
 StateIterator _RMaxMDPLearner::S() {

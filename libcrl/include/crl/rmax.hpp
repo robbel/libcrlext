@@ -23,6 +23,7 @@
 #include <boost/shared_ptr.hpp>
 #include "crl/crl.hpp"
 #include "crl/flat_tables.hpp"
+#include "crl/hash_tables.hpp"
 
 namespace crl {
 
@@ -54,6 +55,28 @@ protected:
 public:
 	_FKnownClassifier(const Domain& domain, Size m);
 	virtual ~_FKnownClassifier() { }
+	virtual bool isKnown(const State& s, const Action& a);
+	virtual bool observe(const State& s, const Action& a, const Observation& o);
+};
+typedef boost::shared_ptr<_FKnownClassifier> FKnownClassifier;
+
+/**
+ * a class to keep track of which state/action pairs are known,
+ * using a flat table
+ */
+class _HKnownClassifier : public _KnownClassifier {
+protected:
+	/**
+	 * counts for each s,a
+	 */
+	HCounter _counter;
+	/**
+	 * the threshold after which a pair becomes known
+	 */
+	Size _m;
+public:
+	_HKnownClassifier(const Domain& domain, Size m);
+	virtual ~_HKnownClassifier() { }
 	virtual bool isKnown(const State& s, const Action& a);
 	virtual bool observe(const State& s, const Action& a, const Observation& o);
 };

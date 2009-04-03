@@ -34,8 +34,10 @@ class _Outcome {
 	Size _index;
 public:
 	virtual ~_Outcome() {}
-	virtual StateDistribution T(const State& s) = 0;
-	virtual Probability P(const State& s) = 0;
+	virtual State apply(const State& s) = 0;
+	virtual bool match(const State& s, const State& n) {
+		return n == apply(s);
+	}
 	virtual void setIndex(Size index) {
 		_index = index;
 	}
