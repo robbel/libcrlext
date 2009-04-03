@@ -253,7 +253,7 @@ inline FMDP getFMDP(const MDP& mdp) {
  * A class that keeps track of times states/actions have
  * been observed.
  */
-class _FCounter : public _Learner {
+class _FCounter : public _Counter {
 protected:
 	Domain _domain;
 	SACountTable _count_sa;
@@ -276,7 +276,7 @@ typedef boost::shared_ptr<_FCounter> FCounter;
  */
 class _FMDPLearner : public _MDPLearner, public _FMDP {
 protected:
-	FCounter _counter;
+	Counter _counter;
 public:
 	_FMDPLearner(const Domain& domain);
 	virtual ~_FMDPLearner();

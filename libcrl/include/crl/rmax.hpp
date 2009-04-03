@@ -31,10 +31,15 @@ namespace crl {
  * an interface to keep track of which state/action pairs are known
  */
 class _KnownClassifier : public _Learner {
+protected:
+	Counter _counter;
+	Size _m;
 public:
+	_KnownClassifier(Counter counter, Size m);
+	_KnownClassifier(Size m);
 	virtual ~_KnownClassifier() { }
-	virtual bool isKnown(const State& s, const Action& a) = 0;
-	virtual bool observe(const State& s, const Action& a, const Observation& o) = 0;
+	virtual bool isKnown(const State& s, const Action& a);
+	virtual bool observe(const State& s, const Action& a, const Observation& o);
 };
 typedef boost::shared_ptr<_KnownClassifier> KnownClassifier;
 
@@ -53,10 +58,11 @@ protected:
 	 */
 	Size _m;
 public:
-	_FKnownClassifier(const Domain& domain, Size m);
+	_FKnownClassifier(const Domain& domain, Size m)
+	: _KnownClassifier(m) {
+		_counter = FCounter(new _FCounter(domain));
+	}
 	virtual ~_FKnownClassifier() { }
-	virtual bool isKnown(const State& s, const Action& a);
-	virtual bool observe(const State& s, const Action& a, const Observation& o);
 };
 typedef boost::shared_ptr<_FKnownClassifier> FKnownClassifier;
 
@@ -75,10 +81,11 @@ protected:
 	 */
 	Size _m;
 public:
-	_HKnownClassifier(const Domain& domain, Size m);
+	_HKnownClassifier(const Domain& domain, Size m)
+	: _KnownClassifier(m) {
+		_counter = HCounter(new _HCounter(domain));
+	}
 	virtual ~_HKnownClassifier() { }
-	virtual bool isKnown(const State& s, const Action& a);
-	virtual bool observe(const State& s, const Action& a, const Observation& o);
 };
 typedef boost::shared_ptr<_FKnownClassifier> FKnownClassifier;
 

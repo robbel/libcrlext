@@ -24,35 +24,23 @@
 using namespace std;
 using namespace crl;
 
-_FKnownClassifier::_FKnownClassifier(const Domain& domain, Size m)
-: _counter(new _FCounter(domain)), _m(m) {
+_KnownClassifier::_KnownClassifier(Counter counter, Size m)
+: _counter(counter), _m(m) {
 
 }
 
-bool _FKnownClassifier::isKnown(const State& s, const Action& a) {
+_KnownClassifier::_KnownClassifier(Size m)
+: _m(m) {
+
+}
+
+bool _KnownClassifier::isKnown(const State& s, const Action& a) {
 	Size count = _counter->getCount(s, a);
 //	cout << s << ", " << a << " : " << count << endl;
-	return count >= _m;
+	return count == _m;
 }
 
-bool _FKnownClassifier::observe(const State& s, const Action& a, const Observation& o) {
-	_counter->observe(s, a, o);
-	return isKnown(s, a);
-}
-
-
-_HKnownClassifier::_HKnownClassifier(const Domain& domain, Size m)
-: _counter(new _HCounter(domain)), _m(m) {
-
-}
-
-bool _HKnownClassifier::isKnown(const State& s, const Action& a) {
-	Size count = _counter->getCount(s, a);
-//	cout << s << ", " << a << " : " << count << endl;
-	return count >= _m;
-}
-
-bool _HKnownClassifier::observe(const State& s, const Action& a, const Observation& o) {
+bool _KnownClassifier::observe(const State& s, const Action& a, const Observation& o) {
 	_counter->observe(s, a, o);
 	return isKnown(s, a);
 }
@@ -110,5 +98,8 @@ Reward _RMaxMDPLearner::R(const State& s, const Action& a) {
 bool _RMaxMDPLearner::observe(const State& s, const Action& a, const Observation& o) {
 	bool learned_known = _classifier->observe(s, a, o);
 	bool learned_model = _learner->observe(s, a, o);
+	if (learned_known) {
+		_learner->printXML(cerr);
+	}
 	return learned_model && learned_known;
 }

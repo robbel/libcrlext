@@ -198,7 +198,7 @@ typedef boost::shared_ptr<_HStateDistribution> HStateDistribution;
  * A class that keeps track of times states/actions have
  * been observed.
  */
-class _HCounter : public _Learner {
+class _HCounter : public _Counter {
 protected:
 	Domain _domain;
 	SACountTable _count_sa;
