@@ -22,13 +22,14 @@
 #define GLUE_AGENT_HPP_
 
 #include <crl/crl.hpp>
+#include <rlglue/utils/C/TaskSpec_Parser.h>
 
 namespace crl {
 
 class _StateMapper {
 public:
-	virtual ~_StateMapper() { } 
-	virtual Domain getDomain(Domain old_domain) {
+	virtual ~_StateMapper() { }
+	virtual Domain getDomain(Domain old_domain, taskspec_t* task_spec) {
 		return old_domain;
 	}
 	virtual State getState(Domain domain, const observation_t* obs) {

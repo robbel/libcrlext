@@ -76,14 +76,14 @@ void agent_init(const char* task_spec)
 
 	/*Allocate memory for a one-dimensional integer action using utility functions from RLStruct_util*/
 	allocateRLStruct(&_this_action, _domain_agent->getNumActionFactors(), 0, 0);
-	
+
 	_state_mapper = getStateMapper();
 	if (!_state_mapper) {
 		_state_mapper = StateMapper(new _StateMapper());
 	}
-	
-	_domain_agent = _state_mapper->getDomain(_domain_agent);
-	
+
+	_domain_agent = _state_mapper->getDomain(_domain_agent, &_tss);
+
 	_agent = getCRLAgent(_domain_agent);
 }
 
