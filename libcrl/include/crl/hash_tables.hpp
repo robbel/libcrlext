@@ -247,7 +247,7 @@ public:
 };
 typedef boost::shared_ptr<_HMDP> HMDP;
 inline HMDP getHMDP(const MDP& mdp) {
-	return boost::shared_polymorphic_downcast<_HMDP>(mdp);
+	return boost::static_pointer_cast<_HMDP>(mdp);
 }
 
 /**

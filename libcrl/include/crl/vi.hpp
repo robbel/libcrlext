@@ -83,7 +83,7 @@ public:
 };
 typedef boost::shared_ptr<_VIPlanner> VIPlanner;
 inline VIPlanner getVIPlanner(const Planner& planner) {
-	return boost::shared_polymorphic_downcast<_VIPlanner>(planner);
+	return boost::static_pointer_cast<_VIPlanner>(planner);
 }
 
 /**

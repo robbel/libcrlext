@@ -246,7 +246,7 @@ public:
 };
 typedef boost::shared_ptr<_FMDP> FMDP;
 inline FMDP getFMDP(const MDP& mdp) {
-	return boost::shared_polymorphic_downcast<_FMDP>(mdp);
+	return boost::static_pointer_cast<_FMDP>(mdp);
 }
 
 /**

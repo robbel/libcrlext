@@ -108,7 +108,7 @@ MDP makeMDP(Domain domain) {
 }
 MDP makeTerminatingMDP(Domain domain) {
 
-	FMDP mdp = boost::shared_polymorphic_downcast<_FMDP>(makeMDP(domain));
+	FMDP mdp = boost::static_pointer_cast<_FMDP>(makeMDP(domain));
 	State ts(domain, domain->getNumStates()-1);
 	for (Size action_index=0; action_index<domain->getNumActions(); action_index++) {
 		Action a(domain, action_index);
