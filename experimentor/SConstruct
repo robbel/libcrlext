@@ -31,6 +31,7 @@ experimentor experimentor_plot
 
 exp_sources = [build.File(source) for source  in """
 glue_exp.cpp
+exp_codec.c
 """.split()]
 
 env = Environment(tools = ["default", "tools"], toolpath = '.',
@@ -44,7 +45,7 @@ config.CheckLib('rlgluenetdev')
 env = config.Finish()
 
 glue_exp = env.Program(bin.Entry('glue_exp'), exp_sources,
-                       LIBS=['rlutils', 'rlexperiment', 'rlgluenetdev'])
+                       LIBS=['rlutils', 'rlgluenetdev'])
 
 if prefix != Dir('.'):
 	Alias('install', env.InstallPerm(prefix_bin, glue_exp, 0755))
