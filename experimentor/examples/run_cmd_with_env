@@ -1,0 +1,12 @@
+#!/usr/bin/python
+import sys, os
+
+os.environ['PATH'] = os.environ.get('PATH', '')+':/koko/rl3/jasmuth/presidents/bin'
+os.environ['LD_LIBRARY_PATH'] = os.environ.get('LD_LIBRARY_PATH', '')+':/koko/rl3/jasmuth/presidents/lib'
+
+command = sys.argv[1]
+for env in sys.argv[2:]:
+    var, val = env.split('=')
+    os.environ[var] = val
+    
+os.system(command)

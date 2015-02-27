@@ -1,0 +1,37 @@
+#!/usr/bin/python
+
+import csv_util, sys
+
+if len(sys.argv) != 2:
+	print "Usage: ", sys.argv[0], "<result csv>"
+	sys.exit(1)
+	
+path = sys.argv[1]
+csv = csv_util.readCSV(path)
+
+import pylab
+names = csv[0]
+ys = [[] for name in names]
+for row in csv[1:]:
+	for i in range(len(row)):
+		ys[i].append(float(row[i]))
+xs = range(1, len(csv))
+for y in ys:
+	pylab.plot(xs, y)
+pylab.title(path)
+
+pylab.xlabel("Trials")
+pylab.ylabel("Values")
+pylab.legend(names)
+try:
+	name = path.split('/')[-1]
+	name = name.split('.')[0]
+	try:
+		name = name.split('results')[-1]
+	except:
+		pass
+	pylab.ylabel(name)
+except:
+	pass
+
+pylab.show()
