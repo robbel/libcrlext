@@ -36,7 +36,7 @@ StateMapper crl::getStateMapper() {
 	return StateMapper();
 }
 
-const char* agent_message(const char* inMessage) {
+extern "C" const char* agent_message(const char* inMessage) {
 	if (!strcmp(inMessage, "id"))
 		return (char*)"random";
 	else if (!strcmp(inMessage, "version"))

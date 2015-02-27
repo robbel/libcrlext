@@ -109,7 +109,7 @@ Environment crl::getCRLEnvironment(Domain domain) {
 }
 
 char paramBuf[256];
-const char* env_message(const char* inMessage) {
+extern "C" const char* env_message(const char* inMessage) {
 	if (!strcmp(inMessage, "id"))
 		return (char*)"walk";
 	else if (!strcmp(inMessage, "param"))
