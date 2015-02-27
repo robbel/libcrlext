@@ -103,7 +103,7 @@ public:
 	virtual bool observe(const Observation& o) {
 		bool learned;
 		num_steps++;
-		if (learned = _Agent::observe(o)) {
+		if ((learned = _Agent::observe(o))) {
 			vector<MDP> mdps = _cluster_learner->sampleMDPs(_num_samples, _burn_period, _sample_spacing, _do_rmax);
 
 			for (Size i=0; i<mdps.size(); i++) {

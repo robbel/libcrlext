@@ -20,7 +20,7 @@ if os.uname()[0] == "Darwin":
 	lib_paths += ['/sw/lib']
 	cpp_paths += ['/sw/include']
 
-ccflags = ['-Wall', '-Werror', '-ansi']
+ccflags = ['-Wall', '-Werror', '-Wno-deprecated', '-ansi']
 if 'debug' in COMMAND_LINE_TARGETS:
 	ccflags += ['-g']
 
@@ -52,7 +52,6 @@ has_glue = sum([
     config.CheckLib('rlutils'),
     config.CheckLib('rlagent'),
     config.CheckLib('rlgluenetdev'),
-    config.CheckLib('taskspecutils')
 ])
 has_gsl = sum([
 	config.CheckLibWithHeader('gsl', 'gsl/gsl_rng.h', 'c')
@@ -66,7 +65,7 @@ if has_crl and has_glue:
 	agent_cluster = env.Program(bin.Entry('agent_cluster'), cluster_sources,
 	                       LIBS=['strxml', 'crl', 'rlgnmagent',
 	                             'rlcrlagent', 'rlutils', 'rlgluenetdev',
-	                             'taskspecutils', 'gsl', 'gslcblas', 'm',
+	                             'gsl', 'gslcblas', 'm',
 	                             'diastream', 'gzstream', 'z'])
 	bin_targets += [agent_cluster]
 else:
@@ -74,8 +73,7 @@ else:
 if has_crl and has_glue:
 	agent_acrobot = env.Program(bin.Entry('agent_acrobot'), acrobot_sources,
 	                       LIBS=['strxml', 'crl', 'rlgnmagent',
-	                             'rlcrlagent', 'rlutils', 'rlgluenetdev',
-	                             'taskspecutils'])
+	                             'rlcrlagent', 'rlutils', 'rlgluenetdev'])
 	bin_targets += [agent_acrobot]
 else:
 	print "Cannot build agent_acrobot"

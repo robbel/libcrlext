@@ -466,17 +466,17 @@ bool _ClusterMDP::isKnown(const State& s, const Action& a) {
 
 bool isPit(const State& s) {
 	if (false) {
-		if (s.getFactor(0) == 6 && s.getFactor(1) == 1 ||
-		    s.getFactor(0) == 0 && s.getFactor(1) == 2 ||
-		    s.getFactor(0) == 4 && s.getFactor(1) == 2 ||
-		    s.getFactor(0) == 0 && s.getFactor(1) == 3 ||
-		    s.getFactor(0) == 2 && s.getFactor(1) == 4 ||
-		    s.getFactor(0) == 0 && s.getFactor(1) == 5 ||
-		    s.getFactor(0) == 8 && s.getFactor(1) == 5 ||
-		    s.getFactor(0) == 4 && s.getFactor(1) == 6 ||
-		    s.getFactor(0) == 1 && s.getFactor(1) == 8 ||
-		    s.getFactor(0) == 3 && s.getFactor(1) == 8 ||
-		    s.getFactor(0) == 6 && s.getFactor(1) == 8)
+                if ((s.getFactor(0) == 6 && s.getFactor(1) == 1) ||
+		    (s.getFactor(0) == 0 && s.getFactor(1) == 2) ||
+                    (s.getFactor(0) == 4 && s.getFactor(1) == 2) ||
+		    (s.getFactor(0) == 0 && s.getFactor(1) == 3) ||
+		    (s.getFactor(0) == 2 && s.getFactor(1) == 4) ||
+		    (s.getFactor(0) == 0 && s.getFactor(1) == 5) ||
+		    (s.getFactor(0) == 8 && s.getFactor(1) == 5) ||
+		    (s.getFactor(0) == 4 && s.getFactor(1) == 6) ||
+		    (s.getFactor(0) == 1 && s.getFactor(1) == 8) ||
+		    (s.getFactor(0) == 3 && s.getFactor(1) == 8) ||
+		    (s.getFactor(0) == 6 && s.getFactor(1) == 8))
 			return true;
 	}
 	if (false) {
@@ -484,10 +484,10 @@ bool isPit(const State& s) {
 			return true;
 	}
 	if (true) {
-		if (s.getFactor(0) == 1 && s.getFactor(1) == 1 ||
-		    s.getFactor(0) == 4 && s.getFactor(1) == 1 ||
-		    s.getFactor(0) == 4 && s.getFactor(1) == 2 ||
-		    s.getFactor(0) == 3 && s.getFactor(1) == 3)
+                if ((s.getFactor(0) == 1 && s.getFactor(1) == 1) ||
+		    (s.getFactor(0) == 4 && s.getFactor(1) == 1) ||
+		    (s.getFactor(0) == 4 && s.getFactor(1) == 2) ||
+		    (s.getFactor(0) == 3 && s.getFactor(1) == 3))
 			return true;
 	}
 	return false;	
