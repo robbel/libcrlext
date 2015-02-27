@@ -179,7 +179,7 @@ public:
 };
 typedef boost::shared_ptr<_ClusterMDP> ClusterMDP;
 inline ClusterMDP getClusterMDP(MDP mdp) {
-	return boost::shared_polymorphic_downcast<_ClusterMDP>(mdp);
+	return boost::static_pointer_cast<_ClusterMDP>(mdp);
 }
 
 };
