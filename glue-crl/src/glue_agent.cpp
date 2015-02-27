@@ -24,7 +24,6 @@
 #include <rlglue/utils/C/RLStruct_util.h>
 #include <rlglue/utils/C/TaskSpec_Parser.h>
 #include <crl/crl.hpp>
-//#include <crl/fdomain.hpp>
 #include "crl/glue_agent.hpp"
 #include "crl/glue_util.hpp"
 
@@ -39,7 +38,7 @@ action_t _last_action;
 observation_t _last_observation;
 taskspec_t _tss;
 
-void agent_init(const char* task_spec)
+extern "C" void agent_init(const char* task_spec)
 {
 	/*Seed the random number generator*/
 	srand(time(0));
@@ -87,7 +86,7 @@ void agent_init(const char* task_spec)
 	_agent = getCRLAgent(_domain_agent);
 }
 
-const action_t* agent_start(const observation_t* this_observation) {
+extern "C" const action_t* agent_start(const observation_t* this_observation) {
 	State s = _state_mapper->getState(_domain_agent, this_observation);
 	_agent->begin(s);
 	Action a;
@@ -104,7 +103,7 @@ const action_t* agent_start(const observation_t* this_observation) {
 	return &_this_action;
 }
 
-const action_t* agent_step(double reward, const observation_t* this_observation) {
+extern "C" const action_t* agent_step(double reward, const observation_t* this_observation) {
 	/* This agent  returns 0 or 1 randomly for its action */
 	/* This agent always returns a random number, either 0 or 1 for its action */
 
@@ -128,7 +127,7 @@ const action_t* agent_step(double reward, const observation_t* this_observation)
 	return &_last_action;
 }
 
-void agent_end(double reward) {
+extern "C" void agent_end(double reward) {
 	State s;
 	Observation o(new _Observation(s, reward));
 	if (_agent) {
@@ -139,7 +138,7 @@ void agent_end(double reward) {
 	clearRLStruct(&_last_observation);
 }
 
-void agent_cleanup() {
+extern "C" void agent_cleanup() {
 	clearRLStruct(&_this_action);
 	clearRLStruct(&_last_action);
 	clearRLStruct(&_last_observation);

@@ -37,7 +37,7 @@ reward_observation_terminal_t this_reward_observation;
 string task_string;
 int current_state=0;
 
-const char* env_init()
+extern "C" const char* env_init()
 {
 	_domain_env = getCRLEnvironmentDomain();
 	_env = getCRLEnvironment(_domain_env);
@@ -132,14 +132,14 @@ const char* env_init()
 	return (char*)(task_string.c_str());
 }
 
-const observation_t* env_start()
+extern "C" const observation_t* env_start()
 {
 	State s = _env->begin();
 	populateState(_domain_env, s, &this_observation);
   	return &this_observation;
 }
 
-const reward_observation_terminal_t* env_step(const action_t* this_action)
+extern "C" const reward_observation_terminal_t* env_step(const action_t* this_action)
 {
 
 	Action a = getAction(_domain_env, this_action);
@@ -151,9 +151,7 @@ const reward_observation_terminal_t* env_step(const action_t* this_action)
 	return &this_reward_observation;
 }
 
-void env_cleanup()
+extern "C" void env_cleanup()
 {
 	clearRLStruct(&this_observation);
 }
-
-

@@ -24,7 +24,6 @@
 #include <crl/vi.hpp>
 #include <crl/ps.hpp>
 #include <crl/uct.hpp>
-#include <crl/fdomain.hpp>
 #include "crl/mazes.hpp"
 
 using namespace std;
