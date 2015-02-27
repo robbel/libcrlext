@@ -12,7 +12,7 @@ prefix_bin = prefix.Dir('bin')
 
 import os
 cpath = os.environ.get('CPATH', "")
-ld_library_path = ""#os.environ.get('LD_LIBRARY_PATH', "")
+ld_library_path = os.environ.get('LD_LIBRARY_PATH', "")
 cpp_paths = cpath.split(':')+[prefix_inc, inc]
 lib_paths = ld_library_path.split(':')+[lib, prefix_lib]
 
