@@ -1,0 +1,3 @@
+A wrapper for a specific agent from libcrl (agent_vi_rmax), implementing the
+glue-crl interface (and therefore available in rl-glue). Additionally networked
+through usage of the rlgnm library.

@@ -1,0 +1,3 @@
+An implementation of two specific domains, implementing the glue-crl interface
+(and therefore available in rl-glue). Additionally networked through usage of
+the rlgnm library.

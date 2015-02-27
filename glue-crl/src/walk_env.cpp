@@ -94,7 +94,6 @@ Observation _WalkEnv::getObservation(const Action& a) {
 	return o;
 }
 
-
 Domain crl::getCRLEnvironmentDomain() {
 	Domain domain(new _Domain());
 	domain->addStateFactor(-1*range, range);
@@ -142,4 +141,3 @@ int main(int argc, char** argv) {
 
 	return 0;
 }
-

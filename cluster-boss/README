@@ -1,0 +1,4 @@
+Implementation of two learners: BOSS (Bayesian sampling) and one wrapper for 
+a specific agent from libcrl (doing model-based RL in the acrobot domain (?!)), 
+both implementing the glue-crl interface (and therefore available in rl-glue). 
+Additionally networked through usage of the rlgnm library.

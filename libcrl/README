@@ -1,0 +1,4 @@
+A library for discrete factor reinforcement learning.
+Implements basic MDP interface and various learners.
+
+Note: No other library dependencies.

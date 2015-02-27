@@ -32,6 +32,7 @@ Agent crl::getCRLAgent(Domain domain) {
 	Agent agent(new _Agent(planner, learner));
 	return agent;
 }
+
 StateMapper crl::getStateMapper() {
 	return StateMapper();
 }
@@ -44,7 +45,6 @@ extern "C" const char* agent_message(const char* inMessage) {
 	else
 		return (char*)"";
 }
-
 
 int main(int argc, char** argv) {
 	char* host = 0;

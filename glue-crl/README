@@ -1,0 +1,10 @@
+Make a crl agent available in rl-glue. Agents that implement the glue_agent.hpp
+interface are automatically available in rl-glue. Similarly for glue_env.hpp.
+
+Note: by default, these agents are not networked (merely implement Agent_common 
+interface).
+
+Note: both example programs, random_agent and walk_env, are additionally 
+a networked program through usage of the rlgnm library.
+
+Note: a cpp library and example programs.

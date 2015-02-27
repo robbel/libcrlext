@@ -1,0 +1,5 @@
+A networked agent that supports the rl-glue interface. Runs agent event loop 
+given implementations of agent_* functions (i.e., the Agent_common interface) 
+elsewhere.
+
+Note: This is a c library.

@@ -1,0 +1,5 @@
+A specific domain (supporting xml input) and agent implementation, utilizing the
+glue-crl interface (and therefore available in rl-glue). Additionally networked
+through usage of the rlgnm library.
+
+Note: also includes a converter from maze xml to pddl.
