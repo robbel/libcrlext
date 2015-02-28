@@ -44,7 +44,7 @@ Agent crl::getCRLAgent(Domain domain) {
 		vmax = domain->getRewardRange().getMax()/(1-_gamma);
 
 	RMaxMDPLearner rmaxLearner(new _RMaxMDPLearner(mdp_learner, classifier, itr, vmax));
-	VIPlanner planner(new _FactoredVIPlanner(domain, rmaxLearner, _epsilon, _gamma));
+	VIPlanner planner(new _FlatVIPlanner(domain, rmaxLearner, _epsilon, _gamma));
 	VIPlannerAgent agent(new _VIPlannerAgent(planner, rmaxLearner));
 	return agent;
 }

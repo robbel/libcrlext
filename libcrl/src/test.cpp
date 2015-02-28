@@ -120,7 +120,7 @@ MDP makeTerminatingMDP(Domain domain) {
 Action testVI(MDP mdp, Domain domain) {
 	long start_time = time_in_milli();
 	cout << "FVI" << endl;
-	VIPlanner planner(new _FactoredVIPlanner(domain, mdp, .0001, .9));
+	VIPlanner planner(new _FlatVIPlanner(domain, mdp, .0001, .9));
 	int count = planner->plan();
 	long end_time = time_in_milli();
 	QTable qtable = planner->getQTable();
@@ -193,7 +193,7 @@ void testExperiment(Domain domain) {
 	MDP mdp = makeTerminatingMDP(domain);
 	State s(domain, 0);
 
-	VIPlanner planner1(new _FactoredVIPlanner(domain, mdp, .0001, .9));
+	VIPlanner planner1(new _FlatVIPlanner(domain, mdp, .0001, .9));
 	planner1->plan();
 	Agent agent1(new _Agent(planner1));
 

@@ -59,7 +59,7 @@ Agent crl::getCRLAgent(Domain domain) {
 	Planner planner = rtdp_planner;
 	*/
 
-	VIPlanner planner(new _FactoredVIPlanner(domain, rmaxLearner, _epsilon, _gamma));
+	VIPlanner planner(new _FlatVIPlanner(domain, rmaxLearner, _epsilon, _gamma));
 	Agent agent(new _Agent(planner, rmaxLearner));
 	return agent;
 }

@@ -118,7 +118,7 @@ int main(int argc, char** argv) {
 	Planner planner;
 	
 	
-	VIPlanner vi_planner(new _FactoredVIPlanner(mdp->getDomain(), mdp, .001, 1));
+	VIPlanner vi_planner(new _FlatVIPlanner(mdp->getDomain(), mdp, .001, 1));
 	vi_planner->plan();
 	planner = vi_planner;
 	

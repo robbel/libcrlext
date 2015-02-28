@@ -52,7 +52,7 @@ Agent crl::getCRLAgent(Domain domain) {
 		float gamma = atof(args[1].c_str());
 		Reward epsilon = atof(args[2].c_str());
 		sprintf(params, "planner=vi gamma=%f epsilon=%f", gamma, epsilon);
-		VIPlanner vi_planner = VIPlanner(new _FactoredVIPlanner(domain, mdp, epsilon, gamma));
+		VIPlanner vi_planner = VIPlanner(new _FlatVIPlanner(domain, mdp, epsilon, gamma));
 
 		vi_planner->plan();
 //		cerr << "planned in " << c << " iterations" << endl;

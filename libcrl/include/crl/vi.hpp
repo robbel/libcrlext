@@ -89,14 +89,14 @@ inline VIPlanner getVIPlanner(const Planner& planner) {
 /**
  * VI planner using a flat table
  */
-class _FactoredVIPlanner : public _VIPlanner {
+class _FlatVIPlanner : public _VIPlanner {
 public:
-	_FactoredVIPlanner(const Domain domain, MDP mdp, Reward epsilon, float gamma)
+	_FlatVIPlanner(const Domain domain, MDP mdp, Reward epsilon, float gamma)
 	: _VIPlanner(mdp, epsilon, gamma) {
 		_qtable = FQTable(new _FQTable(domain));
 	}
 };
-typedef boost::shared_ptr<_FactoredVIPlanner> FactoredVIPlanner;
+typedef boost::shared_ptr<_FlatVIPlanner> FlatVIPlanner;
 
 /**
  * VI planner using a hash map
