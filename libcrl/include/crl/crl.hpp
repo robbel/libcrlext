@@ -53,6 +53,7 @@ inline std::ostream& operator<<(std::ostream& os, const Observation& o) {
 }
 
 /**
+ * \brief An abstract interface for an MDP.
  */
 class _MDP {
 public:

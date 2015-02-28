@@ -244,6 +244,9 @@ std::ostream& operator<<(std::ostream& os, Indexer<T,I> i) {
 	return os << (T)i;
 }
 
+///
+/// \brief Abstract forward iterator interface
+///
 template <class T>
 class Iterator {
 public:
@@ -268,6 +271,9 @@ public:
 	virtual ~EmptyIterator() { }
 };
 
+///
+/// \brief Forward iterator for keys in a std::map
+///
 template <class T, class M>
 class MapKeyIterator : public Iterator<T> {
 private:
@@ -300,6 +306,9 @@ public:
 	}
 };
 
+///
+/// \brief Forward iterator for values in a std::map
+///
 template <class T, class M>
 class MapValueIterator : public Iterator<T> {
 private:
@@ -332,6 +341,9 @@ public:
 	}
 };
 
+///
+/// \brief Forward iterator for templated container
+///
 template <class T, class C>
 class ContainerIterator : public Iterator<T> {
 private:
@@ -364,7 +376,9 @@ public:
 	}
 };
 
-
+///
+/// \brief Forward iterator for templated container that's wrapped in a shared_ptr
+///
 template <class T, class C>
 class SharedContainerIterator : public Iterator<T> {
 private:
@@ -402,8 +416,10 @@ public:
 	: ContainerIterator<T,std::vector<T> >(*shared_vec) { }
 };
 
-
-
+///
+/// \brief Class for denoting a range [min,max]
+/// \todo FIXME: getSpan is not in line with this def
+///
 template <class T>
 class Range {
 private:
@@ -440,6 +456,10 @@ std::ostream& operator<<(std::ostream& os, std::vector<T> v) {
 	return os;
 }
 
+///
+/// \brief return a random number in [0,1)
+/// \note initialize seed once before usage
+///
 inline double randDouble() {
 	return ((double)rand()/((double)(RAND_MAX)+(double)(1)));
 }

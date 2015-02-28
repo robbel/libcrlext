@@ -30,8 +30,9 @@
 namespace crl {
 
 /**
- * Describes the structure of the states and actions, as well
- * as Rmax and Rmin.
+ * \brief Describes the structure of the states and actions, as well as Rmax and Rmin.
+ * Supports factored states and actions.
+ * \note Rewards are maintained somewhere else (and are not factores, as per standard RL)
  */
 class _Domain {
 protected:
@@ -184,11 +185,12 @@ public:
 	State()
 	: RLType() { }
 	State(const Domain& domain)
-	: RLType(&(domain->getStateRanges()), &(domain->getStateIndexComponents())) { }
+	: RLType(&(domain->getStateRanges()),
+		 &(domain->getStateIndexComponents())) { }
 	State(const Domain& domain, Size index)
 	: RLType(&(domain->getStateRanges()),
-      &(domain->getStateIndexComponents()),
-      index) { }
+		 &(domain->getStateIndexComponents()),
+		 index) { }
 	virtual ~State() { }
 };
 
