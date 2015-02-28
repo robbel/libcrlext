@@ -20,7 +20,7 @@
 
 #include <iostream>
 #include <cpputil.hpp>
-#include <math.h>
+#include <cmath>
 #include <gsl/gsl_sf_gamma.h>
 
 #include "crl/dpmem.hpp"

@@ -18,7 +18,7 @@
     along with CRL:RL-Glue:bayes.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <math.h>
+#include <cmath>
 #include <iostream>
 #include <cpputil.hpp>
 #include "crl/dpmem.hpp"
