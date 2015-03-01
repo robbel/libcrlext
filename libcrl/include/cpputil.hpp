@@ -418,7 +418,6 @@ public:
 
 ///
 /// \brief Class for denoting a range [min,max]
-/// \todo FIXME: getSpan is not in line with this def
 ///
 template <class T>
 class Range {
@@ -440,6 +439,11 @@ public:
 	}
 	const T& getMin() const {return min;}
 	const T& getMax() const {return max;}
+	///
+	/// \brief The span of the range ]min,max]
+	/// \note Off-by-one compared to [min,max], e.g. during array size computations.
+	/// \todo XXX figure out if acrobat_agent uses this correctly
+	///
 	T getSpan() const {return max-min;}
 };
 

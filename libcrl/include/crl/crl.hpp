@@ -31,6 +31,7 @@
 #include "crl/common.hpp"
 
 namespace crl {
+
 /**
  * A pair of state,reward is referred to as an observation
  */
@@ -53,7 +54,9 @@ inline std::ostream& operator<<(std::ostream& os, const Observation& o) {
 }
 
 /**
- * \brief An abstract interface for an MDP.
+ * \brief An abstract interface for an MDP (implemented elsewhere).
+ * Supported are state and action iteration, and reward and transition function retrieval.
+ * As per rl-glue nomenclature, an \a Observation is a sampled successor state along with a reward signal.
  */
 class _MDP {
 public:
@@ -68,6 +71,9 @@ public:
 	virtual Probability T(const State& s, const Action& a, const State& s_next) {
 		return T(s, a)->P(s_next);
 	}
+	///
+	/// \brief sample a successor state and reward (i.e., generate an \a Observation)
+	///
 	virtual Observation sample(const State& s, const Action& a) {
 		Observation o(new _Observation(T(s, a)->sample(), R(s, a)));
 		return o;
@@ -170,7 +176,8 @@ public:
 typedef boost::shared_ptr<_Learner> Learner;
 
 /**
- * Interface for classes that make observations and take actions
+ * \brief Interface for classes that make observations and take actions
+ * An Agent can encapsulate both a \a Planner and \b Learner component.
  */
 class _Agent {
 protected:
@@ -191,6 +198,8 @@ public:
 typedef boost::shared_ptr<_Agent> Agent;
 
 /**
+ * Interface for an RL environment that starts in one state and generates successor observations
+ * given an agent action.
  */
 class _Environment {
 public:
@@ -203,6 +212,7 @@ public:
 typedef boost::shared_ptr<_Environment> Environment;
 
 /**
+ * The compbination of an agent and an environment along with execution code for the experiment.
  */
 class _Experiment {
 protected:
