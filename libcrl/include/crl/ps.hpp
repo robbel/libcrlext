@@ -21,7 +21,7 @@
 #ifndef PRIORITIZED_SWEEPING_HPP_
 #define PRIORITIZED_SWEEPING_HPP_
 
-#include <math.h>
+#include <cmath>
 #include <map>
 #include <vector>
 #include "crl/vi.hpp"

@@ -18,7 +18,7 @@
     along with CRL.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <math.h>
+#include <cmath>
 #include <iostream>
 #include "crl/crl.hpp"
 #include "crl/vi.hpp"

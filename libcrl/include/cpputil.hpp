@@ -244,6 +244,9 @@ std::ostream& operator<<(std::ostream& os, Indexer<T,I> i) {
 	return os << (T)i;
 }
 
+///
+/// \brief Abstract forward iterator interface
+///
 template <class T>
 class Iterator {
 public:
@@ -268,6 +271,9 @@ public:
 	virtual ~EmptyIterator() { }
 };
 
+///
+/// \brief Forward iterator for keys in a std::map
+///
 template <class T, class M>
 class MapKeyIterator : public Iterator<T> {
 private:
@@ -300,6 +306,9 @@ public:
 	}
 };
 
+///
+/// \brief Forward iterator for values in a std::map
+///
 template <class T, class M>
 class MapValueIterator : public Iterator<T> {
 private:
@@ -332,6 +341,9 @@ public:
 	}
 };
 
+///
+/// \brief Forward iterator for templated container
+///
 template <class T, class C>
 class ContainerIterator : public Iterator<T> {
 private:
@@ -364,7 +376,9 @@ public:
 	}
 };
 
-
+///
+/// \brief Forward iterator for templated container that's wrapped in a shared_ptr
+///
 template <class T, class C>
 class SharedContainerIterator : public Iterator<T> {
 private:
@@ -402,8 +416,9 @@ public:
 	: ContainerIterator<T,std::vector<T> >(*shared_vec) { }
 };
 
-
-
+///
+/// \brief Class for denoting a range [min,max]
+///
 template <class T>
 class Range {
 private:
@@ -424,6 +439,11 @@ public:
 	}
 	const T& getMin() const {return min;}
 	const T& getMax() const {return max;}
+	///
+	/// \brief The span of the range ]min,max]
+	/// \note Off-by-one compared to [min,max], e.g. during array size computations.
+	/// \todo XXX figure out if acrobat_agent uses this correctly
+	///
 	T getSpan() const {return max-min;}
 };
 
@@ -440,6 +460,10 @@ std::ostream& operator<<(std::ostream& os, std::vector<T> v) {
 	return os;
 }
 
+///
+/// \brief return a random number in [0,1)
+/// \note initialize seed once before usage
+///
 inline double randDouble() {
 	return ((double)rand()/((double)(RAND_MAX)+(double)(1)));
 }

@@ -31,6 +31,7 @@
 #include "crl/common.hpp"
 
 namespace crl {
+
 /**
  * A pair of state,reward is referred to as an observation
  */
@@ -53,6 +54,9 @@ inline std::ostream& operator<<(std::ostream& os, const Observation& o) {
 }
 
 /**
+ * \brief An abstract interface for an MDP (implemented elsewhere).
+ * Supported are state and action iteration, and reward and transition function retrieval.
+ * As per rl-glue nomenclature, an \a Observation is a sampled successor state along with a reward signal.
  */
 class _MDP {
 public:
@@ -67,6 +71,9 @@ public:
 	virtual Probability T(const State& s, const Action& a, const State& s_next) {
 		return T(s, a)->P(s_next);
 	}
+	///
+	/// \brief sample a successor state and reward (i.e., generate an \a Observation)
+	///
 	virtual Observation sample(const State& s, const Action& a) {
 		Observation o(new _Observation(T(s, a)->sample(), R(s, a)));
 		return o;
@@ -105,6 +112,8 @@ public:
 typedef boost::shared_ptr<_FlatHeuristic> FlatHeuristic;
 
 /**
+ * \brief Interface of the Q-function
+ * Supports a heuristic with (s, a) reward estimates
  */
 class _QTable {
 protected:
@@ -169,7 +178,8 @@ public:
 typedef boost::shared_ptr<_Learner> Learner;
 
 /**
- * Interface for classes that make observations and take actions
+ * \brief Interface for classes that make observations and take actions
+ * An Agent can encapsulate both a \a Planner and \b Learner component.
  */
 class _Agent {
 protected:
@@ -184,12 +194,21 @@ public:
 
 	virtual void begin(const State& s);
 	virtual void end();
+	///
+	/// \brief Observe a transition and reward signal after a previous \a getAction call.
+	/// E.g., to perform an iteration of learning.
+	///
 	virtual bool observe(const Observation& o);
+	///
+	/// \brief Invoke \a Planner to obtain next action in \a s.
+	///
 	virtual Action getAction(const State& s);
 };
 typedef boost::shared_ptr<_Agent> Agent;
 
 /**
+ * Interface for an RL environment that starts in one state and generates successor observations
+ * given an agent action.
  */
 class _Environment {
 public:
@@ -202,6 +221,7 @@ public:
 typedef boost::shared_ptr<_Environment> Environment;
 
 /**
+ * The compbination of an agent and an environment along with execution code for the experiment.
  */
 class _Experiment {
 protected:
@@ -215,7 +235,7 @@ public:
 typedef boost::shared_ptr<_Experiment> Experiment;
 
 /**
- * Just a combination of the two classes.
+ * Just a combination of the two interfaces.
  * Created for the RMaxMDPLearner, so it could have an underlying MDP and
  * learner be one thing without having to do runtime type checking to verify.
  */

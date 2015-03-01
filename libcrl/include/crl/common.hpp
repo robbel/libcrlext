@@ -30,8 +30,9 @@
 namespace crl {
 
 /**
- * Describes the structure of the states and actions, as well
- * as Rmax and Rmin.
+ * \brief Describes the problem structure (states and actions), as well as Rmax and Rmin.
+ * Factored states and actions are supported (but no reward structure as of now)
+ * Rewards are generated in the \a Environment and are not part of this structural problem definition
  */
 class _Domain {
 protected:
@@ -172,7 +173,7 @@ public:
 		return _ranges == r._ranges && getIndex() == r.getIndex();
 	}
 	/**
-	 * returns true if this is an actual state or action
+	 * returns true if this is an actual state or action (and not a nullptr)
 	 */
 	operator bool() const {
 		return _ranges != 0;
@@ -184,11 +185,12 @@ public:
 	State()
 	: RLType() { }
 	State(const Domain& domain)
-	: RLType(&(domain->getStateRanges()), &(domain->getStateIndexComponents())) { }
+	: RLType(&(domain->getStateRanges()),
+		 &(domain->getStateIndexComponents())) { }
 	State(const Domain& domain, Size index)
 	: RLType(&(domain->getStateRanges()),
-      &(domain->getStateIndexComponents()),
-      index) { }
+		 &(domain->getStateIndexComponents()),
+		 index) { }
 	virtual ~State() { }
 };
 

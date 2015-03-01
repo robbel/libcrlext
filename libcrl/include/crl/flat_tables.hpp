@@ -151,12 +151,16 @@ protected:
 	std::vector<Action> _best_actions;
 	std::vector<Reward> _best_qs;
 
+	///
+	/// If heuristic is available (and has not yet been computed for state s),
+	/// compute row in q-table and update best action and best q value cache for s.
+	///
 	void checkInitial(const State& s) {
 		if (!_potential || _best_actions[s.getIndex()])
 			return;
-		int index = s.getIndex();
+		const Size index = s.getIndex();
 		_ActionIncrementIterator itr(_domain);
-		_best_qs[s.getIndex()] = -1*std::numeric_limits<double>::max();
+		_best_qs[index] = -1*std::numeric_limits<double>::max();
 		while (itr.hasNext()) {
 			Action a = itr.next();
 			Reward r = _potential->getPotential(s, a);
@@ -184,6 +188,7 @@ public:
 	virtual Action getBestAction(const State& s) {
 		checkInitial(s);
 		if (!_best_actions[s.getIndex()]) {
+			//FIXME why does this return action 0 in this case?
 			return Action(_domain);
 		}
 		return _best_actions[s.getIndex()];
@@ -211,7 +216,7 @@ public:
 typedef boost::shared_ptr<_FStateDistribution> FStateDistribution;
 
 /**
- * A flat MDP that can have its dynamics set explicitely.
+ * A flat MDP that can have its dynamics set explicitly.
  */
 class _FMDP : public _MDP {
 protected:
@@ -262,7 +267,7 @@ public:
 	_FCounter(const Domain& domain);
 	virtual ~_FCounter() { }
 	/**
-	 * returns an iterator over all observed next states to s,a
+	 * returns an iterator over all observed next states from s,a
 	 */
 	virtual StateIterator iterator(const State& s, const Action& a);
 	virtual Size getCount(const State& s, const Action& a);
