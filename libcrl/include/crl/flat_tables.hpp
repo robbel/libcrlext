@@ -151,12 +151,15 @@ protected:
 	std::vector<Action> _best_actions;
 	std::vector<Reward> _best_qs;
 
+	///
+	/// If heuristic is available, set row in q-table for s and update best action and best q value cache for s.
+	///
 	void checkInitial(const State& s) {
 		if (!_potential || _best_actions[s.getIndex()])
 			return;
-		int index = s.getIndex();
+		const Size index = s.getIndex();
 		_ActionIncrementIterator itr(_domain);
-		_best_qs[s.getIndex()] = -1*std::numeric_limits<double>::max();
+		_best_qs[index] = -1*std::numeric_limits<double>::max();
 		while (itr.hasNext()) {
 			Action a = itr.next();
 			Reward r = _potential->getPotential(s, a);

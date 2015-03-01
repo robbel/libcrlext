@@ -173,7 +173,7 @@ public:
 		return _ranges == r._ranges && getIndex() == r.getIndex();
 	}
 	/**
-	 * returns true if this is an actual state or action
+	 * returns true if this is an actual state or action (and not a nullptr)
 	 */
 	operator bool() const {
 		return _ranges != 0;

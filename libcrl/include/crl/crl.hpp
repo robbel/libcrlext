@@ -112,6 +112,8 @@ public:
 typedef boost::shared_ptr<_FlatHeuristic> FlatHeuristic;
 
 /**
+ * \brief Interface of the Q-function
+ * Supports a heuristic with (s, a) reward estimates
  */
 class _QTable {
 protected:
@@ -226,7 +228,7 @@ public:
 typedef boost::shared_ptr<_Experiment> Experiment;
 
 /**
- * Just a combination of the two classes.
+ * Just a combination of the two interfaces.
  * Created for the RMaxMDPLearner, so it could have an underlying MDP and
  * learner be one thing without having to do runtime type checking to verify.
  */
