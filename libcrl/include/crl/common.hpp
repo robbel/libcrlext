@@ -30,9 +30,9 @@
 namespace crl {
 
 /**
- * \brief Describes the structure of the states and actions, as well as Rmax and Rmin.
- * Supports factored states and actions.
- * \note Rewards are maintained somewhere else (and are not factores, as per standard RL)
+ * \brief Describes the problem structure (states and actions), as well as Rmax and Rmin.
+ * Factored states and actions are supported (but no reward structure as of now)
+ * Rewards are generated in the \a Environment and are not part of this structural problem definition
  */
 class _Domain {
 protected:

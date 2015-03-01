@@ -194,7 +194,14 @@ public:
 
 	virtual void begin(const State& s);
 	virtual void end();
+	///
+	/// \brief Observe a transition and reward signal after a previous \a getAction call.
+	/// E.g., to perform an iteration of learning.
+	///
 	virtual bool observe(const Observation& o);
+	///
+	/// \brief Invoke \a Planner to obtain next action in \a s.
+	///
 	virtual Action getAction(const State& s);
 };
 typedef boost::shared_ptr<_Agent> Agent;
