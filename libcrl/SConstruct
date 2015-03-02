@@ -65,7 +65,7 @@ lib_targets += [libcrl]
 test = env.Program(bin.Entry('test'), test_sources, LIBS=['crl'])
 bin_targets += [test]
 
-spudd = env.Program(bin.Entry('test_spudd'), test_spudd_sources, LIBS=['crl'])
+test_spudd = env.Program(bin.Entry('test_spudd'), test_spudd_sources, LIBS=['crl'])
 bin_targets += [test_spudd]
 
 if prefix != Dir('.'):
