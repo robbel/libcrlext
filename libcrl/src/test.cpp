@@ -239,6 +239,12 @@ void testState() {
 	cout << s << " - " << s.getIndex() << endl;
 	s.setFactor(4,2);
 	cout << s << " - " << s.getIndex() << endl;
+
+	for(Size i=0; i<10; i++)
+	{
+	    s.setIndex(i);
+	    cout << s.getIndex() << ": " << s << endl;
+	}
 }
 
 void testHash(Domain domain) {

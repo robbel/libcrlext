@@ -37,8 +37,11 @@ namespace crl {
  */
 class _Domain {
 protected:
+	/// The minimum and maximum reward possible in this domain
 	RewardRange _reward_range;
+	/// The range of values (i.e., [min,max]) per state factor in this domain
 	RangeVec _state_ranges;
+	/// The range of values (i.e., [min,max]) per action factor in this domain
 	RangeVec _action_ranges;
 	/**
 	 * The index factors used in RLType, when it is a State
@@ -48,7 +51,9 @@ protected:
 	 * The index factors used in RLType, when it is an Action
 	 */
 	SizeVec _action_index_components;
+	/// The total number of (joint) states in this domain
 	Size _num_states;
+	/// The total number of (joint) actions in this domain
 	Size _num_actions;
 public:
 	_Domain();
@@ -66,9 +71,17 @@ public:
 	const RangeVec& getActionRanges() const {
 		return _action_ranges;
 	}
+	///
+	/// \brief Implementation detail for (flat) state indexing given a (factored) domain
+	/// _state_index_components[i] corresponds to the flat index where state factor i is first incremented.
+	///
 	const SizeVec& getStateIndexComponents() const {
 		return _state_index_components;
 	}
+	///
+	/// \todo Implementation detail for (flat) action indexing given a (factored) domain
+	/// _action_index_components[i] corresponds to the flat index where action factor i is first incremented.
+	///
 	const SizeVec& getActionIndexComponents() const {
 		return _action_index_components;
 	}
@@ -105,7 +118,7 @@ protected:
 	 */
 	const RangeVec* _ranges;
 	/**
-	 * The multaplicative factor used to get at thesupport right part of
+	 * The multiplicative factor used to get at the support right part of
 	 * the index for a given feature
 	 */
 	const SizeVec* _components;
@@ -207,11 +220,11 @@ public:
 	: RLType() { }
 	Action(const Domain& domain)
 	: RLType(&(domain->getActionRanges()),
-      &(domain->getActionIndexComponents())) { }
+		 &(domain->getActionIndexComponents())) { }
 	Action(const Domain& domain, Size index)
 	: RLType(&(domain->getActionRanges()),
-	  &(domain->getActionIndexComponents()),
-	  index) { }
+		 &(domain->getActionIndexComponents()),
+		 index) { }
 	virtual ~Action() { }
 };
 

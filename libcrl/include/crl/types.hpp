@@ -28,7 +28,7 @@ namespace crl {
 
 typedef float Reward;
 typedef double Probability;
-typedef short Factor;
+typedef short Factor;  ///< The value type of a (discrete) Factor in the graph
 typedef uint64_t Size;
 typedef long Index;
 

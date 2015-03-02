@@ -26,7 +26,7 @@ using namespace std;
 using namespace crl;
 
 _Domain::_Domain() {
-	_num_states = 1;
+	_num_states = 1; // there's always the all-zeros state
 	_num_actions = 1;
 }
 void _Domain::addStateFactor(Factor min, Factor max) {
