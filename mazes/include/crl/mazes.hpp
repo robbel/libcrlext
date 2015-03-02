@@ -32,6 +32,9 @@
 
 namespace crl {
 
+///
+/// \brief Defines the layout of a maze
+///
 class _Maze {
 protected:
 	size_t _width;
@@ -91,6 +94,9 @@ public:
 };
 typedef boost::shared_ptr<_SlipConfig> SlipConfig;
 
+///
+/// \brief A maze where an agent can move fwd,left,right and may slip.
+///
 class _SlipMaze : public _Maze {
 protected:
 	Domain _domain;
@@ -121,8 +127,6 @@ protected:
 	std::vector<Location> _spawns;
 	std::vector<Location> _flags;
 public:
-
-
 	_FlagMaze(const Maze& maze, const SlipConfig& config);
 	virtual ~_FlagMaze();
 	virtual Domain getDomain();
@@ -140,10 +144,10 @@ protected:
 	Domain _domain;
 
 	Probability updateDistribution(HStateDistribution& sd,
-			    			   	   std::vector<Location> locs,
-                        	   	   std::vector<int> directions,
-                        	   	   std::vector<int> turns,
-							   	   std::vector<int> flags);
+				       std::vector<Location> locs,
+				       std::vector<int> directions,
+				       std::vector<int> turns,
+				       std::vector<int> flags);
 public:
 	_FlagMDP(FlagMaze& fm);
 	virtual ~_FlagMDP();

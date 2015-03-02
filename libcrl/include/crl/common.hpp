@@ -31,8 +31,9 @@ namespace crl {
 
 /**
  * \brief Describes the problem structure (states and actions), as well as Rmax and Rmin.
- * Factored states and actions are supported (but no reward structure as of now)
- * Rewards are generated in the \a Environment and are not part of this structural problem definition
+ * Factored states and actions are supported (but no reward structure as per normal RL)
+ * Rewards are generated in the \a Environment and are not part of this structural problem definition here
+ * \note A domain has nothing to do with an MDP per se (e.g., transition function is missing but see, for example, \a MDPEnvironment)
  */
 class _Domain {
 protected:
@@ -104,7 +105,7 @@ protected:
 	 */
 	const RangeVec* _ranges;
 	/**
-	 * The multaplicative factor used to get at the right part of
+	 * The multaplicative factor used to get at thesupport right part of
 	 * the index for a given feature
 	 */
 	const SizeVec* _components;
@@ -180,6 +181,9 @@ public:
 	}
 };
 
+///
+/// \brief A state in a \a Domain (i.e., as per structure definition there)
+///
 class State : public RLType{
 public:
 	State()
@@ -194,6 +198,9 @@ public:
 	virtual ~State() { }
 };
 
+///
+/// \brief An action in a \a Domain (i.e., as per structure definition there)
+///
 class Action : public RLType {
 public:
 	Action()
@@ -256,7 +263,7 @@ public:
 typedef boost::shared_ptr<_StateIncrementIterator> StateIncrementIterator;
 
 /**
- * An action iterator that increments an index to get the next state.
+ * An action iterator that increments an index to get the next action.
  */
 class _ActionIncrementIterator : public _ActionIterator {
 protected:
@@ -329,8 +336,7 @@ typedef boost::shared_ptr<_ActionRandomIterator> ActionRandomIterator;
 
 
 /**
- * An interface for a distribution that can be sampled from
- * and queried.
+ * An interface for a distribution that can be sampled from and queried.
  */
 template <class T>
 class _Distribution {
