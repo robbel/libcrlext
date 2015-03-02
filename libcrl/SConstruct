@@ -28,19 +28,19 @@ sources = """
 crl.cpp				flat_tables.cpp			vi.cpp					rmax.cpp
 environment.cpp		sparse_sampling.cpp  	uct.cpp					uctdata.cpp
 ps.cpp	  			factor_learner.cpp		hash_tables.cpp			rtdp.cpp
-ram.cpp
+ram.cpp              conversions.cpp
 """.split()
 headers = """
 crl/crl.hpp         crl/flat_tables.hpp  	crl/uct.hpp				crl/uctdata.hpp		
 crl/rmax.hpp 		crl/environment.hpp		crl/sparse_sampling.hpp	crl/vi.hpp
 crl/ps.hpp          crl/common.hpp			crl/util.hpp			crl/rtdp.hpp
 crl/types.hpp	 	crl/factor_learner.hpp	crl/hash_tables.hpp		crl/ram.hpp
-crl/tables.hpp
+crl/tables.hpp      crl/conversions.hpp
 """.split()
 
 build_sources = [build.File(source) for source in sources]
 test_sources = [build.File('test.cpp')]
-spudd_sources = [build.File('spudd.cpp')]
+test_spudd_sources = [build.File('test_spudd.cpp')]
 
 env = Environment(tools = ["default", "tools"], toolpath = '.',
                   CPPPATH=cpp_paths, CCFLAGS=ccflags, LIBPATH=lib_paths)
@@ -65,8 +65,8 @@ lib_targets += [libcrl]
 test = env.Program(bin.Entry('test'), test_sources, LIBS=['crl'])
 bin_targets += [test]
 
-spudd = env.Program(bin.Entry('spudd'), spudd_sources, LIBS=['crl'])
-bin_targets += [spudd]
+spudd = env.Program(bin.Entry('test_spudd'), test_spudd_sources, LIBS=['crl'])
+bin_targets += [test_spudd]
 
 if prefix != Dir('.'):
 	for header in headers:
@@ -85,6 +85,6 @@ COPYING COPYING.LESSER SConstruct tools.py
 dist_files += [inc.Entry(header) for header in headers]
 dist_files += [src.Entry(build_source) for build_source in build_sources] 
 dist_files += [src.Entry(test_source) for test_source in test_sources] 
-dist_files += [src.Entry(spudd_source) for spudd_source in spudd_sources] 
+dist_files += [src.Entry(test_spudd_source) for test_spudd_source in test_spudd_sources] 
 
 env.Alias('dist', env.DistTar('libcrl.tar.gz', dist_files))
