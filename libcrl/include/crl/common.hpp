@@ -33,7 +33,7 @@ namespace crl {
  * \brief Describes the problem structure (states and actions), as well as Rmax and Rmin.
  * Factored states and actions are supported (but no reward structure as per normal RL)
  * Rewards are generated in the \a Environment and are not part of this structural problem definition here
- * \note A domain has nothing to do with an MDP per se (but see, e.g., \a MDPEnvironment later)
+ * \note A domain has nothing to do with an MDP per se (e.g., transition function is missing but see, for example, \a MDPEnvironment)
  */
 class _Domain {
 protected:
