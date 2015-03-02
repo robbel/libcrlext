@@ -269,7 +269,7 @@ int main(int argc, char** argv) {
 		domain->setRewardRange(-1, 0);
 		//MDP mdp = makeMDP(domain);
 		MDP mdp = makeTerminatingMDP(domain);
-//		testState();
+		testState();
 		testVI(mdp, domain);
 //		testPS(mdp, domain);
 //		testUCT(mdp, domain);
