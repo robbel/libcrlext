@@ -43,6 +43,10 @@ protected:
 	RangeVec _state_ranges;
 	/// The range of values (i.e., [min,max]) per action factor in this domain
 	RangeVec _action_ranges;
+	/// The names of each state factor
+	StrVec _state_names;
+	/// The names of each action factor
+	StrVec _action_names;
 	/**
 	 * The index factors used in RLType, when it is a State
 	 */
@@ -98,8 +102,8 @@ public:
 		return _action_ranges.size();
 	}
 
-	void addStateFactor(Factor min, Factor max);
-	void addActionFactor(Factor min, Factor max);
+	void addStateFactor(Factor min, Factor max, std::string name="");
+	void addActionFactor(Factor min, Factor max, std::string name="");
 };
 typedef boost::shared_ptr<_Domain> Domain;
 
@@ -110,6 +114,7 @@ typedef boost::shared_ptr<_Domain> Domain;
  * actions around will be very fast. Getting and setting features
  * happens very rarely compared to copying, so the extra overhead
  * in those functions is justified.
+ * \note The index directly corresponds to a particular instantiation of the multidimensional vector represented by this type.
  */
 class RLType {
 protected:
@@ -203,7 +208,7 @@ public:
 ///
 /// \brief A state in a \a Domain (i.e., as per structure definition there)
 ///
-class State : public RLType{
+class State : public RLType {
 public:
 	State()
 	: RLType() { }

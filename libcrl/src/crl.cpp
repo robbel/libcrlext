@@ -29,17 +29,19 @@ _Domain::_Domain() {
 	_num_states = 1; // there's always the all-zeros state
 	_num_actions = 1;
 }
-void _Domain::addStateFactor(Factor min, Factor max) {
+void _Domain::addStateFactor(Factor min, Factor max, string name) {
 	FactorRange r(min, max);
 	_state_ranges.push_back(r);
 	_state_index_components.push_back(_num_states);
 	_num_states *= r.getSpan()+1;
+	_state_names.push_back(name);
 }
-void _Domain::addActionFactor(Factor min, Factor max) {
+void _Domain::addActionFactor(Factor min, Factor max, string name) {
 	FactorRange r(min, max);
 	_action_ranges.push_back(r);
 	_action_index_components.push_back(_num_actions);
 	_num_actions *= r.getSpan()+1;
+	_action_names.push_back(name);
 }
 
 void RLType::print(std::ostream& os) const {

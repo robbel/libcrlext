@@ -22,6 +22,7 @@
 #define TYPES_HPP_
 
 #include <set>
+#include <string>
 #include <boost/cstdint.hpp>
 
 namespace crl {
@@ -39,6 +40,7 @@ typedef std::vector<Factor> FactorVec;
 typedef std::vector<FactorRange> RangeVec;
 typedef std::vector<Probability> ProbabilityVec;
 typedef std::vector<Size> SizeVec;
+typedef std::vector<std::string> StrVec;
 
 class State;
 class Action;
