@@ -20,7 +20,7 @@
 
 /**
  * This file contains a set of functions and classes aimed at general C++
- * usefullness.
+ * usefulness.
  */
 
 #ifndef CPPUTIL_H

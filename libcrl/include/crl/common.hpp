@@ -184,7 +184,7 @@ public:
 ///
 /// \brief A state in a \a Domain (i.e., as per structure definition there)
 ///
-class State : public RLType{
+class State : public RLType {
 public:
 	State()
 	: RLType() { }
