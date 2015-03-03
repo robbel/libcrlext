@@ -144,6 +144,9 @@ public:
 		return _ranges->size();
 	}
 
+	///
+	/// \brief set the value associated with the \a Factor at \a index
+	///
 	virtual void setFactor(Size index, Factor data) {
 		if (!_ranges) {
 			throw NullObjectException();
@@ -151,8 +154,11 @@ public:
 		Factor old_factor = getFactor(index);
 		Factor difference = data-old_factor;
 		Size index_change = (*_components)[index]*difference;
-		_index = _index+index_change;
+		_index += index_change;
 	}
+	///
+	/// \brief get the value associated with the \a Factor at \a index.
+	///
 	virtual const Factor getFactor(Size index) const {
 		if (!_ranges) {
 			throw NullObjectException();
