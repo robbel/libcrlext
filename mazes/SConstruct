@@ -16,7 +16,7 @@ ld_library_path = os.environ.get('LD_LIBRARY_PATH', "")
 cpp_paths = cpath.split(':')+[prefix_inc, inc]
 lib_paths = ld_library_path.split(':')+[prefix_lib, lib]
 
-ccflags = ['-Wall', '-Werror', '-Wno-deprecated', '-ansi']
+ccflags = ['-Wall', '-Werror', '-Wno-deprecated', '-std=c++11', '-ansi']
 if 'debug' in COMMAND_LINE_TARGETS:
 	ccflags += ['-g']
 
@@ -46,14 +46,8 @@ config.CheckLibWithHeader('strxml', 'strxml.hpp', 'cpp')
 config.CheckLibWithHeader('crl', 'crl/crl.hpp', 'cpp')
 
 has_diastream = config.CheckLibWithHeader('diastream', 'diastream.hpp', 'cpp')
+has_glue = config.CheckLibWithHeader('rlglue', 'rlglue/Agent_common.h', 'cpp')
 
-has_glue = sum([config.CheckHeader('rlglue/Agent_common.h'),
-                config.CheckHeader('rlglue/utils/C/RLStruct_util.h'),
-                config.CheckHeader('rlglue/utils/C/TaskSpec_Parser.h'),
-                config.CheckLib('rlutils'),
-                config.CheckLib('rlagent'),
-                config.CheckLib('rlgluenetdev')])
-               
 config.CheckLibWithHeader('rlcrlenv', 'crl/glue_env.hpp', 'cpp')
 env = config.Finish()
 

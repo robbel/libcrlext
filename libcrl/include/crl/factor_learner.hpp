@@ -33,6 +33,9 @@ typedef boost::shared_ptr<_SAFCountTable> SAFCountTable;
 typedef _StateActionTable<ProbabilityVec> _SAFProbTable;
 typedef boost::shared_ptr<_SAFProbTable> SAFProbTable;
 
+/**
+ * @todo
+ */
 class _FactorLearner : public _Learner {
 protected:
 	Domain _domain;
@@ -64,6 +67,9 @@ public:
 };
 typedef boost::shared_ptr<_FactorLearner> FactorLearner;
 
+/**
+ * @todo
+ */
 class _FactorMDPLearner : public _MDPLearner {
 protected:
 	Domain _domain;
