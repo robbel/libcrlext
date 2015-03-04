@@ -94,6 +94,7 @@ MDP makeMDP(Domain domain) {
 				total += prob;
 				probs[next_index] = prob;
 			}
+			// normalize
 			for (Size next_index=0; next_index<domain->getNumStates(); next_index++) {
 				State s_next(domain, next_index);
 				Probability prob = probs[next_index]/total;
@@ -215,11 +216,11 @@ void testExperiment(Domain domain) {
 
 void testState() {
 	Domain domain(new _Domain());
-	domain->addStateFactor(0, 1);
-	domain->addStateFactor(0, 3);
-	domain->addStateFactor(0, 3);
-	domain->addStateFactor(0, 3);
-	domain->addStateFactor(0, 3);
+	domain->addStateFactor(0, 1, "first factor");
+	domain->addStateFactor(0, 3, "second factor");
+	domain->addStateFactor(0, 3, "factor three");
+	domain->addStateFactor(0, 3, "arbitrary name");
+	domain->addStateFactor(0, 3, "no name");
 	domain->addStateFactor(0, 1);
 	domain->addStateFactor(0, 1);
 	domain->setRewardRange(-1, 1);
