@@ -35,6 +35,7 @@ typedef boost::shared_ptr<_SAFProbTable> SAFProbTable;
 
 /**
  * \brief The \a Learner corresponding to a single factor.
+ * Implemented with tabular storage.
  */
 class _FactorLearner : public _Learner {
 protected:
@@ -120,6 +121,7 @@ public:
 
 	void addFactorLearner(FactorLearner& factor_learner);
 
+	// MDP interface
 	virtual StateIterator S() override;
 	virtual StateIterator predecessors(const State& s) override;
 	virtual ActionIterator A() override;
@@ -127,6 +129,7 @@ public:
 	virtual StateDistribution T(const State& s, const Action& a) override;
 	virtual Reward R(const State& s, const Action& a) override;
 
+	// Learner interface
 	virtual bool observe(const State& s, const Action& a, const Observation& o) override;
 
 };
