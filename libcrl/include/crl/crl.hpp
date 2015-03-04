@@ -117,8 +117,10 @@ typedef boost::shared_ptr<_FlatHeuristic> FlatHeuristic;
  */
 class _QTable {
 protected:
+	/// \brief Heuristic with (s, a) reward estimates
 	Heuristic _potential;
 	_QTable() { }
+	/// \brief ctor which supports a \a Heuristic for estimating q-values of each state
 	_QTable(Heuristic potential)
 	: _potential(potential) { }
 public:

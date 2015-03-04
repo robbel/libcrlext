@@ -33,7 +33,7 @@
 namespace crl {
 
 /**
- * A template for a vector table
+ * \brief A vector table of arbitrary \a RLType
  */
 template <class T>
 class _FlatTable {
@@ -59,65 +59,74 @@ public:
 };
 
 /**
- * A flat table for actions, using the flat table template.
+ * \brief A flat table for actions, using the flat table template.
  * Also keeps track of all actions that have values.
  */
 template <class T>
 class _FActionTable : public _FlatTable<T>, public _ActionTable<T> {
 protected:
+	/// \brief actions that have associated values
 	ActionSet _set_actions;
 public:
 	_FActionTable(const Domain& domain)
 	: _FlatTable<T>(domain->getNumActions()), _set_actions(new _ActionSet()) { }
 	_FActionTable(const Domain& domain, T initial)
 	: _FlatTable<T>(domain->getNumActions(), initial), _set_actions(new _ActionSet()) { }
-	virtual void setValue(const Action& a, T t) {
+
+	// ActionTable interface
+	virtual void setValue(const Action& a, T t) override {
 		_set_actions->insert(a);
 		_FlatTable<T>::setValue(a, t);
 	}
-	virtual T& getValue(const Action& a) {
+	virtual T& getValue(const Action& a) override {
 		return _FlatTable<T>::getValue(a);
 	}
 	/**
 	 * Returns an iterator that goes through all actions that have
 	 * set values.
 	 */
-	virtual ActionIterator iterator() {
+	virtual ActionIterator iterator() override {
 		ActionIterator itr(new _ActionSetIterator(_set_actions));
 		return itr;
 	}
 };
 
 /**
- * A flat table for states, using the flat table template.
+ * \brief A flat table for states, using the flat table template.
  * Also keeps track of all states that have values.
  */
 template <class T>
 class _FStateTable : public _FlatTable<T>, public _StateTable<T> {
 protected:
+	/// \brief states that have associated values
 	StateSet _set_states;
 public:
 	_FStateTable(const Domain& domain)
 	: _FlatTable<T>(domain->getNumStates()), _set_states(new _StateSet()) { }
 	_FStateTable(const Domain& domain, T initial)
 	: _FlatTable<T>(domain->getNumStates(), initial), _set_states(new _StateSet()) { }
-	virtual void setValue(const State& s, T t) {
+
+	// StateTable interface
+	virtual void setValue(const State& s, T t) override {
 		_set_states->insert(s);
 		_FlatTable<T>::setValue(s, t);
 	}
-	virtual T& getValue(const State& s) {
+	virtual T& getValue(const State& s) override {
 		return _FlatTable<T>::getValue(s);
 	}
 	/**
 	 * Returns an iterator that goes through all states that have
 	 * set values.
 	 */
-	virtual StateIterator iterator() {
+	virtual StateIterator iterator() override {
 		StateIterator itr(new _StateSetIterator(_set_states));
 		return itr;
 	}
 };
 
+/**
+ * \brief A flat, 2d vector table for (s,a) pairs mapping to type T.
+ */
 template <class T>
 class _FStateActionTable : public _StateActionTable<T> {
 protected:
@@ -126,10 +135,10 @@ protected:
 public:
 	_FStateActionTable(const Domain& domain)
 	: _domain(domain), _sa_values(domain->getNumStates(),
-      std::vector<T>(domain->getNumActions())) { }
+				      std::vector<T>(domain->getNumActions())) { }
 	_FStateActionTable(const Domain& domain, T initial)
 	: _domain(domain), _sa_values(domain->getNumStates(),
-	  std::vector<T>(domain->getNumActions(), initial)) { }
+				      std::vector<T>(domain->getNumActions(), initial)) { }
 	virtual void clear() {
 		_sa_values = std::vector<std::vector<T> >(_domain->getNumStates(), std::vector<T>(_domain->getNumActions()));
 	}
@@ -143,12 +152,14 @@ public:
 };
 
 /**
- * A Q-table using vector tables. Keeps track of the best
- * action and q-value for each state.
+ * \brief A Q-table using vector tables.
+ * Keeps track of the best action and q-value for each state.
  */
 class _FQTable : public _QTable, _FStateActionTable<Reward> {
 protected:
+	/// \brief A cache for the best action in each state
 	std::vector<Action> _best_actions;
+	/// \brief A cache for the best q value in each state (i.e., the state-value function)
 	std::vector<Reward> _best_qs;
 
 	///
@@ -172,20 +183,24 @@ protected:
 		}
 	}
 public:
+	/// \brief ctor to initialize all q-values to 0
 	_FQTable(const Domain& domain);
+	/// \brief ctor to initialize all q-values with the supplied \a Reward
 	_FQTable(const Domain& domain, Reward initial);
+	/// \brief ctor which supports a \a Heuristic for estimating q-values of each state
 	_FQTable(const Domain& domain, Heuristic potential);
 
-	virtual Reward getQ(const State& s, const Action& a) {
+	// QTable interface
+	virtual Reward getQ(const State& s, const Action& a) override {
 		checkInitial(s);
 		return _FStateActionTable<Reward>::getValue(s, a);
 	}
-	virtual void setQ(const State& s, const Action& a, Reward r);
-	virtual Reward getV(const State& s) {
+	virtual void setQ(const State& s, const Action& a, Reward r) override;
+	virtual Reward getV(const State& s) override {
 		checkInitial(s);
 		return _best_qs[s.getIndex()];
 	}
-	virtual Action getBestAction(const State& s) {
+	virtual Action getBestAction(const State& s) override {
 		checkInitial(s);
 		if (!_best_actions[s.getIndex()]) {
 			//FIXME why does this return action 0 in this case?
@@ -196,9 +211,14 @@ public:
 };
 typedef boost::shared_ptr<_FQTable> FQTable;
 
+///
+/// \brief A distribution over a \a State set implemented as a flat table.
+///
 class _FStateDistribution : public _Distribution<State> {
 	const Domain _domain;
 	std::vector<Probability> prob_vec;
+	/// \brief The set of states from the \a Domain that have their probability set to something other than 0
+	/// FIXME Not really used...
 	_StateSet _known_states;
 public:
 	_FStateDistribution(const Domain& domain);
@@ -259,7 +279,9 @@ public:
 	virtual void setT(const State& s, const Action& a, const State& n, Probability p);
 	/// \brief Set reward for (s,a)
 	virtual void setR(const State& s, const Action& a, Reward r);
+	/// \brief Clear successor state distribution for (s,a) and remove all actions from s.
 	virtual void clear(const State& s, const Action& a);
+	/// \todo
 	virtual void clear();
 };
 typedef boost::shared_ptr<_FMDP> FMDP;
@@ -289,7 +311,7 @@ public:
 typedef boost::shared_ptr<_FCounter> FCounter;
 
 /**
- * An mdp learner that updates its dynamics based on experience.
+ * An MDP learner that updates its dynamics based on experience.
  */
 class _FMDPLearner : public _MDPLearner, public _FMDP {
 protected:

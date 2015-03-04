@@ -30,7 +30,7 @@
 namespace crl {
 
 /**
- * An interface for a table that uses states as keys
+ * \brief An interface for a table that uses states as keys
  */
 template <class T>
 class _StateTable {
@@ -44,7 +44,7 @@ public:
 typedef boost::shared_ptr<_StateTable<Index> > SCountTable;
 
 /**
- * An interface for a table that uses actions as keys
+ * \brief An interface for a table that uses actions as keys
  */
 template <class T>
 class _ActionTable {
@@ -58,7 +58,7 @@ public:
 typedef boost::shared_ptr<_ActionTable<Size> > ACountTable;
 
 /**
- * An interface for a table that uses state/action pairs as keys
+ * \brief An interface for a table that uses (state/action) pairs as keys and maps to values of type T.
  */
 template <class T>
 class _StateActionTable {

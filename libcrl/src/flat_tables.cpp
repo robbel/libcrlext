@@ -43,7 +43,7 @@ _FQTable::_FQTable(const Domain& domain, Heuristic potential)
   _best_qs(_domain->getNumStates(), 0) {
 
 }
-
+// FIXME umm is action0 considered an invalid action?
 void _FQTable::setQ(const State& s, const Action& a, Reward r) {
 	checkInitial(s);
 	Size index = s.getIndex();
@@ -51,9 +51,9 @@ void _FQTable::setQ(const State& s, const Action& a, Reward r) {
 	if (!_best_actions[index]) {
 		Action a0(_domain, 0);
 		_best_actions[index] = a0;
-		_best_qs[index] = _FStateActionTable<Reward>::getValue(s, a);
+		_best_qs[index] = _FStateActionTable<Reward>::getValue(s, a); // FIXME shouldn't this be a lookup for a0?
 	}
-	if (_best_actions[index] == a) {
+	if (_best_actions[index] == a) { // seen a from s before, and it was the best action then
 		_best_qs[index] = r;
 		_ActionIncrementIterator itr(_domain);
 		while (itr.hasNext()) {
@@ -155,11 +155,13 @@ void _FMDP::clear(const State& s, const Action& a) {
 	if (sd)
 		sd->clear();
 	_available_vec[s.getIndex()].clear();
+	// FIXME: shouldn't this clear out rewards, too
 }
 void _FMDP::clear() {
 	_T_map.clear();
 	_available_vec.clear();
 	_available_vec.resize(_domain->getNumStates());
+	// FIXME: shouldn't this clear out rewards, too
 }
 
 _FCounter::_FCounter(const Domain& domain)
