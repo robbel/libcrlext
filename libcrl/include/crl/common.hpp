@@ -75,6 +75,12 @@ public:
 	const RangeVec& getActionRanges() const {
 		return _action_ranges;
 	}
+	const StrVec& getStateNames() const {
+		return _state_names;
+	}
+	const StrVec& getActionNames() const {
+		return _action_names;
+	}
 	///
 	/// \brief Implementation detail for (flat) state indexing given a (factored) domain
 	/// _state_index_components[i] corresponds to the flat index where state factor i is first incremented.

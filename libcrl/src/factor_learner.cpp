@@ -66,17 +66,19 @@ void _FactorLearner::pack() {
 	_subdomain = Domain(new _Domain());
 	const RangeVec& state_ranges = _domain->getStateRanges();
 	const RangeVec& action_ranges = _domain->getActionRanges();
+	const StrVec& state_names = _domain->getStateNames();
+	const StrVec& action_names = _domain->getActionNames();
 	for (Size i=0; i<_delayed_dep.size(); i++) {
 		Size j = _delayed_dep[i];
-		_subdomain->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax());
+		_subdomain->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax(), state_names[j]);
 	}
 	for (Size i=0; i<_concurrent_dep.size(); i++) {
 		Size j = _concurrent_dep[i];
-		_subdomain->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax());
+		_subdomain->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax(), state_names[j]);
 	}
 	for (Size i=0; i<_action_dep.size(); i++) {
 		Size j = _action_dep[i];
-		_subdomain->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax());
+		_subdomain->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax(), action_names[j]);
 	}
 	
 	_sa_count = SACountTable(new _FStateActionTable<Index>(_subdomain));

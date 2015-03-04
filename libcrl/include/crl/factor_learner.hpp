@@ -67,11 +67,13 @@ protected:
 	/// \brief Extract the relevant state information for this factor (i.e., those corresponding to this \a _subdomain)
 	/// \param s The current (complete) state
 	/// \param n The (complete) successor state (e.g., from an \a Observation)
+	/// \note Only available after call to \a pack()
 	///
 	State mapState(const State& s, const State& n) const;
 	///
 	/// \brief Extract the relevant action information for this factor (i.e., those corresponding to this \a _subdomain)
 	/// \param a The (complete) joint action
+	/// \note Only available after call to \a pack()
 	///
 	Action mapAction(const Action& a) const;
 public:
