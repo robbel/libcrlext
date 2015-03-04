@@ -68,12 +68,12 @@ protected:
 	/// \param s The current (complete) state
 	/// \param n The (complete) successor state (e.g., from an \a Observation)
 	///
-	State mapState(const State& s, const State& n);
+	State mapState(const State& s, const State& n) const;
 	///
 	/// \brief Extract the relevant action information for this factor (i.e., those corresponding to this \a _subdomain)
-	/// \param a The (complete) joint action (e.g., from an \a Observation)
+	/// \param a The (complete) joint action
 	///
-	Action mapAction(const Action& a);
+	Action mapAction(const Action& a) const;
 public:
 	/**
 	 * \brief Initialize this \a FactorLearner for a specific factor in the domain.
@@ -91,7 +91,14 @@ public:
 
 	virtual bool observe(const State& s, const Action& a, const Observation& o) override;
 
-	virtual StateDistribution augmentDistribution(StateDistribution sd, const State& s, const Action& a);
+	///
+	/// \todo
+	/// \param sd The current \a StateDistribution over (TODO!)
+	/// \param s The current (complete) state
+	/// \param a The complete (joint) action
+	/// \return The updated \a StateDistribution (Note: over the entire domain, not just this factor's subdomain!)
+	///
+	virtual StateDistribution augmentDistribution(StateDistribution sd, const State& s, const Action& a) const;
 };
 typedef boost::shared_ptr<_FactorLearner> FactorLearner;
 

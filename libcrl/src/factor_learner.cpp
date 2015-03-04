@@ -22,7 +22,7 @@
  
 using namespace crl;
 
-State _FactorLearner::mapState(const State& s, const State& n) {
+State _FactorLearner::mapState(const State& s, const State& n) const {
 	State ms(_subdomain);
 	for (Size i=0; i<_delayed_dep.size(); i++) {
 		Size j = _delayed_dep[i];
@@ -36,7 +36,7 @@ State _FactorLearner::mapState(const State& s, const State& n) {
 	return ms;
 }
 
-Action _FactorLearner::mapAction(const Action& a) {
+Action _FactorLearner::mapAction(const Action& a) const {
 	Action ma(_subdomain);
 	for (Size i=0; i<_action_dep.size(); i++) {
 		Size j = _action_dep[i];
@@ -110,13 +110,13 @@ bool _FactorLearner::observe(const State& s, const Action& a, const Observation&
 	return true;
 }
 
-StateDistribution _FactorLearner::augmentDistribution(StateDistribution sd, const State& s, const Action& a) {
+StateDistribution _FactorLearner::augmentDistribution(StateDistribution sd, const State& s, const Action& a) const {
 	StateIterator itr = sd->iterator();
 	
 	FStateDistribution sdp(new _FStateDistribution(_domain));
 	while (itr->hasNext()) {
 		State n = itr->next();
-		Probability p = sd->P(n);
+		Probability p = sd->P(n); // the current probability assigned to n
 		
 		State ms = mapState(s, n);
 		Action ma = mapAction(a);
@@ -127,7 +127,7 @@ StateDistribution _FactorLearner::augmentDistribution(StateDistribution sd, cons
 			Factor f = i+_target_range.getMin();
 			State np = n;
 			np.setFactor(_target, f);
-			Probability pp = pv[i]*p;
+			Probability pp = pv[i]*p; // the updated probability assigned to n
 			sdp->setP(np, pp);
 		}
 	}
@@ -142,7 +142,7 @@ _FactorMDPLearner::_FactorMDPLearner(const Domain& domain)
 void _FactorMDPLearner::addFactorLearner(FactorLearner& factor_learner) {
 	_factor_learners.push_back(factor_learner);
 	//check deps, reorder?
-} 
+}
 
 StateIterator _FactorMDPLearner::S() {
 	return StateIterator();
