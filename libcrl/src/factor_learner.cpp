@@ -169,6 +169,11 @@ Reward _FactorMDPLearner::R(const State& s, const Action& a) {
 }
 
 bool _FactorMDPLearner::observe(const State& s, const Action& a, const Observation& o) {
+	// call observation function on each FactorLearner
+	for(Size i = 0; i < _factor_learners.size(); i++) {
+	  _factor_learners[i]->observe(s, a, o);
+	}
+
 	return true;
 }
 
