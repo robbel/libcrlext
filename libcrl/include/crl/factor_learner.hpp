@@ -56,9 +56,11 @@ protected:
 	/// Denoting an action dependency of this factor, i.e., an edge from t to t+1 in the DBN.
 	SizeVec _action_dep;
 
+	/// Collect the number of times (s,a) has been observed
 	SACountTable _sa_count;
+	/// Collect the number of times a specific factor value has been observed after (s,a)
 	SAFCountTable _sa_f_count;
-
+	/// The likelihood of each factor value given the counts computed above
 	SAFProbTable _prob_table;
 
 	///
@@ -94,11 +96,14 @@ public:
 typedef boost::shared_ptr<_FactorLearner> FactorLearner;
 
 /**
- * @todo
+ * \brief Encapsulates a \a FactorLearner for each factor in the domain.
+ * \todo implement fully...
  */
 class _FactorMDPLearner : public _MDPLearner {
 protected:
+	/// The domain which includes all state and action factors
 	Domain _domain;
+	/// The set of \a FactorLearner (for each factor) comprising this learner
 	std::vector<FactorLearner> _factor_learners;
 public:
 	_FactorMDPLearner(const Domain& domain);
@@ -106,14 +111,14 @@ public:
 
 	void addFactorLearner(FactorLearner& factor_learner);
 
-	virtual StateIterator S();
-	virtual StateIterator predecessors(const State& s);
-	virtual ActionIterator A();
-	virtual ActionIterator A(const State& s);
-	virtual StateDistribution T(const State& s, const Action& a);
-	virtual Reward R(const State& s, const Action& a);
+	virtual StateIterator S() override;
+	virtual StateIterator predecessors(const State& s) override;
+	virtual ActionIterator A() override;
+	virtual ActionIterator A(const State& s) override;
+	virtual StateDistribution T(const State& s, const Action& a) override;
+	virtual Reward R(const State& s, const Action& a) override;
 
-	virtual bool observe(const State& s, const Action& a, const Observation& o);
+	virtual bool observe(const State& s, const Action& a, const Observation& o) override;
 
 };
 typedef boost::shared_ptr<_FactorMDPLearner> FactorMDPLearner;

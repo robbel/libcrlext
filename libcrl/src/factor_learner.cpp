@@ -87,13 +87,13 @@ void _FactorLearner::pack() {
 bool _FactorLearner::observe(const State& s, const Action& a, const Observation& o) {
 	State ms = mapState(s, o->getState());
 	Action ma = mapAction(a);
-	// the observed target value
+	// the observed value of the target factor
 	Factor t = o->getState().getFactor(_target);
 	Factor offset = t - _target_range.getMin();
 	
 	Size sa_count = _sa_count->getValue(ms, ma);
 	_sa_count->setValue(ms, ma, ++sa_count);
-	
+
 	SizeVec& fv = _sa_f_count->getValue(ms, ma);
 	if (fv.size() == 0)
 		fv.resize(_target_range.getSpan()+1, 0);
