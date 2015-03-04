@@ -342,7 +342,7 @@ public:
 };
 
 ///
-/// \brief Forward iterator for templated container
+/// \brief Forward iterator for container type C storing elements of type T.
 ///
 template <class T, class C>
 class ContainerIterator : public Iterator<T> {

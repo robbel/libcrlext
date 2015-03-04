@@ -366,7 +366,7 @@ typedef boost::shared_ptr<_ActionRandomIterator> ActionRandomIterator;
 
 
 /**
- * An interface for a distribution that can be sampled from and queried.
+ * \brief An interface for a distribution that can be sampled from and queried.
  */
 template <class T>
 class _Distribution {

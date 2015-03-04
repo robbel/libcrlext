@@ -202,49 +202,62 @@ class _FStateDistribution : public _Distribution<State> {
 	_StateSet _known_states;
 public:
 	_FStateDistribution(const Domain& domain);
-	virtual StateIterator iterator() {
+	virtual StateIterator iterator() override {
 		StateIterator itr(new _StateSetIterator(_known_states));
 		return itr;
 	}
-	virtual Probability P(const State& s) {
+	virtual Probability P(const State& s) override {
 		return prob_vec[s.getIndex()];
 	}
-	virtual State sample();
+	virtual State sample() override;
 	void setP(const State& s, Probability p);
 	void clear();
 };
 typedef boost::shared_ptr<_FStateDistribution> FStateDistribution;
 
 /**
- * A flat MDP that can have its dynamics set explicitly.
+ * \brief A flat MDP with tabular storage that can have its dynamics set explicitly.
  */
 class _FMDP : public _MDP {
 protected:
+	/// \brief The domain associated with this MDP
 	const Domain _domain;
+	/// \brief A mapping from (s,a) -> Pr(n)
 	_FStateActionTable<FStateDistribution> _T_map;
+	/// \brief A mapping from (s,a) -> r
 	_FStateActionTable<Reward> _R_map;
+	/// \brief The set of (flat) states in this MDP
 	_StateSet _known_states;
+	/// \brief The set of (joint) actions in this MDP
 	_ActionSet _known_actions;
+	/// \brief A dummy, empty distribution for invalid (s,a) queries
 	FStateDistribution _empty_T;
+	/// \brief A mapping from state index to available actions in that state
 	std::vector<_ActionSet> _available_vec;
+	/// \brief Linking a state to its possible predecessor set (incoming states)
 	_FStateTable<StateSet> _predecessors;
 public:
 	_FMDP(const Domain& domain);
 	virtual ~_FMDP() { }
 	const Domain getDomain() {return _domain;}
-	virtual StateIterator S();
-	virtual StateIterator predecessors(const State& s);
-	virtual ActionIterator A();
-	virtual ActionIterator A(const State& s);
-	virtual StateDistribution T(const State& s, const Action& a) {
+
+	// MDP interface
+	virtual StateIterator S() override;
+	virtual StateIterator predecessors(const State& s) override;
+	virtual ActionIterator A() override;
+	virtual ActionIterator A(const State& s) override;
+	virtual StateDistribution T(const State& s, const Action& a) override {
 		FStateDistribution& sd = _T_map.getValue(s, a);
 		if (sd) return sd;
 		return _empty_T;
 	}
-	virtual Reward R(const State& s, const Action& a) {
+	virtual Reward R(const State& s, const Action& a) override {
 		return _R_map.getValue(s, a);
 	}
+
+	/// \brief Set transition probability from (s,a) -> n
 	virtual void setT(const State& s, const Action& a, const State& n, Probability p);
+	/// \brief Set reward for (s,a)
 	virtual void setR(const State& s, const Action& a, Reward r);
 	virtual void clear(const State& s, const Action& a);
 	virtual void clear();
@@ -255,8 +268,7 @@ inline FMDP getFMDP(const MDP& mdp) {
 }
 
 /**
- * A class that keeps track of times states/actions have
- * been observed.
+ * \brief A class that keeps track of times (state/action) pairs have been observed.
  */
 class _FCounter : public _Counter {
 protected:
@@ -269,10 +281,10 @@ public:
 	/**
 	 * returns an iterator over all observed next states from s,a
 	 */
-	virtual StateIterator iterator(const State& s, const Action& a);
-	virtual Size getCount(const State& s, const Action& a);
-	virtual Size getCount(const State& s, const Action& a, const State& n);
-	virtual bool observe(const State& s, const Action& a, const Observation& o);
+	virtual StateIterator iterator(const State& s, const Action& a) override;
+	virtual Size getCount(const State& s, const Action& a) override;
+	virtual Size getCount(const State& s, const Action& a, const State& n) override;
+	virtual bool observe(const State& s, const Action& a, const Observation& o) override;
 };
 typedef boost::shared_ptr<_FCounter> FCounter;
 

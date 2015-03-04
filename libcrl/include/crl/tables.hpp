@@ -74,20 +74,19 @@ typedef boost::shared_ptr<_StateActionTable<Reward> > SARTable;
 
 
 /**
- * A class that keeps track of times states/actions have
- * been observed.
+ * \brief An abstract interface for keeping track of times (state/action) pairs have been observed.
  */
 class _Counter : public _Learner {
 protected:
 public:
 	virtual ~_Counter() { }
 	/**
-	 * returns an iterator over all observed next states to s,a
+	 * returns an iterator over all observed next states from s,a
 	 */
 	virtual StateIterator iterator(const State& s, const Action& a) = 0;
 	virtual Size getCount(const State& s, const Action& a) = 0;
 	virtual Size getCount(const State& s, const Action& a, const State& n) = 0;
-	virtual bool observe(const State& s, const Action& a, const Observation& o) = 0;
+	virtual bool observe(const State& s, const Action& a, const Observation& o) override = 0;
 };
 typedef boost::shared_ptr<_Counter> Counter;
 
