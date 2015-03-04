@@ -20,7 +20,7 @@ if os.uname()[0] == "Darwin":
 	lib_paths += ['/sw/lib']
 	cpp_paths += ['/sw/include']
 
-ccflags = ['-Wall', '-Werror', '-Wno-deprecated', '-std=c++11', '-ansi']
+ccflags = ['-Wall', '-Werror', '-Wno-deprecated', '-std=c++11']
 if 'debug' in COMMAND_LINE_TARGETS:
 	ccflags += ['-g']
 

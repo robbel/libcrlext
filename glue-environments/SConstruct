@@ -16,7 +16,7 @@ ld_library_path = os.environ.get('LD_LIBRARY_PATH', "")
 cpp_paths = cpath.split(':')+[prefix_inc, inc]
 lib_paths = ld_library_path.split(':')+[lib, prefix_lib]
 
-ccflags = ['-Wall', '-Werror', '-std=c++11', '-ansi']
+ccflags = ['-Wall', '-Werror', '-std=c++11']
 if 'debug' in COMMAND_LINE_TARGETS:
 	ccflags += ['-g']
 

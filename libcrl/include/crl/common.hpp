@@ -37,9 +37,16 @@ namespace crl {
  */
 class _Domain {
 protected:
+	/// The minimum and maximum reward possible in this domain
 	RewardRange _reward_range;
+	/// The range of values (i.e., [min,max]) per state factor in this domain
 	RangeVec _state_ranges;
+	/// The range of values (i.e., [min,max]) per action factor in this domain
 	RangeVec _action_ranges;
+	/// The names of each state factor
+	StrVec _state_names;
+	/// The names of each action factor
+	StrVec _action_names;
 	/**
 	 * The index factors used in RLType, when it is a State
 	 */
@@ -48,7 +55,9 @@ protected:
 	 * The index factors used in RLType, when it is an Action
 	 */
 	SizeVec _action_index_components;
+	/// The total number of (joint) states in this domain
 	Size _num_states;
+	/// The total number of (joint) actions in this domain
 	Size _num_actions;
 public:
 	_Domain();
@@ -66,9 +75,17 @@ public:
 	const RangeVec& getActionRanges() const {
 		return _action_ranges;
 	}
+	///
+	/// \brief Implementation detail for (flat) state indexing given a (factored) domain
+	/// _state_index_components[i] corresponds to the flat index where state factor i is first incremented.
+	///
 	const SizeVec& getStateIndexComponents() const {
 		return _state_index_components;
 	}
+	///
+	/// \todo Implementation detail for (flat) action indexing given a (factored) domain
+	/// _action_index_components[i] corresponds to the flat index where action factor i is first incremented.
+	///
 	const SizeVec& getActionIndexComponents() const {
 		return _action_index_components;
 	}
@@ -85,8 +102,8 @@ public:
 		return _action_ranges.size();
 	}
 
-	void addStateFactor(Factor min, Factor max);
-	void addActionFactor(Factor min, Factor max);
+	void addStateFactor(Factor min, Factor max, std::string name="");
+	void addActionFactor(Factor min, Factor max, std::string name="");
 };
 typedef boost::shared_ptr<_Domain> Domain;
 
@@ -97,6 +114,7 @@ typedef boost::shared_ptr<_Domain> Domain;
  * actions around will be very fast. Getting and setting features
  * happens very rarely compared to copying, so the extra overhead
  * in those functions is justified.
+ * \note The index directly corresponds to a particular instantiation of the multidimensional vector represented by this type.
  */
 class RLType {
 protected:
@@ -105,7 +123,7 @@ protected:
 	 */
 	const RangeVec* _ranges;
 	/**
-	 * The multaplicative factor used to get at thesupport right part of
+	 * The multiplicative factor used to get at the support right part of
 	 * the index for a given feature
 	 */
 	const SizeVec* _components;
@@ -131,6 +149,9 @@ public:
 		return _ranges->size();
 	}
 
+	///
+	/// \brief set the value associated with the \a Factor at \a index
+	///
 	virtual void setFactor(Size index, Factor data) {
 		if (!_ranges) {
 			throw NullObjectException();
@@ -138,8 +159,11 @@ public:
 		Factor old_factor = getFactor(index);
 		Factor difference = data-old_factor;
 		Size index_change = (*_components)[index]*difference;
-		_index = _index+index_change;
+		_index += index_change;
 	}
+	///
+	/// \brief get the value associated with the \a Factor at \a index.
+	///
 	virtual const Factor getFactor(Size index) const {
 		if (!_ranges) {
 			throw NullObjectException();
@@ -207,11 +231,11 @@ public:
 	: RLType() { }
 	Action(const Domain& domain)
 	: RLType(&(domain->getActionRanges()),
-      &(domain->getActionIndexComponents())) { }
+		 &(domain->getActionIndexComponents())) { }
 	Action(const Domain& domain, Size index)
 	: RLType(&(domain->getActionRanges()),
-	  &(domain->getActionIndexComponents()),
-	  index) { }
+		 &(domain->getActionIndexComponents()),
+		 index) { }
 	virtual ~Action() { }
 };
 

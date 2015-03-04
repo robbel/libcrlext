@@ -22,13 +22,14 @@
 #define TYPES_HPP_
 
 #include <set>
+#include <string>
 #include <boost/cstdint.hpp>
 
 namespace crl {
 
 typedef float Reward;
 typedef double Probability;
-typedef short Factor;
+typedef short Factor;  ///< The value type of a (discrete) Factor in the graph
 typedef uint64_t Size;
 typedef long Index;
 
@@ -39,6 +40,7 @@ typedef std::vector<Factor> FactorVec;
 typedef std::vector<FactorRange> RangeVec;
 typedef std::vector<Probability> ProbabilityVec;
 typedef std::vector<Size> SizeVec;
+typedef std::vector<std::string> StrVec;
 
 class State;
 class Action;

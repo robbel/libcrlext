@@ -285,13 +285,13 @@ protected:
 public:
 	_FMDPLearner(const Domain& domain);
 	virtual ~_FMDPLearner();
-	virtual bool observe(const State& s, const Action& a, const Observation& o);
-	virtual StateIterator S() {return _FMDP::S();}
-	virtual StateIterator predecessors(const State& s) {return _FMDP::predecessors(s);}
-	virtual ActionIterator A() {return _FMDP::A();}
-	virtual ActionIterator A(const State& s) {return _FMDP::A(s);}
-	virtual StateDistribution T(const State& s, const Action& a) {return _FMDP::T(s, a);}
-	virtual Reward R(const State& s, const Action& a) {return _FMDP::R(s, a);}
+	virtual bool observe(const State& s, const Action& a, const Observation& o) override;
+	virtual StateIterator S() override {return _FMDP::S();}
+	virtual StateIterator predecessors(const State& s) override {return _FMDP::predecessors(s);}
+	virtual ActionIterator A() override {return _FMDP::A();}
+	virtual ActionIterator A(const State& s) override {return _FMDP::A(s);}
+	virtual StateDistribution T(const State& s, const Action& a) override {return _FMDP::T(s, a);}
+	virtual Reward R(const State& s, const Action& a) override {return _FMDP::R(s, a);}
 };
 typedef boost::shared_ptr<_FMDPLearner> FMDPLearner;
 
