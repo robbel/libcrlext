@@ -28,6 +28,7 @@ State _FactorLearner::mapState(const State& s, const State& n) {
 		Size j = _delayed_dep[i];
 		ms.setFactor(i, s.getFactor(j));
 	}
+	// append those factors corresponding to concurrent dependencies
 	for (Size i=0; i<_concurrent_dep.size(); i++) {
 		Size j = _concurrent_dep[i];
 		ms.setFactor(i+_delayed_dep.size(), n.getFactor(j));
@@ -86,6 +87,7 @@ void _FactorLearner::pack() {
 bool _FactorLearner::observe(const State& s, const Action& a, const Observation& o) {
 	State ms = mapState(s, o->getState());
 	Action ma = mapAction(a);
+	// the observed target value
 	Factor t = o->getState().getFactor(_target);
 	Factor offset = t - _target_range.getMin();
 	

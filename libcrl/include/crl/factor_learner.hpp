@@ -34,16 +34,26 @@ typedef _StateActionTable<ProbabilityVec> _SAFProbTable;
 typedef boost::shared_ptr<_SAFProbTable> SAFProbTable;
 
 /**
- * @todo
+ * \brief The \a Learner corresponding to a single factor.
  */
 class _FactorLearner : public _Learner {
 protected:
+	/// The domain which includes all state and action factors
 	Domain _domain;
+	///
+	/// \brief The subdomain relevant for this state factor
+	/// \note Consists of delayed and concurrent state factors, as well as action factors
+	///
 	Domain _subdomain;
+	/// Denoting the (single) factor in the domain considered by this learner
 	Size _target;
+	/// The range of the (single) factor in the domain considered by this learner
 	FactorRange _target_range;
+	/// Denoting delayed dependencies of this factor, i.e., an edge from t to t+1 in the DBN.
 	SizeVec _delayed_dep;
+	/// Denoting concurrent dependencies of this factor, i.e., an edge from t+1 to t+1 in the DBN.
 	SizeVec _concurrent_dep;
+	/// Denoting an action dependency of this factor, i.e., an edge from t to t+1 in the DBN.
 	SizeVec _action_dep;
 
 	SACountTable _sa_count;
@@ -51,17 +61,33 @@ protected:
 
 	SAFProbTable _prob_table;
 
+	///
+	/// \brief Extract the relevant state information for this factor (i.e., those corresponding to this \a _subdomain)
+	/// \param s The current (complete) state
+	/// \param n The (complete) successor state (e.g., from an \a Observation)
+	///
 	State mapState(const State& s, const State& n);
+	///
+	/// \brief Extract the relevant action information for this factor (i.e., those corresponding to this \a _subdomain)
+	/// \param a The (complete) joint action (e.g., from an \a Observation)
+	///
 	Action mapAction(const Action& a);
 public:
+	/**
+	 * \brief Initialize this \a FactorLearner for a specific factor in the domain.
+	 */
 	_FactorLearner(const Domain& domain, Size target);
 	virtual ~_FactorLearner() { }
 	virtual void addDelayedDependency(Size index);
 	virtual void addConcurrentDependency(Size index);
 	virtual void addActionDependency(Size index);
+	///
+	/// \brief Assemble the tables corresponding to the CPT estimates for this factor
+	/// \note Called after all dependencies have been added
+	///
 	virtual void pack();
 
-	virtual bool observe(const State& s, const Action& a, const Observation& o);
+	virtual bool observe(const State& s, const Action& a, const Observation& o) override;
 
 	virtual StateDistribution augmentDistribution(StateDistribution sd, const State& s, const Action& a);
 };
