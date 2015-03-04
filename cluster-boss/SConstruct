@@ -20,7 +20,7 @@ if os.uname()[0] == "Darwin":
 	lib_paths += ['/sw/lib']
 	cpp_paths += ['/sw/include']
 
-ccflags = ['-Wall', '-Werror', '-Wno-deprecated', '-ansi']
+ccflags = ['-Wall', '-Werror', '-Wno-deprecated', '-std=c++11']
 if 'debug' in COMMAND_LINE_TARGETS:
 	ccflags += ['-g']
 
@@ -40,22 +40,9 @@ if os.uname()[0] == "Darwin":
 	env.Append(SHLINKFLAGS='-undefined dynamic_lookup')
 	
 config = Configure(env)
-has_crl = sum([
-	config.CheckCXXHeader('cpputil.hpp'),
-	config.CheckCXXHeader('boost/shared_ptr.hpp'),
-	config.CheckLibWithHeader('crl', 'crl/crl.hpp', 'cpp'),
-])
-has_glue = sum([
-	config.CheckHeader('rlglue/Agent_common.h'),
-    config.CheckHeader('rlglue/utils/C/RLStruct_util.h'),
-    config.CheckHeader('rlglue/utils/C/TaskSpec_Parser.h'),
-    config.CheckLib('rlutils'),
-    config.CheckLib('rlagent'),
-    config.CheckLib('rlgluenetdev'),
-])
-has_gsl = sum([
-	config.CheckLibWithHeader('gsl', 'gsl/gsl_rng.h', 'c')
-])
+has_crl = config.CheckLibWithHeader('crl', 'crl/crl.hpp', 'cpp')
+has_glue = config.CheckLibWithHeader('rlglue', 'rlglue/Agent_common.h', 'cpp')
+has_gsl = config.CheckLibWithHeader('gsl', 'gsl/gsl_rng.h', 'c')
 env = config.Finish()
 
 lib_targets = []

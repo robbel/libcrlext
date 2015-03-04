@@ -279,3 +279,12 @@ DOT_CLEANUP            = YES
 # Configuration::additions related to the search engine   
 #---------------------------------------------------------------------------
 SEARCHENGINE           = NO
+
+#---------------------------------------------------------------------------
+# Generate help files for Qt Creator
+#---------------------------------------------------------------------------
+GENERATE_QHP           = YES
+QCH_FILE               = "../libcrlext.qch"
+QHP_NAMESPACE          = "libcrlext"
+QHP_VIRTUAL_FOLDER     = "doc"
+QHG_LOCATION           = /usr/bin/qhelpgenerator

@@ -22,12 +22,13 @@
  
 using namespace crl;
 
-State _FactorLearner::mapState(const State& s, const State& n) {
+State _FactorLearner::mapState(const State& s, const State& n) const {
 	State ms(_subdomain);
 	for (Size i=0; i<_delayed_dep.size(); i++) {
 		Size j = _delayed_dep[i];
 		ms.setFactor(i, s.getFactor(j));
 	}
+	// append those factors corresponding to concurrent dependencies
 	for (Size i=0; i<_concurrent_dep.size(); i++) {
 		Size j = _concurrent_dep[i];
 		ms.setFactor(i+_delayed_dep.size(), n.getFactor(j));
@@ -35,7 +36,7 @@ State _FactorLearner::mapState(const State& s, const State& n) {
 	return ms;
 }
 
-Action _FactorLearner::mapAction(const Action& a) {
+Action _FactorLearner::mapAction(const Action& a) const {
 	Action ma(_subdomain);
 	for (Size i=0; i<_action_dep.size(); i++) {
 		Size j = _action_dep[i];
@@ -86,12 +87,13 @@ void _FactorLearner::pack() {
 bool _FactorLearner::observe(const State& s, const Action& a, const Observation& o) {
 	State ms = mapState(s, o->getState());
 	Action ma = mapAction(a);
+	// the observed value of the target factor
 	Factor t = o->getState().getFactor(_target);
 	Factor offset = t - _target_range.getMin();
 	
 	Size sa_count = _sa_count->getValue(ms, ma);
 	_sa_count->setValue(ms, ma, ++sa_count);
-	
+
 	SizeVec& fv = _sa_f_count->getValue(ms, ma);
 	if (fv.size() == 0)
 		fv.resize(_target_range.getSpan()+1, 0);
@@ -108,13 +110,13 @@ bool _FactorLearner::observe(const State& s, const Action& a, const Observation&
 	return true;
 }
 
-StateDistribution _FactorLearner::augmentDistribution(StateDistribution sd, const State& s, const Action& a) {
+StateDistribution _FactorLearner::augmentDistribution(StateDistribution sd, const State& s, const Action& a) const {
 	StateIterator itr = sd->iterator();
 	
 	FStateDistribution sdp(new _FStateDistribution(_domain));
 	while (itr->hasNext()) {
 		State n = itr->next();
-		Probability p = sd->P(n);
+		Probability p = sd->P(n); // the current probability assigned to n
 		
 		State ms = mapState(s, n);
 		Action ma = mapAction(a);
@@ -125,7 +127,7 @@ StateDistribution _FactorLearner::augmentDistribution(StateDistribution sd, cons
 			Factor f = i+_target_range.getMin();
 			State np = n;
 			np.setFactor(_target, f);
-			Probability pp = pv[i]*p;
+			Probability pp = pv[i]*p; // the updated probability assigned to n
 			sdp->setP(np, pp);
 		}
 	}
@@ -140,7 +142,7 @@ _FactorMDPLearner::_FactorMDPLearner(const Domain& domain)
 void _FactorMDPLearner::addFactorLearner(FactorLearner& factor_learner) {
 	_factor_learners.push_back(factor_learner);
 	//check deps, reorder?
-} 
+}
 
 StateIterator _FactorMDPLearner::S() {
 	return StateIterator();
@@ -167,6 +169,11 @@ Reward _FactorMDPLearner::R(const State& s, const Action& a) {
 }
 
 bool _FactorMDPLearner::observe(const State& s, const Action& a, const Observation& o) {
+	// call observation function on each FactorLearner
+	for(Size i = 0; i < _factor_learners.size(); i++) {
+	  _factor_learners[i]->observe(s, a, o);
+	}
+
 	return true;
 }
 
