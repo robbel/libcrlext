@@ -5,64 +5,86 @@
  */
 
 #include <iostream>
+#include <string>
 #include <fstream>
-#include <cassert>
+#include "cpputil.hpp"
 #include "crl/conversions.hpp"
 
 
 using namespace std;
 using namespace crl;
 
+namespace {
+
+/// \brief Convert supplied (joint) action into a string, given the action_names from the \a Domain.
+string toString(const Action& act, const StrVec& action_names) {
+  stringstream ss;
+  for (Size i=0; i<act.size(); i++) {
+      ss << action_names[i] << "_" << act.getFactor(i) << "__";
+  }
+  string aname = ss.str();
+  return aname.substr(0, aname.length()-2);
+}
+
+} // anonymous namespace
+
 namespace crl {
 
-// NEED:
-// - discount factor
+// STILL NEED:
 // - (factored) reward function..
 // - name of problem, name of factors (state, action)
-void exportToSpudd(FactoredMDP fmdp, float gamma, const string& problemName, const string& filename)
+void exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& problemName, const string& filename)
 {
-    assert(fmdp != 0);
-    std::cout << "hello" << std::endl;
-
-    ofstream fp(filename.c_str());
-    if(!fp.is_open()) {
+  if(fmdp == nullptr || filename.empty()) {
+      cerr << "libcrl::exportToSpudd: invalid parameters" << endl;
+      return;
+  }
+  ofstream fp(filename.c_str());
+  if(!fp.is_open()) {
       cerr << "libcrl::exportToSpudd: failed to open file " << filename << endl;
       return;
-    }
+  }
 
-    // write header
-    fp << "// Automatically produced by libcrl::exportToSpudd"
-       << endl << "// SPUDD / Symbolic Perseus Format for '" << problemName << "'"
-       << endl << endl;
-#if 0
-    // write variables
-    fp << "(variables" << endl;
-    for(Index yI = 0; yI < GetNrStateFactors(); yI++) {
-      const StateFactorDiscrete* sfac = GetStateFactorDiscrete(yI);
-      fp << " (" << sfac->GetName();
-      for(Index valI=0; valI < GetNrValuesForFactor(yI); valI++)
-        fp << " " << sfac->GetStateFactorValue(valI);
+  // write header
+  fp << "// Automatically produced by libcrl::exportToSpudd"
+     << endl << "// SPUDD / Symbolic Perseus Format for '" << problemName << "'"
+     << endl << endl;
+
+  // write variables
+  const RangeVec& s_range_vec = domain->getStateRanges();
+  const StrVec& s_str_vec = domain->getStateNames();
+  fp << "(variables" << endl;
+  for(Size i = 0; i < domain->getNumStateFactors(); i++) {
+      fp << " (" << s_str_vec[i];
+      const FactorRange& v = s_range_vec[i];
+      for(Factor f = v.getMin(); f <= v.getMax(); f++) {
+        fp << " " << f;
+      }
       fp << ")" << endl;
-    }
-    fp << ")" << endl << endl;
+  }
+  fp << ")" << endl << endl;
 
-    // write actions
-    const Scope& jAsc = GetAllAgentScope();
-    for(Index jaI = 0; jaI < GetNrJointActions(); jaI++) {
+  // write actions
+  //const RangeVec& a_range_vec = domain->getActionRanges();
+  const StrVec& a_str_vec = domain->getActionNames();
+  _ActionIncrementIterator aitr(domain);
+  // Alternative:
+  //  for (Size action_index=0; action_index<domain->getNumActions(); action_index++)
+  //    Action a(domain, action_index);
+
+  while (aitr.hasNext()) {
+#if 0
       vector<Index> A = JointToIndividualActionIndices(jaI);
-
+#endif
+      Action a = aitr.next();
       // construct and print joint action name
-      stringstream ss;
-      for(Index agentI = 0; agentI < GetNrAgents(); agentI++)
-        ss << GetAgentNameByIndex(agentI) << "_"
-           << GetAction(agentI, A[agentI])->GetName() << "__";
-      string aname = ss.str();
-      fp << "action " << aname.substr(0, aname.length()-2) << endl;
+      fp << "action " << toString(a, a_str_vec) << endl;
 
       // write out CPT for each state factor
-      for(Index y = 0; y < GetNrStateFactors(); y++) {
-        fp << GetStateFactorDiscrete(y)->GetName() << endl;
+      for(Size y = 0; y < domain->getNumStateFactors(); y++) {
+        fp << s_str_vec[y] << endl;
 
+#if 0
         // figure out action subset for ii
         const Scope& ASoI_y = Get2DBN()->GetASoI_Y(y);
         size_t ASoI_y_size = ASoI_y.size();
@@ -117,8 +139,9 @@ void exportToSpudd(FactoredMDP fmdp, float gamma, const string& problemName, con
         } while(! IndexTools::Increment( Xs, r_nrX ) );
         // write out last closing braces
         fp << string(XSoI_y_size*2+1,')') << endl << endl;
+#endif
       }
-
+#if 0
       // write generic cost term
       fp << "cost [+" << endl;
       for(Index rI=0; rI < GetNrLRFs(); rI++) {
@@ -178,16 +201,16 @@ void exportToSpudd(FactoredMDP fmdp, float gamma, const string& problemName, con
       }
       fp << "     ]" << endl
          << "endaction" << endl << endl;
+#endif
     }
 
     // write reward function (note: subsumed as costs inside each individual action)
     fp << "reward (0.0)" << endl << endl;
 
     // write footer
-    fp << "discount " << GetDiscount() << endl //XXX add warning
+    fp << "discount " << gamma << endl //XXX add warning
        << "//horizon 10" << endl
        << "tolerance 0.1" << endl;
-#endif
 }
 
 }

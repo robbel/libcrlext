@@ -82,8 +82,8 @@ protected:
   /// \brief A mapping from (s,a) -> r
   _FStateActionTable<Reward> _R_map;
 public:
-  _FactoredMDP(const Domain& domain)
-  : _domain(domain), _R_map(domain, 0) { }
+  _FactoredMDP(Domain domain)
+  : _domain(std::move(domain)), _R_map(domain, 0) { }
   virtual ~_FactoredMDP() { }
 
   // MDP interface
@@ -107,6 +107,10 @@ public:
   virtual void setR(const State& s, const Action& a, Reward r) {
     _R_map.setValue(s, a, r);
   }
+
+//  const _Domain& getT() const {
+//    return *_domain;
+//  }
 };
 typedef boost::shared_ptr<_FactoredMDP> FactoredMDP;
 

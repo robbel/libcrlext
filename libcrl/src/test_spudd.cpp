@@ -15,8 +15,9 @@ int main()
     cout<<"hello"<<endl;
 
     FactoredMDP fmdp;
+    Domain domain;
 
-    exportToSpudd(fmdp,0.99,"bla","blub");
+    exportToSpudd(fmdp, domain, 0.99, "bla", "blub");
 
 //    crl::exportToSpudd(FactoredMDP mdp,
 //                       float gamma,

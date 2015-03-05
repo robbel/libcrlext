@@ -15,9 +15,10 @@
 namespace crl {
 
 ///
-/// \brief write the \a MDP out to filename in SPUDD format.
+/// \brief write the \a FactoredMDP representing a specific problem to a file in SPUDD format.
 ///
 void exportToSpudd(FactoredMDP mdp,
+                   Domain domain,
                    float gamma,
                    const std::string& problemName,
                    const std::string& filename
