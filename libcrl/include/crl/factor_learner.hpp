@@ -75,8 +75,7 @@ typedef boost::shared_ptr<_FactorLearner> FactorLearner;
  */
 class _FactoredMDP : public _MDP {
 protected:
-  /// The domain which includes all state and action factors
-  /// FIXME currently not used
+  /// \brief The domain which includes all state and action factors
   const Domain _domain;
   /// \brief The factored transition function
   _DBN _T_map;
