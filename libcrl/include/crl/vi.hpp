@@ -93,7 +93,7 @@ class _FlatVIPlanner : public _VIPlanner {
 public:
 	_FlatVIPlanner(const Domain domain, MDP mdp, Reward epsilon, float gamma)
 	: _VIPlanner(mdp, epsilon, gamma) {
-		_qtable = FQTable(new _FQTable(domain));
+		_qtable = boost::make_shared<_FQTable>(domain);
 	}
 };
 typedef boost::shared_ptr<_FlatVIPlanner> FlatVIPlanner;
@@ -105,7 +105,7 @@ class _HashedVIPlanner : public _VIPlanner {
 public:
 	_HashedVIPlanner(const Domain domain, MDP mdp, Reward epsilon, float gamma)
 	: _VIPlanner(mdp, epsilon, gamma) {
-		_qtable = HQTable(new _HQTable(domain));
+		_qtable = boost::make_shared<_HQTable>(domain);
 	}
 };
 typedef boost::shared_ptr<_HashedVIPlanner> HashedVIPlanner;

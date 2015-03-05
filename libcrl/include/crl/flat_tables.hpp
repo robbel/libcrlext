@@ -86,7 +86,7 @@ public:
 	 * set values.
 	 */
 	virtual ActionIterator iterator() override {
-		ActionIterator itr(new _ActionSetIterator(_set_actions));
+		ActionIterator itr = boost::make_shared<_ActionSetIterator>(_set_actions);
 		return itr;
 	}
 };
@@ -119,7 +119,7 @@ public:
 	 * set values.
 	 */
 	virtual StateIterator iterator() override {
-		StateIterator itr(new _StateSetIterator(_set_states));
+		StateIterator itr = boost::make_shared<_StateSetIterator>(_set_states);
 		return itr;
 	}
 };
@@ -223,7 +223,7 @@ class _FStateDistribution : public _Distribution<State> {
 public:
 	_FStateDistribution(const Domain& domain);
 	virtual StateIterator iterator() override {
-		StateIterator itr(new _StateSetIterator(_known_states));
+		StateIterator itr = boost::make_shared<_StateSetIterator>(_known_states);
 		return itr;
 	}
 	virtual Probability P(const State& s) override {

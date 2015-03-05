@@ -151,9 +151,9 @@ class _FlatPSPlanner : public _PSPlanner {
 public:
 	_FlatPSPlanner(const Domain& domain, MDP& mdp, Reward epsilon, float gamma)
 	: _PSPlanner(mdp, epsilon, gamma) {
-		_qtable = FQTable(new _FQTable(domain, 0));
-		SCountTable heap_indices = SCountTable(new _FStateTable<Index>(domain, -1));
-		_pqueue = SPriorityQueue(new _SPriorityQueue(heap_indices));
+		_qtable = boost::make_shared<_FQTable>(domain, 0);
+		SCountTable heap_indices = boost::make_shared<_FStateTable<Index>>(domain, -1);
+		_pqueue = boost::make_shared<_SPriorityQueue>(heap_indices);
 	}
 };
 typedef boost::shared_ptr<_FlatPSPlanner> FlatPSPlanner;

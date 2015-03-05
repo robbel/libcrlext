@@ -89,6 +89,7 @@ class _UCTPlanner : public _IUCTPlanner {
 public:
 	virtual ~_UCTPlanner(){}
 protected:
+	// FIXME: memory is not deallocated
 	_UCTPlanner(Domain domain, MDP mdp, Reward gamma, int reward_type, bool clear_tree, bool full_tree, Reward C)
 		: _IUCTPlanner(new _UCTQTable(domain, reward_type, C), domain, mdp, gamma, clear_tree, full_tree){}
 };
@@ -113,6 +114,7 @@ class _MBUCTPlanner : public _IUCTPlanner {
 public:
 	virtual ~_MBUCTPlanner(){}
 protected:
+	// FIXME: memory is not deallocated
 	_MBUCTPlanner(Domain domain, MDP mdp, Reward gamma, int reward_type, bool clear_tree, bool full_tree, Reward C)
 		: _IUCTPlanner(new _UCTQTable(domain, reward_type, C), domain, mdp, gamma, clear_tree, full_tree){}
 };

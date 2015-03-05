@@ -415,7 +415,7 @@ public:
 	virtual ~_EmptyDistribution() { }
 	typedef boost::shared_ptr<cpputil::Iterator<T> > Iterator;
 	virtual Iterator iterator() {
-		Iterator itr(new cpputil::EmptyIterator<T>());
+		Iterator itr = boost::make_shared<cpputil::EmptyIterator<T>>();
 		return itr;
 	}
 	virtual Probability P(const T& t) {

@@ -119,6 +119,7 @@ typedef boost::shared_ptr<_DPMem> DPMem;
 
 class _IncrementDPMem : public _DPMem {
 public:
+	//FIXME: memory is not deallocated
 	_IncrementDPMem(crl::Probability alpha)
 	: _DPMem(alpha, new IncrementGenerator()) {
 	}
