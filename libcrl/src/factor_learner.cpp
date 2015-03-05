@@ -99,12 +99,8 @@ StateDistribution _FactoredMDP::T(const State& s, const Action& a) {
 	return StateDistribution();
 }
 
-Reward _FactoredMDP::R(const State& s, const Action& a) {
-	return 0;
-}
-
 void _FactoredMDPLearner::addFactorLearner(FactorLearner factor_learner) {
-	_FactoredMDP::_T_map.addDBNFactor(std::move(factor_learner));
+	_FactoredMDP::addDBNFactor(std::move(factor_learner));
 	//check deps, reorder?
 }
 
@@ -119,5 +115,3 @@ bool _FactoredMDPLearner::observe(const State& s, const Action& a, const Observa
 
 	return true;
 }
-
-	

@@ -80,9 +80,11 @@ protected:
   const Domain _domain;
   /// \brief The factored transition function
   _DBN _T_map;
+  /// \brief A mapping from (s,a) -> r
+  _FStateActionTable<Reward> _R_map;
 public:
   _FactoredMDP(const Domain& domain)
-  : _domain(domain) { }
+  : _domain(domain), _R_map(domain, 0) { }
   virtual ~_FactoredMDP() { }
 
   // MDP interface
@@ -91,8 +93,21 @@ public:
   virtual ActionIterator A() override;
   virtual ActionIterator A(const State& s) override;
   virtual StateDistribution T(const State& s, const Action& a) override;
-  virtual Reward R(const State& s, const Action& a) override;
+  virtual Reward R(const State& s, const Action& a) override {
+    return _R_map.getValue(s, a);
+  }
 
+  /// \brief Add a factor to the factored transition function
+  virtual void addDBNFactor(DBNFactor dbn_factor) {
+    _T_map.addDBNFactor(std::move(dbn_factor));
+  }
+  ///
+  /// \brief Set reward for (s,a)
+  /// \note Rewards are currently not factored!
+  ///
+  virtual void setR(const State& s, const Action& a, Reward r) {
+    _R_map.setValue(s, a, r);
+  }
 };
 typedef boost::shared_ptr<_FactoredMDP> FactoredMDP;
 
@@ -101,6 +116,9 @@ typedef boost::shared_ptr<_FactoredMDP> FactoredMDP;
  * \todo implement fully...
  */
 class _FactoredMDPLearner : public _MDPLearner, public _FactoredMDP {
+private:
+	// trick to change visibility to private -- we don't want non-FactorLearners to be added to underlying DBN
+	using _FactoredMDP::addDBNFactor;
 public:
 	_FactoredMDPLearner(const Domain& domain)
 	: _FactoredMDP(domain) { }
