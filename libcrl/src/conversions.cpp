@@ -44,6 +44,11 @@ void exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& p
       cerr << "libcrl::exportToSpudd: failed to open file " << filename << endl;
       return;
   }
+  const DBN dbn = fmdp->T();
+  if(dbn->hasConcurrentDependency()) {
+      cerr << "libcrl::exportToSpudd: spudd does not currently support concurrent dependencies in transition function" << endl;
+      return;
+  }
 
   // write header
   fp << "// Automatically produced by libcrl::exportToSpudd"

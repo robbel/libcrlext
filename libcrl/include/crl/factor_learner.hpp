@@ -96,6 +96,12 @@ public:
     return _R_map.getValue(s, a);
   }
 
+  /// \brief return entire factored transition function
+  DBN T() const {
+    DBN dbn = boost::make_shared<_DBN>(_T_map);
+    return dbn;
+  }
+
   /// \brief Add a factor to the factored transition function
   virtual void addDBNFactor(DBNFactor dbn_factor) {
     _T_map.addDBNFactor(std::move(dbn_factor));
@@ -108,9 +114,6 @@ public:
     _R_map.setValue(s, a, r);
   }
 
-//  const _Domain& getT() const {
-//    return *_domain;
-//  }
 };
 typedef boost::shared_ptr<_FactoredMDP> FactoredMDP;
 
