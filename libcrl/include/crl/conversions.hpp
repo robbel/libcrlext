@@ -78,16 +78,8 @@ public:
   ///
   virtual void pack();
 
-  ///
   /// \brief The vector of probabilities for successor values associated with the tuple (s,n,a)
-  /// \todo FIXME may be costly to always convert from (s,n,a) to index (!)
-  ///
-  virtual const ProbabilityVec& T(const State& s, const State& n, const Action& a) {
-    State ms = mapState(s, n);
-    Action ma = mapAction(a);
-    ProbabilityVec& pv = _prob_table->getValue(ms, ma);
-    return pv;
-  }
+  virtual const ProbabilityVec& T(const State& s, const State& n, const Action& a);
   /// \brief Convenience function for the case that no concurrent dependencies exist in 2DBN
   virtual const ProbabilityVec& T(const State& s, const Action& a) {
     if(!_concurrent_dep.empty()) {
@@ -103,6 +95,7 @@ public:
   /// \param a The complete (joint) action
   /// \param t The value of this DBN factor
   /// \param p The probability associated with this value
+  /// \note Probabilities are not normalized inside this function
   ///
   virtual void setT(const State& s, const State& n, const Action& a, Factor t, Probability p);
   /// \brief Convenience function for the case that no concurrent dependencies exist in 2DBN
@@ -112,6 +105,7 @@ public:
     }
     setT(s,_empty_s,a,t,p);
   }
+
 };
 typedef boost::shared_ptr<_DBNFactor> DBNFactor;
 

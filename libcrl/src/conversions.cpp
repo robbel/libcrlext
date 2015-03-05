@@ -53,7 +53,7 @@ void _DBNFactor::addActionDependency(Size index) {
 }
 
 void _DBNFactor::pack() {
-	_subdomain = Domain(new _Domain());
+	_subdomain = boost::make_shared<_Domain>();
 	const RangeVec& state_ranges = _domain->getStateRanges();
 	const RangeVec& action_ranges = _domain->getActionRanges();
 	const StrVec& state_names = _domain->getStateNames();
@@ -74,6 +74,16 @@ void _DBNFactor::pack() {
 	_prob_table = boost::make_shared<_FStateActionTable<ProbabilityVec>>(_subdomain);
 }
 
+// FIXME may be costly to always convert from (s,n,a) to index (!)
+// FIXME better idea is to check whether subdomain_ and domain_ sizes differ?
+const ProbabilityVec& _DBNFactor::T(const State& s, const State& n, const Action& a)
+{
+   State ms = mapState(s, n);
+   Action ma = mapAction(a);
+   ProbabilityVec& pv = _prob_table->getValue(ms, ma);
+   return pv;
+}
+
 void _DBNFactor::setT(const State& s, const State& n, const Action& a, Factor t, Probability p) {
   State ms = mapState(s, n);
   Action ma = mapAction(a);
@@ -82,7 +92,7 @@ void _DBNFactor::setT(const State& s, const State& n, const Action& a, Factor t,
           pv.resize(_target_range.getSpan()+1, 0);
 
   Factor offset = t - _target_range.getMin();
-  pv[offset] = p; // FIXME (?!): not normalized!
+  pv[offset] = p; // not normalized
 }
 
 
