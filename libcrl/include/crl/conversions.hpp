@@ -108,6 +108,11 @@ public:
 
 };
 typedef boost::shared_ptr<_DBNFactor> DBNFactor;
+// iterators
+typedef cpputil::Iterator<DBNFactor> _FactorIterator;
+typedef boost::shared_ptr<_FactorIterator> FactorIterator;
+typedef cpputil::VectorIterator<DBNFactor> _FactorVecIterator;
+typedef boost::shared_ptr<_FactorIterator> FactorVecIterator;
 
 /**
  * \brief The 2-stage DBN (2DBN) encoding the transition function.
@@ -121,7 +126,11 @@ public:
   _DBN() { }
   virtual ~_DBN() { }
 
-  void addDBNFactor(DBNFactor& dbn_factor);
+  virtual void addDBNFactor(DBNFactor dbn_factor);
+  /// \brief Iterator over all \a DBNFactor in this DBN
+  virtual FactorIterator factors() {
+    return boost::make_shared<_FactorVecIterator>(_dbn_factors);
+  }
 
 };
 typedef boost::shared_ptr<_DBN> DBN;

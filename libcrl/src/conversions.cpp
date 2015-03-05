@@ -96,8 +96,8 @@ void _DBNFactor::setT(const State& s, const State& n, const Action& a, Factor t,
 }
 
 
-void _DBN::addDBNFactor(DBNFactor& dbn_factor) {
-	_dbn_factors.push_back(dbn_factor);
+void _DBN::addDBNFactor(DBNFactor dbn_factor) {
+	_dbn_factors.push_back(std::move(dbn_factor));
 	//check deps, reorder?
 }
 

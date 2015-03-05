@@ -103,21 +103,18 @@ Reward _FactoredMDP::R(const State& s, const Action& a) {
 	return 0;
 }
 
-_FactoredMDPLearner::_FactoredMDPLearner(const Domain& domain)
-: _domain(domain) {
-	
-}
-
-void _FactoredMDPLearner::addFactorLearner(FactorLearner& factor_learner) {
-	_factor_learners.push_back(factor_learner);
+void _FactoredMDPLearner::addFactorLearner(FactorLearner factor_learner) {
+	_FactoredMDP::_T_map.addDBNFactor(std::move(factor_learner));
 	//check deps, reorder?
 }
 
 // note: each factor observes the (global) reward signal
 bool _FactoredMDPLearner::observe(const State& s, const Action& a, const Observation& o) {
 	// call observation function on each FactorLearner
-	for(Size i = 0; i < _factor_learners.size(); i++) {
-	  _factor_learners[i]->observe(s, a, o);
+	FactorIterator fitr = _FactoredMDP::_T_map.factors();
+	while(fitr->hasNext()) {
+	  FactorLearner f = boost::static_pointer_cast<_FactorLearner>(fitr->next()); //FIXME terrible, all these shared_ptr copies...
+	  f->observe(s, a, o);
 	}
 
 	return true;
