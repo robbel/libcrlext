@@ -21,10 +21,10 @@
 #ifndef FACTOR_LEARNER_HPP_
 #define FACTOR_LEARNER_HPP_
 
-#include <boost/shared_ptr.hpp>
 #include "crl/common.hpp"
 #include "crl/crl.hpp"
 #include "crl/flat_tables.hpp"
+#include "crl/conversions.hpp"
 
 namespace crl {
 
@@ -34,61 +34,27 @@ typedef _StateActionTable<ProbabilityVec> _SAFProbTable;
 typedef boost::shared_ptr<_SAFProbTable> SAFProbTable;
 
 /**
- * \brief The \a Learner corresponding to a single factor.
+ * \brief The \a Learner corresponding to a single factor, based on observance counts.
+ * Implemented with tabular storage.
  */
-class _FactorLearner : public _Learner {
+class _FactorLearner : public _DBNFactor, public _Learner {
 protected:
-	/// The domain which includes all state and action factors
-	Domain _domain;
-	///
-	/// \brief The subdomain relevant for this state factor
-	/// \note Consists of delayed and concurrent state factors, as well as action factors
-	///
-	Domain _subdomain;
-	/// Denoting the (single) factor in the domain considered by this learner
-	Size _target;
-	/// The range of the (single) factor in the domain considered by this learner
-	FactorRange _target_range;
-	/// Denoting delayed dependencies of this factor, i.e., an edge from t to t+1 in the DBN.
-	SizeVec _delayed_dep;
-	/// Denoting concurrent dependencies of this factor, i.e., an edge from t+1 to t+1 in the DBN.
-	SizeVec _concurrent_dep;
-	/// Denoting an action dependency of this factor, i.e., an edge from t to t+1 in the DBN.
-	SizeVec _action_dep;
-
 	/// Collect the number of times (s,a) has been observed
 	SACountTable _sa_count;
 	/// Collect the number of times a specific factor value has been observed after (s,a)
 	SAFCountTable _sa_f_count;
-	/// The likelihood of each factor value given the counts computed above
-	SAFProbTable _prob_table;
-
-	///
-	/// \brief Extract the relevant state information for this factor (i.e., those corresponding to this \a _subdomain)
-	/// \param s The current (complete) state
-	/// \param n The (complete) successor state (e.g., from an \a Observation)
-	///
-	State mapState(const State& s, const State& n) const;
-	///
-	/// \brief Extract the relevant action information for this factor (i.e., those corresponding to this \a _subdomain)
-	/// \param a The (complete) joint action
-	///
-	Action mapAction(const Action& a) const;
 public:
 	/**
 	 * \brief Initialize this \a FactorLearner for a specific factor in the domain.
 	 */
-	_FactorLearner(const Domain& domain, Size target);
+	_FactorLearner(const Domain& domain, Size target)
+	: _DBNFactor(domain, target) { }
 	virtual ~_FactorLearner() { }
-	virtual void addDelayedDependency(Size index);
-	virtual void addConcurrentDependency(Size index);
-	virtual void addActionDependency(Size index);
-	///
-	/// \brief Assemble the tables corresponding to the CPT estimates for this factor
-	/// \note Called after all dependencies have been added
-	///
-	virtual void pack();
 
+	// DBNFactor interface
+	virtual void pack() override;
+
+	// Learner interface
 	virtual bool observe(const State& s, const Action& a, const Observation& o) override;
 
 	///
@@ -103,32 +69,69 @@ public:
 typedef boost::shared_ptr<_FactorLearner> FactorLearner;
 
 /**
+ * \brief An implementation of a factored MDP with factored state and action spaces.
+ * Implemented with tabular storage.
+ * \note Rewards are currently not factored
+ */
+class _FactoredMDP : public _MDP {
+protected:
+  /// The domain which includes all state and action factors
+  /// FIXME currently not used
+  const Domain _domain;
+  /// \brief The factored transition function
+  _DBN _T_map;
+  /// \brief A mapping from (s,a) -> r
+  _FStateActionTable<Reward> _R_map;
+public:
+  _FactoredMDP(const Domain& domain)
+  : _domain(domain), _R_map(domain, 0) { }
+  virtual ~_FactoredMDP() { }
+
+  // MDP interface
+  virtual StateIterator S() override;
+  virtual StateIterator predecessors(const State& s) override;
+  virtual ActionIterator A() override;
+  virtual ActionIterator A(const State& s) override;
+  virtual StateDistribution T(const State& s, const Action& a) override;
+  virtual Reward R(const State& s, const Action& a) override {
+    return _R_map.getValue(s, a);
+  }
+
+  /// \brief Add a factor to the factored transition function
+  virtual void addDBNFactor(DBNFactor dbn_factor) {
+    _T_map.addDBNFactor(std::move(dbn_factor));
+  }
+  ///
+  /// \brief Set reward for (s,a)
+  /// \note Rewards are currently not factored!
+  ///
+  virtual void setR(const State& s, const Action& a, Reward r) {
+    _R_map.setValue(s, a, r);
+  }
+};
+typedef boost::shared_ptr<_FactoredMDP> FactoredMDP;
+
+/**
  * \brief Encapsulates a \a FactorLearner for each factor in the domain.
  * \todo implement fully...
  */
-class _FactorMDPLearner : public _MDPLearner {
-protected:
-	/// The domain which includes all state and action factors
-	Domain _domain;
-	/// The set of \a FactorLearner (for each factor) comprising this learner
-	std::vector<FactorLearner> _factor_learners;
+class _FactoredMDPLearner : public _MDPLearner, public _FactoredMDP {
+private:
+	// trick to change visibility to private -- we don't want non-FactorLearners to be added to underlying DBN
+	using _FactoredMDP::addDBNFactor;
 public:
-	_FactorMDPLearner(const Domain& domain);
-	virtual ~_FactorMDPLearner() { }
+	_FactoredMDPLearner(const Domain& domain)
+	: _FactoredMDP(domain) { }
+	virtual ~_FactoredMDPLearner() { }
 
-	void addFactorLearner(FactorLearner& factor_learner);
+	/// \brief add a \a FactorLearner to this \a FactorMDPLearner
+	void addFactorLearner(FactorLearner factor_learner);
 
-	virtual StateIterator S() override;
-	virtual StateIterator predecessors(const State& s) override;
-	virtual ActionIterator A() override;
-	virtual ActionIterator A(const State& s) override;
-	virtual StateDistribution T(const State& s, const Action& a) override;
-	virtual Reward R(const State& s, const Action& a) override;
-
+	// Learner interface
 	virtual bool observe(const State& s, const Action& a, const Observation& o) override;
 
 };
-typedef boost::shared_ptr<_FactorMDPLearner> FactorMDPLearner;
+typedef boost::shared_ptr<_FactoredMDPLearner> FactorMDPLearner;
 
 }
 

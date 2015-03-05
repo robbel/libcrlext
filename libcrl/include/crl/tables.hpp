@@ -30,7 +30,7 @@
 namespace crl {
 
 /**
- * An interface for a table that uses states as keys
+ * \brief An interface for a table that uses states as keys
  */
 template <class T>
 class _StateTable {
@@ -44,7 +44,7 @@ public:
 typedef boost::shared_ptr<_StateTable<Index> > SCountTable;
 
 /**
- * An interface for a table that uses actions as keys
+ * \brief An interface for a table that uses actions as keys
  */
 template <class T>
 class _ActionTable {
@@ -58,7 +58,7 @@ public:
 typedef boost::shared_ptr<_ActionTable<Size> > ACountTable;
 
 /**
- * An interface for a table that uses state/action pairs as keys
+ * \brief An interface for a table that uses (state/action) pairs as keys and maps to values of type T.
  */
 template <class T>
 class _StateActionTable {
@@ -74,20 +74,19 @@ typedef boost::shared_ptr<_StateActionTable<Reward> > SARTable;
 
 
 /**
- * A class that keeps track of times states/actions have
- * been observed.
+ * \brief An abstract interface for keeping track of times (state/action) pairs have been observed.
  */
 class _Counter : public _Learner {
 protected:
 public:
 	virtual ~_Counter() { }
 	/**
-	 * returns an iterator over all observed next states to s,a
+	 * returns an iterator over all observed next states from s,a
 	 */
 	virtual StateIterator iterator(const State& s, const Action& a) = 0;
 	virtual Size getCount(const State& s, const Action& a) = 0;
 	virtual Size getCount(const State& s, const Action& a, const State& n) = 0;
-	virtual bool observe(const State& s, const Action& a, const Observation& o) = 0;
+	virtual bool observe(const State& s, const Action& a, const Observation& o) override = 0;
 };
 typedef boost::shared_ptr<_Counter> Counter;
 

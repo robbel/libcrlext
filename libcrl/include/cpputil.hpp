@@ -37,6 +37,7 @@
 #include <string>
 #include <sys/time.h>
 #include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
 
 namespace cpputil {
 
@@ -201,6 +202,14 @@ public:
 	}
 };
 
+class InvalidException : public cpputil::Exception {
+public:
+	InvalidException(std::string what="")
+	: Exception("InvalidException", what) {
+
+	}
+};
+
 inline std::ostream& operator<<(std::ostream& os, const Exception& ex) {
 	os << ex.name << " : " << ex.what << std::endl;
 	os << ex.trace << std::endl;
@@ -342,7 +351,7 @@ public:
 };
 
 ///
-/// \brief Forward iterator for templated container
+/// \brief Forward iterator for container type C storing elements of type T.
 ///
 template <class T, class C>
 class ContainerIterator : public Iterator<T> {

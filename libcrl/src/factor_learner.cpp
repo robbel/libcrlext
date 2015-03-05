@@ -22,66 +22,11 @@
  
 using namespace crl;
 
-State _FactorLearner::mapState(const State& s, const State& n) const {
-	State ms(_subdomain);
-	for (Size i=0; i<_delayed_dep.size(); i++) {
-		Size j = _delayed_dep[i];
-		ms.setFactor(i, s.getFactor(j));
-	}
-	// append those factors corresponding to concurrent dependencies
-	for (Size i=0; i<_concurrent_dep.size(); i++) {
-		Size j = _concurrent_dep[i];
-		ms.setFactor(i+_delayed_dep.size(), n.getFactor(j));
-	}
-	return ms;
-}
-
-Action _FactorLearner::mapAction(const Action& a) const {
-	Action ma(_subdomain);
-	for (Size i=0; i<_action_dep.size(); i++) {
-		Size j = _action_dep[i];
-		ma.setFactor(i, a.getFactor(j));
-	}
-	return ma;
-}
-
-_FactorLearner::_FactorLearner(const Domain& domain, Size target)
-: _domain(domain), _target(target) {
-	_target_range = _domain->getStateRanges()[_target];
-}
-
-void _FactorLearner::addDelayedDependency(Size index) {
-	_delayed_dep.push_back(index);
-}
-
-void _FactorLearner::addConcurrentDependency(Size index) {
-	_concurrent_dep.push_back(index);
-}
-
-void _FactorLearner::addActionDependency(Size index) {
-	_action_dep.push_back(index);
-}
-
 void _FactorLearner::pack() {
-	_subdomain = Domain(new _Domain());
-	const RangeVec& state_ranges = _domain->getStateRanges();
-	const RangeVec& action_ranges = _domain->getActionRanges();
-	for (Size i=0; i<_delayed_dep.size(); i++) {
-		Size j = _delayed_dep[i];
-		_subdomain->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax());
-	}
-	for (Size i=0; i<_concurrent_dep.size(); i++) {
-		Size j = _concurrent_dep[i];
-		_subdomain->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax());
-	}
-	for (Size i=0; i<_action_dep.size(); i++) {
-		Size j = _action_dep[i];
-		_subdomain->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax());
-	}
-	
+	_DBNFactor::pack();
+	// allocate remaining counters
 	_sa_count = SACountTable(new _FStateActionTable<Index>(_subdomain));
 	_sa_f_count = SAFCountTable(new _FStateActionTable<SizeVec>(_subdomain));
-	_prob_table = SAFProbTable(new _FStateActionTable<ProbabilityVec>(_subdomain));
 }
 
 bool _FactorLearner::observe(const State& s, const Action& a, const Observation& o) {
@@ -134,47 +79,39 @@ StateDistribution _FactorLearner::augmentDistribution(StateDistribution sd, cons
 	return sdp;
 }
 
-_FactorMDPLearner::_FactorMDPLearner(const Domain& domain)
-: _domain(domain) {
-	
-}
-
-void _FactorMDPLearner::addFactorLearner(FactorLearner& factor_learner) {
-	_factor_learners.push_back(factor_learner);
-	//check deps, reorder?
-}
-
-StateIterator _FactorMDPLearner::S() {
+StateIterator _FactoredMDP::S() {
 	return StateIterator();
 }
 
-StateIterator _FactorMDPLearner::predecessors(const State& s) {
+StateIterator _FactoredMDP::predecessors(const State& s) {
 	return StateIterator();
 }
 
-ActionIterator _FactorMDPLearner::A() {
+ActionIterator _FactoredMDP::A() {
 	return ActionIterator();
 }
 
-ActionIterator _FactorMDPLearner::A(const State& s) {
+ActionIterator _FactoredMDP::A(const State& s) {
 	return ActionIterator();
 }
 
-StateDistribution _FactorMDPLearner::T(const State& s, const Action& a) {
+StateDistribution _FactoredMDP::T(const State& s, const Action& a) {
 	return StateDistribution();
 }
 
-Reward _FactorMDPLearner::R(const State& s, const Action& a) {
-	return 0;
+void _FactoredMDPLearner::addFactorLearner(FactorLearner factor_learner) {
+	_FactoredMDP::addDBNFactor(std::move(factor_learner));
+	//check deps, reorder?
 }
 
-bool _FactorMDPLearner::observe(const State& s, const Action& a, const Observation& o) {
+// note: each factor observes the (global) reward signal
+bool _FactoredMDPLearner::observe(const State& s, const Action& a, const Observation& o) {
 	// call observation function on each FactorLearner
-	for(Size i = 0; i < _factor_learners.size(); i++) {
-	  _factor_learners[i]->observe(s, a, o);
+	FactorIterator fitr = _FactoredMDP::_T_map.factors();
+	while(fitr->hasNext()) {
+	  FactorLearner f = boost::static_pointer_cast<_FactorLearner>(fitr->next()); //FIXME terrible, all these shared_ptr copies...
+	  f->observe(s, a, o);
 	}
 
 	return true;
 }
-
-	
