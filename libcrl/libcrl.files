@@ -1,6 +1,7 @@
 include/crl/common.hpp
 include/crl/conversions.hpp
 include/crl/crl.hpp
+include/crl/dbn.hpp
 include/crl/environment.hpp
 include/crl/factor_learner.hpp
 include/crl/flat_tables.hpp
@@ -19,6 +20,7 @@ include/crl/vi.hpp
 include/cpputil.hpp
 src/conversions.cpp
 src/crl.cpp
+src/dbn.cpp
 src/environment.cpp
 src/factor_learner.cpp
 src/flat_tables.cpp
