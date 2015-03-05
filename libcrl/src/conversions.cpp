@@ -9,17 +9,20 @@
 #include <cassert>
 #include "crl/conversions.hpp"
 
+
 using namespace std;
 using namespace crl;
 
+namespace crl {
 
 // NEED:
 // - discount factor
 // - (factored) reward function..
 // - name of problem, name of factors (state, action)
-void exportToSpudd(MDP mdp, Domain domain, const string& filename, const string& problemName)
+void exportToSpudd(FactoredMDP fmdp, float gamma, const string& problemName, const string& filename)
 {
-    assert(mdp != 0 && domain != 0);
+    assert(fmdp != 0);
+    std::cout << "hello" << std::endl;
 
     ofstream fp(filename.c_str());
     if(!fp.is_open()) {
@@ -185,4 +188,6 @@ void exportToSpudd(MDP mdp, Domain domain, const string& filename, const string&
        << "//horizon 10" << endl
        << "tolerance 0.1" << endl;
 #endif
+}
+
 }

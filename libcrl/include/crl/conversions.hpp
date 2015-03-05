@@ -9,6 +9,7 @@
 
 #include <string>
 #include "crl/crl.hpp"
+#include "crl/factor_learner.hpp"
 
 
 namespace crl {
@@ -16,7 +17,11 @@ namespace crl {
 ///
 /// \brief write the \a MDP out to filename in SPUDD format.
 ///
-void exportToSpudd(MDP mdp, Domain domain, const std::string& filename, const std::string& problemName);
+void exportToSpudd(FactoredMDP mdp,
+                   float gamma,
+                   const std::string& problemName,
+                   const std::string& filename
+                   );
 
 }
 
