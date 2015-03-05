@@ -94,8 +94,11 @@ void _DBNFactor::setT(const State& s, const State& n, const Action& a, Factor t,
   pv[offset] = p; // not normalized
 }
 
-
 void _DBN::addDBNFactor(DBNFactor dbn_factor) {
-	_dbn_factors.push_back(std::move(dbn_factor));
-	//check deps, reorder?
+  if(dbn_factor->hasConcurrentDependency()) {
+    _has_concurrency = true;
+  }
+
+  _dbn_factors.push_back(std::move(dbn_factor));
+  //check deps, reorder?
 }

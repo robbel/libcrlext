@@ -57,7 +57,7 @@ void exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& p
   for(Size i = 0; i < domain->getNumStateFactors(); i++) {
       fp << " (" << s_str_vec[i];
       const FactorRange& v = s_range_vec[i];
-      for(Factor f = v.getMin(); f <= v.getMax(); f++) {
+      for(Factor f = v.getMin(); f <= v.getMax(); f++) { // Note: it's a closed interval
         fp << " " << f;
       }
       fp << ")" << endl;
@@ -65,7 +65,6 @@ void exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& p
   fp << ")" << endl << endl;
 
   // write actions
-  //const RangeVec& a_range_vec = domain->getActionRanges();
   const StrVec& a_str_vec = domain->getActionNames();
   _ActionIncrementIterator aitr(domain);
   // Alternative:

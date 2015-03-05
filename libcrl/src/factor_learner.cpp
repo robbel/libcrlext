@@ -101,7 +101,6 @@ StateDistribution _FactoredMDP::T(const State& s, const Action& a) {
 
 void _FactoredMDPLearner::addFactorLearner(FactorLearner factor_learner) {
 	_FactoredMDP::addDBNFactor(std::move(factor_learner));
-	//check deps, reorder?
 }
 
 // note: each factor observes the (global) reward signal

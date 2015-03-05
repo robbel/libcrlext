@@ -67,6 +67,9 @@ public:
   virtual void addDelayedDependency(Size index);
   virtual void addConcurrentDependency(Size index);
   virtual void addActionDependency(Size index);
+  virtual bool hasConcurrentDependency() const {
+    return !_concurrent_dep.empty();
+  }
   ///
   /// \brief Assemble the table corresponding to the CPT estimates for this factor
   /// \note Called after all dependencies have been added
@@ -110,15 +113,17 @@ typedef cpputil::VectorIterator<DBNFactor> _FactorVecIterator;
 typedef boost::shared_ptr<_FactorIterator> FactorVecIterator;
 
 /**
- * \brief The 2-stage DBN (2DBN) encoding the transition function.
+ * \brief The 2-stage DBN (2DBN) encoding the transition function from t-1 to t.
  * The 2DBN supports factored states and actions.
  */
 class _DBN {
 protected:
   std::vector<DBNFactor> _dbn_factors;
-
+  /// \brief whether there are any concurrent dependencies in the DBN (at time slice t)
+  bool _has_concurrency;
 public:
-  _DBN() { }
+  _DBN()
+  : _has_concurrency(false) { }
   virtual ~_DBN() { }
 
   virtual void addDBNFactor(DBNFactor dbn_factor);
@@ -127,6 +132,10 @@ public:
     return boost::make_shared<_FactorVecIterator>(_dbn_factors);
   }
 
+  /// \brief True iff there are any concurrent dependencies in the DBN (at time slice t)
+  virtual bool hasConcurrentDependency() const {
+    return _has_concurrency;
+  }
 };
 typedef boost::shared_ptr<_DBN> DBN;
 
