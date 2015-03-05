@@ -73,7 +73,7 @@ typedef boost::shared_ptr<_FactorLearner> FactorLearner;
  * Implemented with tabular storage.
  * \note Rewards are currently not factored
  */
-class _FactorMDP : public _MDP {
+class _FactoredMDP : public _MDP {
 
   // MDP interface
   virtual StateIterator S() override;
@@ -84,13 +84,13 @@ class _FactorMDP : public _MDP {
   virtual Reward R(const State& s, const Action& a) override;
 
 };
-typedef boost::shared_ptr<_FactorMDP> FactorMDP;
+typedef boost::shared_ptr<_FactoredMDP> FactorMDP;
 
 /**
  * \brief Encapsulates a \a FactorLearner for each factor in the domain.
  * \todo implement fully...
  */
-class _FactorMDPLearner : public _MDPLearner, public FactorMDP {
+class _FactoredMDPLearner : public _MDPLearner, public FactorMDP {
 protected:
         /// The domain which includes all state and action factors
         /// FIXME currently not used
@@ -98,8 +98,8 @@ protected:
 	/// The set of \a FactorLearner (for each factor) comprising this learner
 	std::vector<FactorLearner> _factor_learners;
 public:
-	_FactorMDPLearner(const Domain& domain);
-	virtual ~_FactorMDPLearner() { }
+	_FactoredMDPLearner(const Domain& domain);
+	virtual ~_FactoredMDPLearner() { }
 
 	void addFactorLearner(FactorLearner& factor_learner);
 
@@ -107,7 +107,7 @@ public:
 	virtual bool observe(const State& s, const Action& a, const Observation& o) override;
 
 };
-typedef boost::shared_ptr<_FactorMDPLearner> FactorMDPLearner;
+typedef boost::shared_ptr<_FactoredMDPLearner> FactorMDPLearner;
 
 }
 

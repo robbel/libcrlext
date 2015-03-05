@@ -79,42 +79,42 @@ StateDistribution _FactorLearner::augmentDistribution(StateDistribution sd, cons
 	return sdp;
 }
 
-StateIterator _FactorMDP::S() {
+StateIterator _FactoredMDP::S() {
 	return StateIterator();
 }
 
-StateIterator _FactorMDP::predecessors(const State& s) {
+StateIterator _FactoredMDP::predecessors(const State& s) {
 	return StateIterator();
 }
 
-ActionIterator _FactorMDP::A() {
+ActionIterator _FactoredMDP::A() {
 	return ActionIterator();
 }
 
-ActionIterator _FactorMDP::A(const State& s) {
+ActionIterator _FactoredMDP::A(const State& s) {
 	return ActionIterator();
 }
 
-StateDistribution _FactorMDP::T(const State& s, const Action& a) {
+StateDistribution _FactoredMDP::T(const State& s, const Action& a) {
 	return StateDistribution();
 }
 
-Reward _FactorMDP::R(const State& s, const Action& a) {
+Reward _FactoredMDP::R(const State& s, const Action& a) {
 	return 0;
 }
 
-_FactorMDPLearner::_FactorMDPLearner(const Domain& domain)
+_FactoredMDPLearner::_FactoredMDPLearner(const Domain& domain)
 : _domain(domain) {
 	
 }
 
-void _FactorMDPLearner::addFactorLearner(FactorLearner& factor_learner) {
+void _FactoredMDPLearner::addFactorLearner(FactorLearner& factor_learner) {
 	_factor_learners.push_back(factor_learner);
 	//check deps, reorder?
 }
 
 // note: each factor observes the (global) reward signal
-bool _FactorMDPLearner::observe(const State& s, const Action& a, const Observation& o) {
+bool _FactoredMDPLearner::observe(const State& s, const Action& a, const Observation& o) {
 	// call observation function on each FactorLearner
 	for(Size i = 0; i < _factor_learners.size(); i++) {
 	  _factor_learners[i]->observe(s, a, o);
