@@ -5,7 +5,6 @@
  */
 
 #include <iostream>
-#include <fstream>
 #include "crl/dbn.hpp"
 
 using namespace std;

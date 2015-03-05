@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <cassert>
 #include "crl/conversions.hpp"
 
 using namespace std;

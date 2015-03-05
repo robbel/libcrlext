@@ -7,14 +7,9 @@
 #ifndef DBN_HPP_
 #define DBN_HPP_
 
-#include <iostream>
-#include <string>
-#include <cassert>
 #include "crl/crl.hpp"
 #include "crl/flat_tables.hpp"
 
-using namespace std;
-using namespace crl;
 
 namespace crl {
 
