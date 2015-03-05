@@ -22,68 +22,14 @@
  
 using namespace crl;
 
-State _FactorLearner::mapState(const State& s, const State& n) const {
-	State ms(_subdomain);
-	for (Size i=0; i<_delayed_dep.size(); i++) {
-		Size j = _delayed_dep[i];
-		ms.setFactor(i, s.getFactor(j));
-	}
-	// append those factors corresponding to concurrent dependencies
-	for (Size i=0; i<_concurrent_dep.size(); i++) {
-		Size j = _concurrent_dep[i];
-		ms.setFactor(i+_delayed_dep.size(), n.getFactor(j));
-	}
-	return ms;
-}
-
-Action _FactorLearner::mapAction(const Action& a) const {
-	Action ma(_subdomain);
-	for (Size i=0; i<_action_dep.size(); i++) {
-		Size j = _action_dep[i];
-		ma.setFactor(i, a.getFactor(j));
-	}
-	return ma;
-}
-
 _FactorLearner::_FactorLearner(const Domain& domain, Size target)
-: _domain(domain), _target(target) {
-	_target_range = _domain->getStateRanges()[_target];
-}
-
-void _FactorLearner::addDelayedDependency(Size index) {
-	_delayed_dep.push_back(index);
-}
-
-void _FactorLearner::addConcurrentDependency(Size index) {
-	_concurrent_dep.push_back(index);
-}
-
-void _FactorLearner::addActionDependency(Size index) {
-	_action_dep.push_back(index);
-}
+: _DBNFactor(domain, target) { }
 
 void _FactorLearner::pack() {
-	_subdomain = Domain(new _Domain());
-	const RangeVec& state_ranges = _domain->getStateRanges();
-	const RangeVec& action_ranges = _domain->getActionRanges();
-	const StrVec& state_names = _domain->getStateNames();
-	const StrVec& action_names = _domain->getActionNames();
-	for (Size i=0; i<_delayed_dep.size(); i++) {
-		Size j = _delayed_dep[i];
-		_subdomain->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax(), state_names[j]);
-	}
-	for (Size i=0; i<_concurrent_dep.size(); i++) {
-		Size j = _concurrent_dep[i];
-		_subdomain->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax(), state_names[j]);
-	}
-	for (Size i=0; i<_action_dep.size(); i++) {
-		Size j = _action_dep[i];
-		_subdomain->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax(), action_names[j]);
-	}
-	
+	_DBNFactor::pack();
+	// allocate remaining counters
 	_sa_count = SACountTable(new _FStateActionTable<Index>(_subdomain));
 	_sa_f_count = SAFCountTable(new _FStateActionTable<SizeVec>(_subdomain));
-	_prob_table = SAFProbTable(new _FStateActionTable<ProbabilityVec>(_subdomain));
 }
 
 bool _FactorLearner::observe(const State& s, const Action& a, const Observation& o) {
