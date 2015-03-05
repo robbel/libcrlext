@@ -37,6 +37,7 @@
 #include <string>
 #include <sys/time.h>
 #include <boost/shared_ptr.hpp>
+#include <boost/make_shared.hpp>
 
 namespace cpputil {
 
@@ -197,6 +198,14 @@ class IteratorException : public cpputil::Exception {
 public:
 	IteratorException(std::string what="")
 	: Exception("IteratorException", what) {
+
+	}
+};
+
+class InvalidException : public cpputil::Exception {
+public:
+	InvalidException(std::string what="")
+	: Exception("InvalidException", what) {
 
 	}
 };

@@ -22,7 +22,7 @@ typedef _StateActionTable<ProbabilityVec> _SAFProbTable;
 typedef boost::shared_ptr<_SAFProbTable> SAFProbTable;
 
 /**
- * \brief The definition of a single DBN factor across 2 time slices (t-1 -> t).
+ * \brief The definition of a single DBN factor across 2 time slices (t-1 -> t), that can have its dynamics set explicitly.
  *  Includes the transition characteristics encoded with tabular storage.
  */
 class _DBNFactor {
@@ -47,6 +47,8 @@ protected:
 
   /// \brief A mapping from (s,a) of the subdomain -> Pr(t), the target value of this factor
   SAFProbTable _prob_table;
+  /// \brief A dummy, empty state
+  const State _empty_s;
 
   ///
   /// \brief Extract the relevant state information for this factor (i.e., those corresponding to this \a _subdomain)
@@ -71,11 +73,45 @@ public:
   virtual void addConcurrentDependency(Size index);
   virtual void addActionDependency(Size index);
   ///
-  /// \brief Assemble the tables corresponding to the CPT estimates for this factor
+  /// \brief Assemble the table corresponding to the CPT estimates for this factor
   /// \note Called after all dependencies have been added
   ///
   virtual void pack();
 
+  ///
+  /// \brief The vector of probabilities for successor values associated with the tuple (s,n,a)
+  /// \todo FIXME may be costly to always convert from (s,n,a) to index (!)
+  ///
+  virtual const ProbabilityVec& T(const State& s, const State& n, const Action& a) {
+    State ms = mapState(s, n);
+    Action ma = mapAction(a);
+    ProbabilityVec& pv = _prob_table->getValue(ms, ma);
+    return pv;
+  }
+  /// \brief Convenience function for the case that no concurrent dependencies exist in 2DBN
+  virtual const ProbabilityVec& T(const State& s, const Action& a) {
+    if(!_concurrent_dep.empty()) {
+        throw cpputil::InvalidException("Transition function is missing state(t) to compute concurrent dependencies.");
+    }
+    return T(s,_empty_s,a);
+  }
+
+  ///
+  /// \brief Set transition probability from (s,n,a) -> t, the target value of this factor
+  /// \param s The (complete) state at t-1
+  /// \param n The (complete) state at t
+  /// \param a The complete (joint) action
+  /// \param t The value of this DBN factor
+  /// \param p The probability associated with this value
+  ///
+  virtual void setT(const State& s, const State& n, const Action& a, Factor t, Probability p);
+  /// \brief Convenience function for the case that no concurrent dependencies exist in 2DBN
+  virtual void setT(const State& s, const Action& a, Factor t, Probability p) {
+    if(!_concurrent_dep.empty()) {
+        throw cpputil::InvalidException("Transition function is missing state(t) to compute concurrent dependencies.");
+    }
+    setT(s,_empty_s,a,t,p);
+  }
 };
 typedef boost::shared_ptr<_DBNFactor> DBNFactor;
 

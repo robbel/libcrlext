@@ -71,8 +71,20 @@ void _DBNFactor::pack() {
 		_subdomain->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax(), action_names[j]);
 	}
 
-	_prob_table = SAFProbTable(new _FStateActionTable<ProbabilityVec>(_subdomain));
+	_prob_table = boost::make_shared<_FStateActionTable<ProbabilityVec>>(_subdomain);
 }
+
+void _DBNFactor::setT(const State& s, const State& n, const Action& a, Factor t, Probability p) {
+  State ms = mapState(s, n);
+  Action ma = mapAction(a);
+  ProbabilityVec& pv = _prob_table->getValue(ms, ma);
+  if (pv.size() == 0)
+          pv.resize(_target_range.getSpan()+1, 0);
+
+  Factor offset = t - _target_range.getMin();
+  pv[offset] = p; // FIXME (?!): not normalized!
+}
+
 
 void _DBN::addDBNFactor(DBNFactor& dbn_factor) {
 	_dbn_factors.push_back(dbn_factor);
