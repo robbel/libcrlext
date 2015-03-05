@@ -23,7 +23,7 @@ typedef boost::shared_ptr<_SAFProbTable> SAFProbTable;
 
 /**
  * \brief The definition of a single DBN factor across 2 time slices (t-1 -> t), that can have its dynamics set explicitly.
- *  Includes the transition characteristics encoded with tabular storage.
+ *  Includes the transition probabilities encoded with tabular storage.
  */
 class _DBNFactor {
 protected:

@@ -275,7 +275,10 @@ public:
 		return _R_map.getValue(s, a);
 	}
 
-	/// \brief Set transition probability from (s,a) -> n
+        ///
+        /// \brief Set transition probability from (s,a) -> n
+        /// \note Probabilities are not normalized inside this function
+        ///
 	virtual void setT(const State& s, const Action& a, const State& n, Probability p);
 	/// \brief Set reward for (s,a)
 	virtual void setR(const State& s, const Action& a, Reward r);

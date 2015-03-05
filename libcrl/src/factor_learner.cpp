@@ -22,9 +22,6 @@
  
 using namespace crl;
 
-_FactorLearner::_FactorLearner(const Domain& domain, Size target)
-: _DBNFactor(domain, target) { }
-
 void _FactorLearner::pack() {
 	_DBNFactor::pack();
 	// allocate remaining counters
@@ -116,6 +113,7 @@ Reward _FactorMDPLearner::R(const State& s, const Action& a) {
 	return 0;
 }
 
+// note: each factor observes the (global) reward signal
 bool _FactorMDPLearner::observe(const State& s, const Action& a, const Observation& o) {
 	// call observation function on each FactorLearner
 	for(Size i = 0; i < _factor_learners.size(); i++) {

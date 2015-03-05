@@ -47,7 +47,8 @@ public:
 	/**
 	 * \brief Initialize this \a FactorLearner for a specific factor in the domain.
 	 */
-	_FactorLearner(const Domain& domain, Size target);
+	_FactorLearner(const Domain& domain, Size target)
+	: _DBNFactor(domain, target) { }
 	virtual ~_FactorLearner() { }
 
 	// DBNFactor interface
