@@ -106,7 +106,7 @@ void _DBN::addDBNFactor(DBNFactor& dbn_factor) {
 // - discount factor
 // - (factored) reward function..
 // - name of problem, name of factors (state, action)
-void exportToSpudd(MDP mdp, Domain domain, const string& filename)
+void exportToSpudd(MDP mdp, Domain domain, const string& filename, const string& problemName)
 {
     assert(mdp != 0 && domain != 0);
 
@@ -116,13 +116,11 @@ void exportToSpudd(MDP mdp, Domain domain, const string& filename)
       return;
     }
 
-
-#if 0
     // write header
     fp << "// Automatically produced by libcrl::exportToSpudd"
-       << endl << "// SPUDD / Symbolic Perseus Format for '" << GetName() << "'"
+       << endl << "// SPUDD / Symbolic Perseus Format for '" << problemName << "'"
        << endl << endl;
-
+#if 0
     // write variables
     fp << "(variables" << endl;
     for(Index yI = 0; yI < GetNrStateFactors(); yI++) {

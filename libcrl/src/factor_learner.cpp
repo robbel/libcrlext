@@ -79,6 +79,30 @@ StateDistribution _FactorLearner::augmentDistribution(StateDistribution sd, cons
 	return sdp;
 }
 
+StateIterator _FactorMDP::S() {
+	return StateIterator();
+}
+
+StateIterator _FactorMDP::predecessors(const State& s) {
+	return StateIterator();
+}
+
+ActionIterator _FactorMDP::A() {
+	return ActionIterator();
+}
+
+ActionIterator _FactorMDP::A(const State& s) {
+	return ActionIterator();
+}
+
+StateDistribution _FactorMDP::T(const State& s, const Action& a) {
+	return StateDistribution();
+}
+
+Reward _FactorMDP::R(const State& s, const Action& a) {
+	return 0;
+}
+
 _FactorMDPLearner::_FactorMDPLearner(const Domain& domain)
 : _domain(domain) {
 	
@@ -87,30 +111,6 @@ _FactorMDPLearner::_FactorMDPLearner(const Domain& domain)
 void _FactorMDPLearner::addFactorLearner(FactorLearner& factor_learner) {
 	_factor_learners.push_back(factor_learner);
 	//check deps, reorder?
-}
-
-StateIterator _FactorMDPLearner::S() {
-	return StateIterator();
-}
-
-StateIterator _FactorMDPLearner::predecessors(const State& s) {
-	return StateIterator();
-}
-
-ActionIterator _FactorMDPLearner::A() {
-	return ActionIterator();
-}
-
-ActionIterator _FactorMDPLearner::A(const State& s) {
-	return ActionIterator();
-}
-
-StateDistribution _FactorMDPLearner::T(const State& s, const Action& a) {
-	return StateDistribution();
-}
-
-Reward _FactorMDPLearner::R(const State& s, const Action& a) {
-	return 0;
 }
 
 // note: each factor observes the (global) reward signal

@@ -110,7 +110,8 @@ public:
 typedef boost::shared_ptr<_DBNFactor> DBNFactor;
 
 /**
- * \brief The 2-stage DBN encoding the transition function
+ * \brief The 2-stage DBN (2DBN) encoding the transition function.
+ * The 2DBN supports factored states and actions.
  */
 class _DBN {
 protected:
@@ -122,15 +123,13 @@ public:
 
   void addDBNFactor(DBNFactor& dbn_factor);
 
-  // FIXME need reward function here ...  ?!
-
 };
 typedef boost::shared_ptr<_DBN> DBN;
 
 ///
 /// \brief write the \a MDP out to filename in SPUDD format.
 ///
-void exportToSpudd(MDP mdp, Domain domain, const string& filename);
+void exportToSpudd(MDP mdp, Domain domain, const string& filename, const string& problemName);
 
 }
 

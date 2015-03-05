@@ -69,12 +69,31 @@ public:
 typedef boost::shared_ptr<_FactorLearner> FactorLearner;
 
 /**
+ * \brief An implementation of a factored MDP with factored state and action spaces.
+ * Implemented with tabular storage.
+ * \note Rewards are currently not factored
+ */
+class _FactorMDP : public _MDP {
+
+  // MDP interface
+  virtual StateIterator S() override;
+  virtual StateIterator predecessors(const State& s) override;
+  virtual ActionIterator A() override;
+  virtual ActionIterator A(const State& s) override;
+  virtual StateDistribution T(const State& s, const Action& a) override;
+  virtual Reward R(const State& s, const Action& a) override;
+
+};
+typedef boost::shared_ptr<_FactorMDP> FactorMDP;
+
+/**
  * \brief Encapsulates a \a FactorLearner for each factor in the domain.
  * \todo implement fully...
  */
-class _FactorMDPLearner : public _MDPLearner {
+class _FactorMDPLearner : public _MDPLearner, public FactorMDP {
 protected:
-	/// The domain which includes all state and action factors
+        /// The domain which includes all state and action factors
+        /// FIXME currently not used
 	Domain _domain;
 	/// The set of \a FactorLearner (for each factor) comprising this learner
 	std::vector<FactorLearner> _factor_learners;
@@ -83,14 +102,6 @@ public:
 	virtual ~_FactorMDPLearner() { }
 
 	void addFactorLearner(FactorLearner& factor_learner);
-
-	// MDP interface
-	virtual StateIterator S() override;
-	virtual StateIterator predecessors(const State& s) override;
-	virtual ActionIterator A() override;
-	virtual ActionIterator A(const State& s) override;
-	virtual StateDistribution T(const State& s, const Action& a) override;
-	virtual Reward R(const State& s, const Action& a) override;
 
 	// Learner interface
 	virtual bool observe(const State& s, const Action& a, const Observation& o) override;
