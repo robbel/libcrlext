@@ -44,7 +44,7 @@ protected:
   SAFProbTable _prob_table;
   /// \brief A dummy, empty state
   const State _empty_s;
-
+public:
   ///
   /// \brief Extract the relevant state information for this factor (i.e., those corresponding to this \a _subdomain)
   /// \param s The current (complete) state
@@ -58,7 +58,7 @@ protected:
   /// \note Only available after call to \a pack()
   ///
   Action mapAction(const Action& a) const;
-public:
+
   /**
    * \brief Initialize this \a DBNFactor for a specific factor in the domain.
    */
@@ -75,10 +75,18 @@ public:
   /// \note Called after all dependencies have been added
   ///
   virtual void pack();
+  ///
+  /// \brief Return subdomain associated with this factor
+  /// \note Only available after call to \a pack()
+  ///
+  virtual Domain getSubdomain() {
+    return _subdomain;
+  }
 
   /// \brief The vector of probabilities for successor values associated with the tuple (s,n,a)
   virtual const ProbabilityVec& T(const State& s, const State& n, const Action& a);
   /// \brief Convenience function for the case that no concurrent dependencies exist in 2DBN
+  /// \note This particular function can be called with either joint state and action or with already reduced ones to factor scope
   virtual const ProbabilityVec& T(const State& s, const Action& a) {
     if(!_concurrent_dep.empty()) {
         throw cpputil::InvalidException("Transition function is missing state(t) to compute concurrent dependencies.");
@@ -136,6 +144,7 @@ public:
   virtual bool hasConcurrentDependency() const {
     return _has_concurrency;
   }
+
 };
 typedef boost::shared_ptr<_DBN> DBN;
 

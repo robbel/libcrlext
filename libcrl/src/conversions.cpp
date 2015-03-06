@@ -71,28 +71,61 @@ void exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& p
 
   // write actions
   const StrVec& a_str_vec = domain->getActionNames();
-  _ActionIncrementIterator aitr(domain);
+  _ActionIncrementIterator jaitr(domain);
   // Alternative:
   //  for (Size action_index=0; action_index<domain->getNumActions(); action_index++)
   //    Action a(domain, action_index);
 
-  while (aitr.hasNext()) {
+  while (jaitr.hasNext()) {
 #if 0
       vector<Index> A = JointToIndividualActionIndices(jaI);
 #endif
-      Action a = aitr.next();
+      Action ja = jaitr.next(); // joint action
       // construct and print joint action name
-      fp << "action " << toString(a, a_str_vec) << endl;
+      fp << "action " << toString(ja, a_str_vec) << endl;
 
       // write out CPT for each state factor
-      for(Size y = 0; y < domain->getNumStateFactors(); y++) {
-        fp << s_str_vec[y] << endl;
+      Size fidx = 0;
+      FactorIterator fitr = dbn->factors();
+      // Alternative:
+      //  for(Size y = 0; y < domain->getNumStateFactors(); y++) { }
+      while(fitr->hasNext()) {
+          DBNFactor sf = fitr->next();
+          Domain subdomain = sf->getSubdomain();
+          const Action a = sf->mapAction(ja); // map joint action to factor-relevant subset
+          fp << s_str_vec[fidx++] << endl;
+
+          // loop over X instantiations
+          _StateIncrementIterator sitr(subdomain);
+          do { // for each permutation
+              // close previously opened variable blocks
+
+
+
+              State s = sitr.next(); // the state factor subset in subdomain
+
+
+
+
+
+              const ProbabilityVec& dist = sf->T(s, a);
+              fp << " (";
+              for(auto pr : dist) {
+                  fp << pr << " ";
+              }
+
+
+
+
+          } while(sitr.hasNext());
+          // write out last closing braces
+
 
 #if 0
         // figure out action subset for ii
-        const Scope& ASoI_y = Get2DBN()->GetASoI_Y(y);
-        size_t ASoI_y_size = ASoI_y.size();
-        vector<Index> As_restr(ASoI_y_size);
+        const Scope& ASoI_y = Get2DBN()->GetASoI_Y(y);      // action scope of that factor y
+        size_t ASoI_y_size = ASoI_y.size();                 // # actions
+        vector<Index> As_restr(ASoI_y_size);                // restricted action set
         IndexTools::RestrictIndividualIndicesToNarrowerScope(A, jAsc, ASoI_y, As_restr);
 
         // loop over X instantiations
@@ -104,7 +137,7 @@ void exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& p
         const Scope emptySc; // for Y variables (no within-stage influences now)
         bool firstIter = true;
 
-        do { // for each permutation
+        do { // for each permutation in Xs
           //cout << SoftPrintVector(Xs) << endl;
           // close previously opened variable blocks
           size_t nrXchanges = 0;

@@ -12,6 +12,8 @@ using namespace crl;
 
 
 State _DBNFactor::mapState(const State& s, const State& n) const {
+	if(s.size() == _delayed_dep.size() && n.size() == 0) // under these conditions no reduction to local scope needed
+	  return s;
 	State ms(_subdomain);
 	for (Size i=0; i<_delayed_dep.size(); i++) {
 		Size j = _delayed_dep[i];
@@ -26,6 +28,8 @@ State _DBNFactor::mapState(const State& s, const State& n) const {
 }
 
 Action _DBNFactor::mapAction(const Action& a) const {
+	if(a.size() == _action_dep.size()) // if it has already been reduced to local scope
+	  return a;
 	Action ma(_subdomain);
 	for (Size i=0; i<_action_dep.size(); i++) {
 		Size j = _action_dep[i];
