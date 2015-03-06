@@ -120,10 +120,10 @@ void _DBN::addDBNFactor(DBNFactor dbn_factor) {
 Probability _DBN::T(const State& js, const Action& ja, const State& jn) {
   Probability p = 1.;
 
-  FactorIterator fitr = factors();
+  _FactorVecIterator fitr(_dbn_factors);
   Size fidx = 0;
-  while(fitr->hasNext()) {
-      DBNFactor f = fitr->next();
+  while(fitr.hasNext()) {
+      const DBNFactor& f = fitr.next();
       Factor t = jn.getFactor(fidx); // the target value of that factor in jn
       Factor offset = t - f->getTargetRange().getMin();
       const ProbabilityVec& pv = f->T(js, jn, ja);
