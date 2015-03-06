@@ -86,6 +86,7 @@ public:
   _FactoredMDP(Domain domain)
   : _domain(domain), _R_map(domain, 0) { }
   virtual ~_FactoredMDP() { }
+  Domain getDomain() const {return _domain;}
 
   // MDP interface
   virtual StateIterator S() override;
@@ -93,6 +94,9 @@ public:
   virtual ActionIterator A() override;
   virtual ActionIterator A(const State& s) override;
   virtual StateDistribution T(const State& s, const Action& a) override;
+  virtual Probability T(const State& s, const Action& a, const State& s_next) override {
+    return _T_map.T(s, a, s_next);
+  }
   virtual Reward R(const State& s, const Action& a) override {
     return _R_map.getValue(s, a);
   }

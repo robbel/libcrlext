@@ -116,3 +116,19 @@ void _DBN::addDBNFactor(DBNFactor dbn_factor) {
   _dbn_factors.push_back(std::move(dbn_factor));
   //check deps, reorder?
 }
+
+Probability _DBN::T(const State& js, const Action& ja, const State& jn) {
+  Probability p = 1.;
+
+  FactorIterator fitr = factors();
+  Size fidx = 0;
+  while(fitr->hasNext()) {
+      DBNFactor f = fitr->next();
+      Factor t = jn.getFactor(fidx); // the target value of that factor in jn
+      Factor offset = t - f->getTargetRange().getMin();
+      const ProbabilityVec& pv = f->T(js, jn, ja);
+      p *= pv[offset];
+  }
+
+  return p;
+}

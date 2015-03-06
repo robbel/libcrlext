@@ -260,7 +260,7 @@ protected:
 public:
 	_FMDP(const Domain& domain);
 	virtual ~_FMDP() { }
-	const Domain getDomain() {return _domain;}
+	Domain getDomain() const {return _domain;}
 
 	// MDP interface
 	virtual StateIterator S() override;

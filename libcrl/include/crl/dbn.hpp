@@ -88,9 +88,13 @@ public:
   /// \brief Return subdomain associated with this factor
   /// \note Only available after call to \a pack()
   ///
-  virtual Domain getSubdomain() {
+  virtual Domain getSubdomain() const {
     assert(_packed);
     return _subdomain;
+  }
+  /// \brief Return range of this factor
+  virtual const FactorRange& getTargetRange() const {
+    return _target_range;
   }
 
   /// \brief The vector of probabilities for successor values associated with the tuple (s,n,a)
@@ -149,6 +153,8 @@ public:
   virtual FactorIterator factors() {
     return boost::make_shared<_FactorVecIterator>(_dbn_factors);
   }
+  /// \brief Compute the probability of transitioning from (joint) s -> n under (joint) \a Action a
+  virtual Probability T(const State& js, const Action& ja, const State& jn);
 
   /// \brief True iff there are any concurrent dependencies in the DBN (at time slice t)
   virtual bool hasConcurrentDependency() const {
