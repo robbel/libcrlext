@@ -7,6 +7,7 @@
 #include <iostream>
 #include "crl/conversions.hpp"
 #include "crl/factor_learner.hpp"
+#include "cpputil.hpp"
 
 using namespace std;
 using namespace crl;
@@ -15,42 +16,44 @@ FactoredMDP makeFactoredMDP(Domain domain) {
 
   FactoredMDP fmdp = boost::make_shared<_FactoredMDP>(domain);
 
+//const RangeVec& ranges = domain->getStateRanges();
   for(Size y = 0; y < domain->getNumStateFactors(); y++) {
       // create a dbn factor
       DBNFactor fa = boost::make_shared<_DBNFactor>(domain, y);
       fa->addDelayedDependency(y); // dependence on self
       fa->addActionDependency(0); // dependence on first action factor
       fa->pack();
+      // fill with random values for transition fn
+#if 0
+//    time_t start_time = time_in_milli();
+      Domain subdomain = fa->getSubdomain();
+      for (Size state_index=0; state_index<subdomain->getNumStates(); state_index++) {
+              State s(subdomain, state_index);
+              for (Size action_index=0; action_index<subdomain->getNumActions(); action_index++) {
+                      Action a(subdomain, action_index);
+                      //mdp->setR(s, a, randDouble()); // FIXME: empty rewards, for now
+                      Probability total = 0.;
+                      ProbabilityVec probs(ranges[y].getSpan()+1);
+                      for(Factor f=0; f<=ranges[y].getSpan(); f++) { // we don't care about actual factor value here
+                          Probability prob = cpputil::randDouble();
+                          total += prob;
+                          probs[f] = prob;
+                      }
+                      // normalize
+                      for(Factor f=0; f<=ranges[y].getSpan(); f++) {
+                          Probability prob = probs[f]/total;
+                          fa->setT(s,a,ranges[y].getMin()+f,prob); // here we care about actual factor value
+                      }
+              }
+      }
+//    time_t end_time = time_in_milli();
+//    cout << "created DBNFactor in " << end_time - start_time << "ms" << endl;
+#endif
+      // add random factor to dbn
       fmdp->addDBNFactor(fa);
   }
 
   return fmdp;
-
-#if 0
-//	time_t start_time = time_in_milli();
-	for (Size state_index=0; state_index<domain->getNumStates(); state_index++) {
-		State s(domain, state_index);
-		for (Size action_index=0; action_index<domain->getNumActions(); action_index++) {
-			Action a(domain, action_index);
-			mdp->setR(s, a, randDouble());
-			Probability total = 0;
-			std::vector<Probability> probs(domain->getNumStates());
-			for (Size next_index=0; next_index<domain->getNumStates(); next_index++) {
-				Probability prob = randDouble();
-				total += prob;
-				probs[next_index] = prob;
-			}
-			// normalize
-			for (Size next_index=0; next_index<domain->getNumStates(); next_index++) {
-				State s_next(domain, next_index);
-				Probability prob = probs[next_index]/total;
-				mdp->setT(s, a, s_next, prob);
-			}
-		}
-	}
-//	time_t end_time = time_in_milli();
-//	cout << "created mdp in " << end_time - start_time << "ms" << endl;
-#endif
 }
 
 int main()
