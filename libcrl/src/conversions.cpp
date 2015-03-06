@@ -10,17 +10,16 @@
 #include "cpputil.hpp"
 #include "crl/conversions.hpp"
 
-
 using namespace std;
 using namespace crl;
 
 namespace {
 
 /// \brief Convert supplied (joint) action into a string, given the action_names from the \a Domain.
-string toString(const Action& act, const StrVec& action_names) {
+string toString(const Action& ja, const StrVec& action_names) {
   stringstream ss;
-  for (Size i=0; i<act.size(); i++) {
-      ss << action_names[i] << "_" << act.getFactor(i) << "__";
+  for (Size i=0; i<ja.size(); i++) {
+      ss << action_names[i] << "_" << ja.getFactor(i) << "__";
   }
   string aname = ss.str();
   return aname.substr(0, aname.length()-2);
@@ -72,15 +71,9 @@ void exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& p
   // write actions
   const StrVec& a_str_vec = domain->getActionNames();
   _ActionIncrementIterator jaitr(domain);
-  // Alternative:
-  //  for (Size action_index=0; action_index<domain->getNumActions(); action_index++)
-  //    Action a(domain, action_index);
-
   while (jaitr.hasNext()) {
-#if 0
-      vector<Index> A = JointToIndividualActionIndices(jaI);
-#endif
-      Action ja = jaitr.next(); // joint action
+      // joint action
+      Action ja = jaitr.next();
       // construct and print joint action name
       fp << "action " << toString(ja, a_str_vec) << endl;
 
@@ -92,17 +85,19 @@ void exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& p
       while(fitr->hasNext()) {
           DBNFactor sf = fitr->next();
           Domain subdomain = sf->getSubdomain();
-          const Action a = sf->mapAction(ja); // map joint action to factor-relevant subset
           fp << s_str_vec[fidx++] << endl;
+          // map joint action to factor-relevants subset
+          const Action a = sf->mapAction(ja);
 
-          // loop over X instantiations
+          // loop over state factor domain instantiations
           _StateIncrementIterator sitr(subdomain);
           do { // for each permutation
               // close previously opened variable blocks
 
 
 
-              State s = sitr.next(); // the state factor subset in subdomain
+
+              State s = sitr.next(); // an instantiation of the state factor subdomain
 
 
 

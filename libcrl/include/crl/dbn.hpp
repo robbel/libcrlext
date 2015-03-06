@@ -86,7 +86,7 @@ public:
   /// \brief The vector of probabilities for successor values associated with the tuple (s,n,a)
   virtual const ProbabilityVec& T(const State& s, const State& n, const Action& a);
   /// \brief Convenience function for the case that no concurrent dependencies exist in 2DBN
-  /// \note This particular function can be called with either joint state and action or with already reduced ones to factor scope
+  /// \note This particular function supports either joint state/action or state/action parameters that are already at factor scope
   virtual const ProbabilityVec& T(const State& s, const Action& a) {
     if(!_concurrent_dep.empty()) {
         throw cpputil::InvalidException("Transition function is missing state(t) to compute concurrent dependencies.");
