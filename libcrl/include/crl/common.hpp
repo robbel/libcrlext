@@ -95,16 +95,16 @@ public:
 	const SizeVec& getActionIndexComponents() const {
 		return _action_index_components;
 	}
-	Size getNumStates() {
+	Size getNumStates() const {
 		return _num_states;
 	}
-	Size getNumActions() {
+	Size getNumActions() const {
 		return _num_actions;
 	}
-	Size getNumStateFactors() {
+	Size getNumStateFactors() const {
 		return _state_ranges.size();
 	}
-	Size getNumActionFactors() {
+	Size getNumActionFactors() const {
 		return _action_ranges.size();
 	}
 

@@ -83,7 +83,7 @@ protected:
   _FStateActionTable<Reward> _R_map;
 public:
   _FactoredMDP(Domain domain)
-  : _domain(std::move(domain)), _R_map(domain, 0) { }
+  : _domain(domain), _R_map(domain, 0) { }
   virtual ~_FactoredMDP() { }
 
   // MDP interface

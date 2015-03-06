@@ -27,11 +27,9 @@ string concat(const Action& ja, const StrVec& action_names) {
 
 } // anonymous namespace
 
+
 namespace crl {
 
-// STILL NEED:
-// - (factored) reward function..
-// - name of problem, name of factors (state, action)
 void exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& problemName, const string& filename)
 {
   // input checking
@@ -119,11 +117,6 @@ void exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& p
 
       // write generic cost term
       fp << "cost [+" << endl;
-
-      // Note: currently no factored reward function!
-
-      // write reward as cost for this ii instantiation
-      // TODO
       _StateIncrementIterator jsitr(domain);
       while(jsitr.hasNext()) {
           State js = jsitr.next();

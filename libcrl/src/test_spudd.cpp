@@ -6,27 +6,71 @@
 
 #include <iostream>
 #include "crl/conversions.hpp"
+#include "crl/factor_learner.hpp"
 
 using namespace std;
 using namespace crl;
 
-int main()
-{
-    cout<<"hello"<<endl;
+FactoredMDP makeFactoredMDP(Domain domain) {
 
-    FactoredMDP fmdp;
-    Domain domain;
+  FactoredMDP fmdp = boost::make_shared<_FactoredMDP>(domain);
 
-    exportToSpudd(fmdp, domain, 0.99, "bla", "blub");
+  for(Size y = 0; y < domain->getNumStateFactors(); y++) {
+      // create a dbn factor
+      DBNFactor fa = boost::make_shared<_DBNFactor>(domain, y);
+      fa->addDelayedDependency(y); // dependence on self
+      fa->addActionDependency(0); // dependence on first action factor
+      fa->pack();
+      fmdp->addDBNFactor(fa);
+  }
 
-//    crl::exportToSpudd(FactoredMDP mdp,
-//                       float gamma,
-//                       const std::string& problemName,
-//                       const std::string& filename
-//                       );
+  return fmdp;
 
+#if 0
+//	time_t start_time = time_in_milli();
+	for (Size state_index=0; state_index<domain->getNumStates(); state_index++) {
+		State s(domain, state_index);
+		for (Size action_index=0; action_index<domain->getNumActions(); action_index++) {
+			Action a(domain, action_index);
+			mdp->setR(s, a, randDouble());
+			Probability total = 0;
+			std::vector<Probability> probs(domain->getNumStates());
+			for (Size next_index=0; next_index<domain->getNumStates(); next_index++) {
+				Probability prob = randDouble();
+				total += prob;
+				probs[next_index] = prob;
+			}
+			// normalize
+			for (Size next_index=0; next_index<domain->getNumStates(); next_index++) {
+				State s_next(domain, next_index);
+				Probability prob = probs[next_index]/total;
+				mdp->setT(s, a, s_next, prob);
+			}
+		}
+	}
+//	time_t end_time = time_in_milli();
+//	cout << "created mdp in " << end_time - start_time << "ms" << endl;
+#endif
 }
 
+int main()
+{
+  try {
+    srand(0);
+
+    Domain domain = boost::make_shared<_Domain>();
+    domain->addStateFactor(0, 299, "first_state");
+    domain->addActionFactor(0, 4, "first_agent");
+    domain->setRewardRange(-1, 0);
+
+    FactoredMDP fmdp = makeFactoredMDP(domain);
+
+    exportToSpudd(fmdp, domain, 0.99, "test", "test.spudd");
+  }
+  catch(const cpputil::Exception& e) {
+    cerr << e << endl;
+  }
+}
 
 #if 0
 void FactoredDecPOMDPDiscrete::ExportSpuddFile(const string& filename) const
