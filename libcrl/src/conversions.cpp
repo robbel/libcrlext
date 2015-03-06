@@ -89,7 +89,7 @@ void exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& p
           fp << s_str_vec[fidx++] << endl;
 
           // figure out action subset for current state factor
-          DBNFactor sf = fitr->next();
+          const DBNFactor& sf = fitr->next();
           Domain subdomain = sf->getSubdomain();
           const Action a = sf->mapAction(ja);
 
