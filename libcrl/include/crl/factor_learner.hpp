@@ -24,7 +24,7 @@
 #include "crl/common.hpp"
 #include "crl/crl.hpp"
 #include "crl/flat_tables.hpp"
-#include "crl/conversions.hpp"
+#include "crl/dbn.hpp"
 
 namespace crl {
 
@@ -75,15 +75,14 @@ typedef boost::shared_ptr<_FactorLearner> FactorLearner;
  */
 class _FactoredMDP : public _MDP {
 protected:
-  /// The domain which includes all state and action factors
-  /// FIXME currently not used
+  /// \brief The domain which includes all state and action factors
   const Domain _domain;
   /// \brief The factored transition function
   _DBN _T_map;
   /// \brief A mapping from (s,a) -> r
   _FStateActionTable<Reward> _R_map;
 public:
-  _FactoredMDP(const Domain& domain)
+  _FactoredMDP(Domain domain)
   : _domain(domain), _R_map(domain, 0) { }
   virtual ~_FactoredMDP() { }
 
@@ -97,6 +96,12 @@ public:
     return _R_map.getValue(s, a);
   }
 
+  /// \brief return entire factored transition function
+  DBN T() const {
+    DBN dbn = boost::make_shared<_DBN>(_T_map);
+    return dbn;
+  }
+
   /// \brief Add a factor to the factored transition function
   virtual void addDBNFactor(DBNFactor dbn_factor) {
     _T_map.addDBNFactor(std::move(dbn_factor));
@@ -108,6 +113,7 @@ public:
   virtual void setR(const State& s, const Action& a, Reward r) {
     _R_map.setValue(s, a, r);
   }
+
 };
 typedef boost::shared_ptr<_FactoredMDP> FactoredMDP;
 

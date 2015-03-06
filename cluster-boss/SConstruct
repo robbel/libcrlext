@@ -22,7 +22,9 @@ if os.uname()[0] == "Darwin":
 
 ccflags = ['-Wall', '-Werror', '-Wno-deprecated', '-std=c++11']
 if 'debug' in COMMAND_LINE_TARGETS:
-	ccflags += ['-g']
+	ccflags += ['-g', '-O0']
+else:
+	ccflags += ['-DBOOST_DISABLE_ASSERTS', '-DNDEBUG', '-O2']
 
 BuildDir(build, src, duplicate=0)
 

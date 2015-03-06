@@ -93,7 +93,7 @@ public:
 		_HashTable<T>::setValue(s, t);
 	}
 	virtual StateIterator iterator() {
-		StateIterator sitr(new _StateSetIterator(_states));
+		StateIterator sitr = boost::make_shared<_StateSetIterator>(_states);
 		return sitr;
 	}
 };
@@ -109,7 +109,7 @@ public:
 		_HashTable<T>::setValue(a, t);
 	}
 	virtual ActionIterator iterator() {
-		ActionIterator aitr(new _ActionSetIterator(_actions));
+		ActionIterator aitr = boost::make_shared<_ActionSetIterator>(_actions);
 		return aitr;
 	}
 };
@@ -182,7 +182,7 @@ class _HStateDistribution : public _Distribution<State> {
 public:
 	_HStateDistribution(const Domain& domain);
 	virtual StateIterator iterator() {
-		StateIterator itr(new _StateSetIterator(_known_states));
+		StateIterator itr = boost::make_shared<_StateSetIterator>(_known_states);
 		return itr;
 	}
 	virtual Probability P(const State& s) {

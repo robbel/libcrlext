@@ -18,7 +18,9 @@ lib_paths = ld_library_path.split(':')+[lib, prefix_lib]
 ccflags = ['-Wall', '-Werror', '-ansi']
 
 if 'debug' in COMMAND_LINE_TARGETS:
-	ccflags += ['-g']
+	ccflags += ['-g', '-O0']
+else:
+	ccflags += ['-DNDEBUG', '-O2']
 
 BuildDir(build, src, duplicate=0)
 
@@ -53,7 +55,7 @@ if prefix != Dir('.'):
 	Alias('install', env.InstallPerm(prefix_bin, executables, 0755))
 
 Default(glue_exp)
-Alias('debug', 'install')
+Alias('debug', glue_exp)
 
 dist_files = [File(x) for x in """
 COPYING COPYING.LESSER SConstruct tools.py

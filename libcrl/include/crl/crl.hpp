@@ -75,7 +75,7 @@ public:
 	/// \brief sample a successor state and reward (i.e., generate an \a Observation)
 	///
 	virtual Observation sample(const State& s, const Action& a) {
-		Observation o(new _Observation(T(s, a)->sample(), R(s, a)));
+		Observation o = boost::make_shared<_Observation>(T(s, a)->sample(), R(s, a));
 		return o;
 	}
 	virtual void printXML(std::ostream& os);

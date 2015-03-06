@@ -118,7 +118,7 @@ Action _IUCTQTable::GetUCTAction(Size state_hash, Size& hash_a, bool explore) {
 
 Action 	_UCTQTable::getBestAction (const State &s) {
 	CStateInfoHash& state_info = _qdata[s.getIndex()];
-	Size best_action_hash;
+	Size best_action_hash = 0; //FIXME: returning action 0 on error
 	Reward max;
 	bool first = true;
 	for( HASH_MAP_ACTIONS_INFO::const_iterator iter = state_info->_actions.begin(); iter != state_info->_actions.end(); iter++) {
@@ -210,7 +210,7 @@ void 	_MBUCTQTable::setQ (const State &s, const Action &a, Reward r) {
 Action 	_MBUCTQTable::getBestAction (const State &s) {
 	_CStateInfoMBHash* state_info = static_cast<_CStateInfoMBHash*>(_qdata[s.getIndex()].get());
 
-	Size best_action_hash;
+	Size best_action_hash = 0; // FIXME: returning action 0 on error?
 	Reward max;
 	bool first = true;
 	for( HASH_MAP_ACTIONS_INFO::const_iterator iter = state_info->_actions.begin(); iter != state_info->_actions.end(); iter++) {

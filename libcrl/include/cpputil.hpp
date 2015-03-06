@@ -386,7 +386,8 @@ public:
 };
 
 ///
-/// \brief Forward iterator for templated container that's wrapped in a shared_ptr
+/// \brief Forward iterator for templated container that's wrapped in a shared_ptr.
+/// \note Unlike the \a ContainerIterator the reference count of the shared_ptr is incremented.
 ///
 template <class T, class C>
 class SharedContainerIterator : public Iterator<T> {

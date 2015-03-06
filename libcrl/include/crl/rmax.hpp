@@ -60,7 +60,7 @@ protected:
 public:
 	_FKnownClassifier(const Domain& domain, Size m)
 	: _KnownClassifier(m) {
-		_counter = FCounter(new _FCounter(domain));
+		_counter = boost::make_shared<_FCounter>(domain);
 	}
 	virtual ~_FKnownClassifier() { }
 };
@@ -83,7 +83,7 @@ protected:
 public:
 	_HKnownClassifier(const Domain& domain, Size m)
 	: _KnownClassifier(m) {
-		_counter = HCounter(new _HCounter(domain));
+		_counter = boost::make_shared<_HCounter>(domain);
 	}
 	virtual ~_HKnownClassifier() { }
 };
