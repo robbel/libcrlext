@@ -59,8 +59,8 @@ int main()
     srand(0);
 
     Domain domain = boost::make_shared<_Domain>();
-    domain->addStateFactor(0, 299, "first_state");
-    domain->addActionFactor(0, 4, "first_agent");
+    domain->addStateFactor(0, 299, "first_state"); // 300 states
+    domain->addActionFactor(0, 4, "first_agent");  // 5 actions
     domain->setRewardRange(-1, 0);
 
     FactoredMDP fmdp = makeFactoredMDP(domain);

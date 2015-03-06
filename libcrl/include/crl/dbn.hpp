@@ -7,6 +7,7 @@
 #ifndef DBN_HPP_
 #define DBN_HPP_
 
+#include <cassert>
 #include "crl/crl.hpp"
 #include "crl/flat_tables.hpp"
 
@@ -44,6 +45,8 @@ protected:
   SAFProbTable _prob_table;
   /// \brief A dummy, empty state
   const State _empty_s;
+  /// \brief True iff \a pack() has been called on this factor
+  bool _packed;
 public:
   ///
   /// \brief Extract the relevant state information for this factor (i.e., those corresponding to this \a _subdomain)
@@ -80,6 +83,7 @@ public:
   /// \note Only available after call to \a pack()
   ///
   virtual Domain getSubdomain() {
+    assert(_packed);
     return _subdomain;
   }
 

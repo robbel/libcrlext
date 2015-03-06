@@ -12,6 +12,7 @@ using namespace crl;
 
 
 State _DBNFactor::mapState(const State& s, const State& n) const {
+	assert(_packed);
 	if(s.size() == _delayed_dep.size() && !n) // under these conditions no reduction to local scope needed
 	  return s;
 	State ms(_subdomain);
@@ -28,6 +29,7 @@ State _DBNFactor::mapState(const State& s, const State& n) const {
 }
 
 Action _DBNFactor::mapAction(const Action& a) const {
+	assert(_packed);
 	if(a.size() == _action_dep.size()) // if it has already been reduced to local scope
 	  return a;
 	Action ma(_subdomain);
@@ -39,19 +41,22 @@ Action _DBNFactor::mapAction(const Action& a) const {
 }
 
 _DBNFactor::_DBNFactor(const Domain& domain, Size target)
-: _domain(domain), _target(target) {
+: _domain(domain), _target(target), _packed(false) {
 	_target_range = _domain->getStateRanges()[_target];
 }
 
 void _DBNFactor::addDelayedDependency(Size index) {
+	assert(!_packed);
 	_delayed_dep.push_back(index);
 }
 
 void _DBNFactor::addConcurrentDependency(Size index) {
+	assert(!_packed);
 	_concurrent_dep.push_back(index);
 }
 
 void _DBNFactor::addActionDependency(Size index) {
+	assert(!_packed);
 	_action_dep.push_back(index);
 }
 
@@ -75,6 +80,7 @@ void _DBNFactor::pack() {
 	}
 
 	_prob_table = boost::make_shared<_FStateActionTable<ProbabilityVec>>(_subdomain);
+	_packed = true;
 }
 
 // FIXME may be costly to always convert from (s,n,a) to index (!)
