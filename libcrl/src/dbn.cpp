@@ -12,7 +12,7 @@ using namespace crl;
 
 
 State _DBNFactor::mapState(const State& s, const State& n) const {
-	if(s.size() == _delayed_dep.size() && n.size() == 0) // under these conditions no reduction to local scope needed
+	if(s.size() == _delayed_dep.size() && !n) // under these conditions no reduction to local scope needed
 	  return s;
 	State ms(_subdomain);
 	for (Size i=0; i<_delayed_dep.size(); i++) {
@@ -78,7 +78,6 @@ void _DBNFactor::pack() {
 }
 
 // FIXME may be costly to always convert from (s,n,a) to index (!)
-// FIXME better idea is to check whether subdomain_ and domain_ sizes differ?
 const ProbabilityVec& _DBNFactor::T(const State& s, const State& n, const Action& a)
 {
    State ms = mapState(s, n);
