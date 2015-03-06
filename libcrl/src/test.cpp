@@ -1,6 +1,7 @@
 /*
     Copyright 2008 Rutgers University
     Copyright 2008 John Asmuth
+    Copyright 2015 Philipp Robbel
 
     This file is part of CRL.
 

@@ -1,6 +1,7 @@
 /*
     Copyright 2009 Rutgers University
     Copyright 2009 John Asmuth
+    Copyright 2015 Philipp Robbel
 
     This file is part of CRL:RL-Glue:bayes.
 
