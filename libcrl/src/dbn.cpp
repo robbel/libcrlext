@@ -46,18 +46,18 @@ _DBNFactor::_DBNFactor(const Domain& domain, Size target)
 }
 
 void _DBNFactor::addDelayedDependency(Size index) {
-	assert(!_packed);
 	_delayed_dep.push_back(index);
+	_packed = false;
 }
 
 void _DBNFactor::addConcurrentDependency(Size index) {
-	assert(!_packed);
 	_concurrent_dep.push_back(index);
+	_packed = false;
 }
 
 void _DBNFactor::addActionDependency(Size index) {
-	assert(!_packed);
 	_action_dep.push_back(index);
+	_packed = false;
 }
 
 void _DBNFactor::pack() {
