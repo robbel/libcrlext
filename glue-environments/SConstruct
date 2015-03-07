@@ -27,7 +27,7 @@ BuildDir(build, src, duplicate=0)
 poupart_sources = [build.File('env_poupart.cpp')]
 littman_sources = [build.File('env_littman.cpp')]
 ffg_sources     = [build.File('env_ffg.cpp')]
-headers = []
+headers = ['crl/env_ffg.hpp']
 
 env = Environment(tools = ["default", "tools"], toolpath = '.',
                   CPPPATH=cpp_paths, CCFLAGS=ccflags, LIBPATH=lib_paths)

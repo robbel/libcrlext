@@ -9,10 +9,15 @@
     GNU Lesser General Public License for more details.
  */
 
-#include <iostream>
-using namespace std;
+#ifndef ENV_FFG_HPP_
+#define ENV_FFG_HPP_
 
+/*
+ create a FFG domain template
+ */
 
-int main(int argc, char** argv) {
-  cout << "todo" << endl;
+namespace crl {
+
 }
+
+#endif /*ENV_FFG_HPP_*/
