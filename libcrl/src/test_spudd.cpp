@@ -21,7 +21,7 @@ FactoredMDP makeFactoredMDP(Domain domain) {
 
   FactoredMDP fmdp = boost::make_shared<_FactoredMDP>(domain);
 
-//const RangeVec& ranges = domain->getStateRanges();
+  const RangeVec& ranges = domain->getStateRanges();
   for(Size y = 0; y < domain->getNumStateFactors(); y++) {
       // create a dbn factor
       DBNFactor fa = boost::make_shared<_DBNFactor>(domain, y);
@@ -29,7 +29,7 @@ FactoredMDP makeFactoredMDP(Domain domain) {
       fa->addActionDependency(0); // dependence on first action factor
       fa->pack();
       // fill with random values for transition fn
-#if 0
+
 //    time_t start_time = time_in_milli();
       Domain subdomain = fa->getSubdomain();
       for (Size state_index=0; state_index<subdomain->getNumStates(); state_index++) {
@@ -53,7 +53,7 @@ FactoredMDP makeFactoredMDP(Domain domain) {
       }
 //    time_t end_time = time_in_milli();
 //    cout << "created DBNFactor in " << end_time - start_time << "ms" << endl;
-#endif
+
       // add random factor to dbn
       fmdp->addDBNFactor(fa);
   }
@@ -95,6 +95,8 @@ int main()
     FactoredMDP fmdp = makeFactoredMDP(domain);
 
     exportToSpudd(fmdp, domain, 0.99, "test", "test.spudd");
+
+    MDP mdp = convertToMDP(fmdp);
   }
   catch(const cpputil::Exception& e) {
     cerr << e << endl;
