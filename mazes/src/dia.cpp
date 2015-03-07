@@ -112,14 +112,14 @@ int main(int argc, char** argv) {
 	Maze m = readMaze(in_maze);
 	ifstream in_cfg(argv[2]);
 	SlipConfig cfg = readSlipConfig(in_cfg);
-	SlipMaze sm(new _SlipMaze(m, cfg));
+	SlipMaze sm = boost::make_shared<_SlipMaze>(m, cfg);
 	
 	FMDP mdp = getFMDP(sm->getMDP());
 	
 	Planner planner;
+
 	
-	
-	VIPlanner vi_planner(new _FlatVIPlanner(mdp->getDomain(), mdp, .001, 1));
+	VIPlanner vi_planner = boost::make_shared<_FlatVIPlanner>(mdp->getDomain(), mdp, .001, 1);
 	vi_planner->plan();
 	planner = vi_planner;
 	
@@ -127,14 +127,12 @@ int main(int argc, char** argv) {
 	diastream os(argv[3]);
 	
 	os << DiaBeginDoc()
-       << DiaBeginLayer("top");
+	   << DiaBeginLayer("top");
     
 	drawMaze(os, sm, 1, 1, sm->getDomain(), planner);
 	
-	os << DiaEndLayer() 
+	os << DiaEndLayer()
 	   << DiaEndDoc();
-	  
 	   
 	os.close();
 }
-

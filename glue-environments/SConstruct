@@ -26,6 +26,7 @@ BuildDir(build, src, duplicate=0)
 
 poupart_sources = [build.File('env_poupart.cpp')]
 littman_sources = [build.File('env_littman.cpp')]
+ffg_sources     = [build.File('env_ffg.cpp')]
 headers = []
 
 env = Environment(tools = ["default", "tools"], toolpath = '.',
@@ -60,6 +61,14 @@ if has_crl and has_glue:
 else:
 	print "Cannot build env_littman"
 
+if has_crl and has_glue:
+	env_ffg = env.Program(bin.Entry('env_ffg'), ffg_sources,
+	                       LIBS=['crl', 'rlgnmenv', 'strxml',
+	                             'rlcrlenv', 'rlutils', 'rlgluenetdev'])
+	bin_targets += [env_ffg]
+else:
+	print "Cannot build env_ffg"
+
 if prefix != Dir('.'):
 	for header in headers:
 		env.Alias('install', env.InstallPerm(prefix_inc.Dir('crl'), inc.Entry(header), 0644))
@@ -75,8 +84,7 @@ COPYING COPYING.LESSER SConstruct tools.py
 """.split()]
 dist_files += [inc.Entry(header) for header in headers]
 dist_files += [src.Entry(s) for s in env_poupart] 
+dist_files += [src.Entry(s) for s in env_littman] 
+dist_files += [src.Entry(s) for s in env_ffg] 
 
 env.Alias('dist', env.DistTar('glue-environments.tar.gz', dist_files))
-	
-	
-	

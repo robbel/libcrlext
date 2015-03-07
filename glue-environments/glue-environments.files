@@ -3,5 +3,6 @@ cfgs/littman1.xml
 cfgs/littman2.xml
 src/env_littman.cpp
 src/env_poupart.cpp
+src/env_ffg.cpp
 README
 SConstruct
