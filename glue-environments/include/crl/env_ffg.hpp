@@ -14,9 +14,26 @@
 
 /*
  create a FFG domain template
+ or: generalized domain
+ or: generalized environment (rl-glue lingo)
  */
 
 namespace crl {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 }
 

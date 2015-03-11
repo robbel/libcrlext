@@ -30,6 +30,7 @@ namespace crl {
 ///
 /// \brief An interface to the domain and state for the desired \a crl::Agent
 /// This can be used to convert between, e.g., a continuous rl-glue domain to a discretized crl::Domain.
+/// \see _AcrobotMapper
 ///
 class _StateMapper {
 public:

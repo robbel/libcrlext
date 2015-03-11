@@ -41,6 +41,10 @@ action_t _last_action;
 observation_t _last_observation;
 taskspec_t _tss;
 
+//
+// The interface from libcrl to rl-glue
+//
+
 ///
 /// \brief Initialize a \a crl::Agent given the task spec
 /// As per rl-glue spec
