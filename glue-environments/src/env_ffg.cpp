@@ -14,6 +14,7 @@
 #include <cstring>
 #include <crl/crl.hpp>
 #include <rlgnmenv.h>
+#include "crl/env_ffg.hpp"
 
 using namespace std;
 using namespace crl;
@@ -25,7 +26,17 @@ namespace crl {
 // TODO: implement
 //
 
+State _FireFightingGraph::begin() {
+  return State();
+}
 
+bool _FireFightingGraph::isTerminated() {
+  return false;
+}
+
+Observation _FireFightingGraph::getObservation(const Action& a) {
+  return nullptr;
+}
 
 //
 // Making the environment available in rl-glue
@@ -58,8 +69,6 @@ const char* env_message(const char* inMessage) {
 
 // launch networked rl-glue environment through rlgnm library
 int main(int argc, char** argv) {
-  cout << "todo" << endl;
-
 
   paramBuf[0] = '\0'; // initialize paramBuf for good measure
 

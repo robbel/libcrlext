@@ -20,20 +20,33 @@
 
 namespace crl {
 
+/**
+ * \brief The FireFightingGraph environment.
+ * This corresponds to a fully-observable version of the FireFightingGraph problem described in:
+ * "Value-Based Planning for Teams of Agents in Stochastic Partially Observable Environments", Frans A. Oliehoek, 2010
+ * \note This is a template that can be instantiated for different houses, firelevels, etc.
+ */
+class _FireFightingGraph : public _Environment {
+protected:
+  Domain _domain;
+  State _current;
+public:
+  _FireFightingGraph(Domain domain)
+  : _domain(std::move(domain)) { }
+  virtual ~_FireFightingGraph() { }
 
+  //
+  // Environment interface
+  //
 
+  /// \brief Return initial state
+  virtual State begin() override;
+  /// \brief True iff environment has reached a terminating state
+  virtual bool isTerminated() override;
+  /// \brief Apply the \a Action and return the resulting \a Observation
+  virtual Observation getObservation(const Action& a) override;
 
-
-
-
-
-
-
-
-
-
-
-
+};
 
 }
 
