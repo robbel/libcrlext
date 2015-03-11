@@ -31,7 +31,9 @@
 using namespace crl;
 using namespace std;
 
+/// \brief (Global) \a crl::Agent used for interaction with rl-glue
 Agent _agent;
+/// \brief (Global) \a crl::Domain used for interaction with rl-glue
 Domain _domain_agent;
 StateMapper _state_mapper;
 action_t _this_action;
@@ -39,6 +41,12 @@ action_t _last_action;
 observation_t _last_observation;
 taskspec_t _tss;
 
+///
+/// \brief Initialize a \a crl::Agent given the task spec
+/// As per rl-glue spec
+/// \note The current agent must implement getCRLAgent() and (optionally) getStateMapper()
+/// \see getCRLAgent(), getStateMapper()
+///
 extern "C" void agent_init(const char* task_spec)
 {
 	/*Seed the random number generator*/
@@ -87,6 +95,10 @@ extern "C" void agent_init(const char* task_spec)
 	_agent = getCRLAgent(_domain_agent);
 }
 
+///
+/// \brief Initialize the \a crl::Agent given the initial observation from the environment.
+/// As per rl-glue spec
+///
 extern "C" const action_t* agent_start(const observation_t* this_observation) {
 	State s = _state_mapper->getState(_domain_agent, this_observation);
 	_agent->begin(s);
@@ -104,6 +116,11 @@ extern "C" const action_t* agent_start(const observation_t* this_observation) {
 	return &_this_action;
 }
 
+///
+/// \brief Step the \a crl::Agent and return an action.
+/// As per rl-glue spec
+/// \note If no agent has been created, this will return the 0-action.
+///
 extern "C" const action_t* agent_step(double reward, const observation_t* this_observation) {
 	/* This agent  returns 0 or 1 randomly for its action */
 	/* This agent always returns a random number, either 0 or 1 for its action */
@@ -128,11 +145,15 @@ extern "C" const action_t* agent_step(double reward, const observation_t* this_o
 	return &_last_action;
 }
 
+///
+/// \brief Pass the last reward (with the empty state!) to the agent.
+/// As per rl-glue spec
+///
 extern "C" void agent_end(double reward) {
 	State s;
 	Observation o(new _Observation(s, reward));
 	if (_agent) {
-		_agent->observe(o);
+		_agent->observe(o); // FIXME should this be observed? After all, this is the null state!
 		_agent->end();
 	}
 	clearRLStruct(&_last_action);

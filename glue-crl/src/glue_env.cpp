@@ -31,13 +31,25 @@
 using namespace std;
 using namespace crl;
 
+/// \brief (Global) \a crl::Environment used for interaction with rl-glue
 Environment _env;
+/// \brief (Global) \a crl::Domain used for interaction with rl-glue
 Domain _domain_env;
 observation_t this_observation;
 reward_observation_terminal_t this_reward_observation;
 string task_string;
 int current_state=0;
 
+//
+// The interface from libcrl to rl-glue
+//
+
+///
+/// \brief Respond with task spec corresponding to current \a crl::Environment
+/// As per rl-glue spec
+/// \note The current environment must implement getCRLEnvironmentDomain() and getCRLEnvironment()
+/// \see getCRLEnvironmentDomain(), getCRLEnvironment()
+///
 extern "C" const char* env_init()
 {
 	_domain_env = getCRLEnvironmentDomain();
@@ -112,7 +124,6 @@ extern "C" const char* env_init()
 		 */
 	}
 
-
 	/* Allocate the observation variable */
 	allocateRLStruct(&this_observation, _domain_env->getNumStateFactors(),0,0);
 	/* That is equivalent to:
@@ -133,6 +144,10 @@ extern "C" const char* env_init()
 	return (char*)(task_string.c_str());
 }
 
+///
+/// \brief Respond with initial state in \a crl::Environment
+/// As per rl-glue spec
+///
 extern "C" const observation_t* env_start()
 {
 	State s = _env->begin();
@@ -140,9 +155,12 @@ extern "C" const observation_t* env_start()
   	return &this_observation;
 }
 
+///
+/// \brief Step the environment and return an rl-glue observation
+/// As per rl-glue spec
+///
 extern "C" const reward_observation_terminal_t* env_step(const action_t* this_action)
 {
-
 	Action a = getAction(_domain_env, this_action);
 	Observation o = _env->getObservation(a);
 	populateState(_domain_env, o->getState(), &this_observation);

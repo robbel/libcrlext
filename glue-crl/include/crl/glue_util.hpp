@@ -1,6 +1,7 @@
 /*
     Copyright 2008 Rutgers University
     Copyright 2008 John Asmuth
+    Copyright 2015 Philipp Robbel
 
     This file is part of CRL:RL-Glue.
 
@@ -24,9 +25,23 @@
 #include <rlglue/RL_common.h>
 #include <crl/crl.hpp>
 
+///
+/// \brief For interfacing with rl-glue: populate an \a observation_t from \a crl::State
+/// \see glue_env.cpp in glue-crl library
+///
 void populateState(crl::Domain domain, crl::State s, observation_t* obs);
+
+///
+/// \brief For interfacing with rl-glue: populate an \a action_t from \a crl::Action
+/// \see glue_agent.cpp in glue-crl library
+///
 void populateAction(crl::Domain domain, crl::Action a, action_t* act);
-//crl::State getState(crl::Domain domain, const observation_t* obs);
+
+///
+/// \brief For interfacing with rl-glue: return an \a crl::Action from an \a action_t
+/// \see glue_env.cpp in glue-crl library
+///
 crl::Action getAction(crl::Domain domain, const action_t* act);
+//crl::State getState(crl::Domain domain, const observation_t* obs);
 
 #endif /*GLUE_UTIL_HPP_*/

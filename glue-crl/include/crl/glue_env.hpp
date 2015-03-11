@@ -1,6 +1,7 @@
 /*
     Copyright 2008 Rutgers University
     Copyright 2008 John Asmuth
+    Copyright 2015 Philipp Robbel
 
     This file is part of CRL:RL-Glue.
 
@@ -25,7 +26,16 @@
 
 namespace crl {
 
+///
+/// \brief Construct and obtain domain corresponding to desired crl::Environment
+/// \see env_init()
+///
 Domain getCRLEnvironmentDomain();
+
+///
+/// \brief Construct and obtain desired \a crl::Environment from a \a crl::Domain
+/// \see env_init()
+///
 Environment getCRLEnvironment(Domain domain);
 
 }

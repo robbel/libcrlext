@@ -1,6 +1,7 @@
 /*
     Copyright 2008 Rutgers University
     Copyright 2008 John Asmuth
+    Copyright 2015 Philipp Robbel
 
     This file is part of CRL:RL-Glue.
 
@@ -26,6 +27,10 @@
 
 namespace crl {
 
+///
+/// \brief An interface to the domain and state for the desired \a crl::Agent
+/// This can be used to convert between, e.g., a continuous rl-glue domain to a discretized crl::Domain.
+///
 class _StateMapper {
 public:
 	virtual ~_StateMapper() { }
@@ -41,7 +46,16 @@ public:
 };
 typedef boost::shared_ptr<_StateMapper> StateMapper;
 
+///
+/// \brief Construct and obtain \a StateMapper for the desired \a crl::Agent
+/// \see agent_init()
+///
 StateMapper getStateMapper();
+
+///
+/// \brief getCRLAgent Construct and obtain desired \a crl::Agent
+/// \see agent_init()
+///
 Agent getCRLAgent(Domain domain);
 
 }

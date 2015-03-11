@@ -32,6 +32,7 @@ void populateState(Domain domain, State s, observation_t* obs) {
 		obs->intArray[i] = s.getFactor(i);
 	}
 }
+
 void populateAction(Domain domain, Action a, action_t* act) {
 	for (Size i=0; i<domain->getNumActionFactors(); i++) {
 		act->intArray[i] = a.getFactor(i);
