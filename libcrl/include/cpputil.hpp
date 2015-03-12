@@ -490,6 +490,18 @@ inline time_t time_in_milli() {
   return tv.tv_usec/1000+tv.tv_sec*1000;
 }
 
+///
+/// \brief True iff val in [min,max)
+///
+template<class T>
+bool in_interval(const T& val, const T& min, const T& max) {
+    return val >= min && val < max;
+}
+template<class T>
+bool in_pos_interval(const T& val, const T& max) {
+    return in_interval<T>(val, 0, max);
+}
+
 }
 
 #endif
