@@ -10,33 +10,33 @@
  */
 
 #include <iostream>
-#include <rlglue/Environment_common.h>
 #include <cstring>
-#include <crl/crl.hpp>
-#include <rlgnmenv.h>
+#include <cassert>
 #include <cpputil.hpp>
+#include <rlgnmenv.h>
+#include <rlglue/Environment_common.h>
 #include "crl/env_ffg.hpp"
+#include <strxml.hpp>
 
 using namespace std;
 using namespace crl;
 
+FireFightingGraph _ffg;
+
+namespace {
+
+template<class T>
+bool in_pos_interval(const T& val, const T& max) {
+    return val >= 0 && val < max;
+}
+
+} // anonymous namespace
 
 namespace crl {
 
-//
-// TODO: implement
-//
-
 /*
-  Some ideas:
-    ctor with nrHouses, nrAgents, nrFirelevels
-      Note: in domain, give variables meaningful names via string
-    distribute agents randomly (?) among houses
-    maybe include lrf -- just another reward_domain (?)
-
-    while(true) draw without replacement a loc and assign next agent
-    maybe support direct assignment in config file (which agent which slot)
-
+  TODO
+      In domain, give variables meaningful names via string
  */
 
 _FireFightingGraph::_FireFightingGraph(Domain domain)
@@ -54,6 +54,24 @@ Reward _FireFightingGraph::getReward(const State& n) const
     r -= n.getFactor(i);
   }
   return r;
+}
+
+Domain _FireFightingGraph::getDomain() const {
+    return _domain;
+}
+
+void _FireFightingGraph::setAgentLocs(std::string locs) {
+    // parse given string into location assignment
+    if(locs.empty()) {
+        //TODO: randomize assignment
+    } else if(locs.length() != _num_agents) {
+        throw cpputil::InvalidException("Agent number is different from length of location string.");
+    }
+
+    for(auto c : locs) {
+        if(!in_pos_interval());
+        _agent_locs.push_back()
+    }
 }
 
 State _FireFightingGraph::begin() {
@@ -88,11 +106,44 @@ Observation _FireFightingGraph::getObservation(const Action& a) {
 //
 
 Domain getCRLEnvironmentDomain() {
-  return nullptr;
+    assert(_ffg != nullptr);
+    return _ffg->getDomain();
 }
 
 Environment getCRLEnvironment(Domain domain) {
-  return nullptr;
+    assert(_ffg != nullptr);
+    return _ffg; // Note: no new copy is constructed
+}
+
+FireFightingGraph readFFG(std::istream& is) {
+//
+// The FireFightingGraph layout:
+//    <FFG>
+//        <Houses count="5"/>
+//        <Agents count="3">013</Agents> <!-- or random if no locs are given -->
+//        <FireLevels count="3"/>
+//    </FFG>
+//
+    // read problem layout from xml file
+    XMLObject xobj(is);
+    XMLObject houses = xobj["Houses"];
+    int num_houses = atoi(houses("count").c_str());
+    XMLObject agents = xobj["Agents"];
+    int num_agents = atoi(agents("count").c_str());
+    string agentAssignments = agents.getText();
+    XMLObject fls = xobj["FireLevels"];
+    int num_fls = atoi(fls("count").c_str());
+
+    // construct domain
+    Domain domain = std::make_shared<_Domain>();
+//    domain->addStateFactor(0, num_links-1);
+//    domain->addActionFactor(0, 3);
+    domain->setRewardRange(-num_fls, 0);
+
+    // instantiate ffg problem
+    FireFightingGraph ffg = boost::make_shared<_FireFightingGraph>(std::move(domain));
+    ffg->setAgentLocs(agentAssignments);
+    return ffg;
 }
 
 }
@@ -114,10 +165,16 @@ const char* env_message(const char* inMessage) {
 
 // launch networked rl-glue environment through rlgnm library
 int main(int argc, char** argv) {
+    if (argc != 2) {
+            cerr << "Usage: " << argv[0] << " <config>" << endl;
+            return EXIT_FAILURE;
+    }
+    ifstream is(argv[1]);
+    _ffg = readFFG(is);
 
-  paramBuf[0] = '\0'; // the empty string
+    paramBuf[0] = '\0'; // the empty string
 
-  glue_main_env(0, 0);
+    glue_main_env(0, 0);
 
-  return EXIT_SUCCESS;
+    return EXIT_SUCCESS;
 }

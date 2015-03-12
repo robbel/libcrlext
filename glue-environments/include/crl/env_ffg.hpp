@@ -12,6 +12,8 @@
 #ifndef ENV_FFG_HPP_
 #define ENV_FFG_HPP_
 
+#include <iostream>
+#include <crl/crl.hpp>
 
 namespace crl {
 
@@ -19,12 +21,18 @@ namespace crl {
  * \brief The FireFightingGraph (FFG) environment.
  * This corresponds to a fully-observable version of the FireFightingGraph problem described in:
  * "Value-Based Planning for Teams of Agents in Stochastic Partially Observable Environments", Frans A. Oliehoek, 2010
- * \note This is a template that can be instantiated for different houses, firelevels, etc.
+ * \note This is a template that can be instantiated for different houses, firelevels, and agent numbers.
  */
 class _FireFightingGraph : public _Environment {
 protected:
   Domain _domain;
   State _current;
+  // problem parameters
+  const int _num_houses;
+  const int _num_fls;
+  const int _num_agents;
+  /// \brief The (fixed) location for each agent
+  vector<Size> _agent_locs;
 
   /// \brief Return the number of agents fighting fire at house h
   virtual Size getNumAgentsAtHouse(const Action& a, Size h);
@@ -38,6 +46,11 @@ public:
   /// \brief Create a FFG from the supplied domain.
   _FireFightingGraph(Domain domain);
   virtual ~_FireFightingGraph() { }
+  /// \brief Return domain associated with this FFG
+  virtual Domain getDomain() const;
+  /// \brief Set up agent locations
+  /// \note If the empty string is given, agent locations are randomized
+  virtual void setAgentLocs(std::string locs = "");
 
   //
   // Environment interface
@@ -48,8 +61,11 @@ public:
   virtual bool isTerminated() override;
   /// \brief Apply the \a Action and return the resulting \a Observation
   virtual Observation getObservation(const Action& a) override;
-
 };
+typedef boost::shared_ptr<_FireFightingGraph> FireFightingGraph;
+
+/// \brief read in ffg details from xml file
+FireFightingGraph readFFG(std::istream& is);
 
 }
 
