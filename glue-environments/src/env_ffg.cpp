@@ -14,6 +14,7 @@
 #include <cstring>
 #include <crl/crl.hpp>
 #include <rlgnmenv.h>
+#include <cpputil.hpp>
 #include "crl/env_ffg.hpp"
 
 using namespace std;
@@ -26,16 +27,60 @@ namespace crl {
 // TODO: implement
 //
 
+/*
+  Some ideas:
+    ctor with nrHouses, nrAgents, nrFirelevels
+      Note: in domain, give variables meaningful names via string
+    distribute agents randomly (?) among houses
+    maybe include lrf -- just another reward_domain (?)
+
+    while(true) draw without replacement a loc and assign next agent
+    maybe support direct assignment in config file (which agent which slot)
+
+ */
+
+_FireFightingGraph::_FireFightingGraph(Domain domain)
+: _domain(std::move(domain)) { }
+
+Size _FireFightingGraph::getNumAgentsAtHouse(const Action& a, Size h) {
+  return 0;
+}
+
+
+Reward _FireFightingGraph::getReward(const State& n) const
+{
+  Reward r = 0.;
+  for(Size i = 0; i < n.size(); i++) {
+    r -= n.getFactor(i);
+  }
+  return r;
+}
+
 State _FireFightingGraph::begin() {
+
+//  _current = State(_domain); // really?
+//  _current.setFactor(0, 0); // and what does that do different from initialization above?
+//  return _current;
+
   return State();
 }
 
 bool _FireFightingGraph::isTerminated() {
-  return false;
+  // this flattened index should correspond to the all-zeroes state
+  return _current.getIndex() == 0;
 }
 
 Observation _FireFightingGraph::getObservation(const Action& a) {
-  return nullptr;
+  // apply action, obtain resulting state n, map that to _current
+
+  //Probability r = cpputil::randDouble();
+
+  //
+  // todo..
+  //
+
+  Observation o = boost::make_shared<_Observation>(_current, getReward(_current));
+  return o;
 }
 
 //
@@ -57,12 +102,12 @@ const char* env_message(const char* inMessage) {
 	if (!strcmp(inMessage, "id"))
 		return (char*)"firefighting-graph";
 	else if (!strcmp(inMessage, "param"))
-		return paramBuf;
+		return paramBuf; // return empty string
 	else if (!strcmp(inMessage, "version"))
 		return (char*)"1";
 	else if (!strncmp(inMessage, "seed", 4)) {
 		long seed = atoi(inMessage+5);
-		srand(seed);
+		srand(seed); // configure the random seed
 	}
 	return (char*)"";
 }
@@ -70,7 +115,7 @@ const char* env_message(const char* inMessage) {
 // launch networked rl-glue environment through rlgnm library
 int main(int argc, char** argv) {
 
-  paramBuf[0] = '\0'; // initialize paramBuf for good measure
+  paramBuf[0] = '\0'; // the empty string
 
   glue_main_env(0, 0);
 
