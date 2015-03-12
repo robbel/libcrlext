@@ -199,6 +199,8 @@ FireFightingGraph readFFG(std::istream& is) {
 
     // read problem layout from xml file
     XMLObject xobj(is);
+    if (xobj.getName() != "FFG")
+        throw xml_exception("Expected <FFG>");
     XMLObject houses = xobj["Houses"];
     int num_houses = atoi(houses("count").c_str());
     XMLObject agents = xobj["Agents"];
@@ -259,7 +261,8 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
-    paramBuf[0] = '\0'; // the empty string
+    sprintf(paramBuf, "ffg=%s", argv[1]); // todo: print agent layout and initial state
+    //paramBuf[0] = '\0'; // the empty string
 
     // run main glue environment loop
     glue_main_env(0, 0);
