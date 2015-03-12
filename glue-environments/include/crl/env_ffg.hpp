@@ -28,11 +28,11 @@ protected:
   Domain _domain;
   State _current;
   // problem parameters
-  const int _num_houses;
-  const int _num_fls;
-  const int _num_agents;
+  Size _num_houses;
+  Factor _num_fls;
+  Size _num_agents;
   /// \brief The (fixed) location for each agent
-  vector<Size> _agent_locs;
+  std::vector<Size> _agent_locs;
 
   /// \brief Return the number of agents fighting fire at house h
   virtual Size getNumAgentsAtHouse(const Action& a, Size h);
@@ -48,7 +48,7 @@ public:
   virtual ~_FireFightingGraph() { }
   /// \brief Return domain associated with this FFG
   virtual Domain getDomain() const;
-  /// \brief Set up agent locations
+  /// \brief Parse given location string (e.g., from xml file) into an agent-to-location assignment
   /// \note If the empty string is given, agent locations are randomized
   virtual void setAgentLocs(std::string locs = "");
 

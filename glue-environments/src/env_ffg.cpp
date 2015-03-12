@@ -10,6 +10,7 @@
  */
 
 #include <iostream>
+#include <fstream>
 #include <cstring>
 #include <cassert>
 #include <cpputil.hpp>
@@ -25,6 +26,7 @@ FireFightingGraph _ffg;
 
 namespace {
 
+/// \brief True iff val in [0,max)
 template<class T>
 bool in_pos_interval(const T& val, const T& max) {
     return val >= 0 && val < max;
@@ -40,7 +42,9 @@ namespace crl {
  */
 
 _FireFightingGraph::_FireFightingGraph(Domain domain)
-: _domain(std::move(domain)) { }
+: _domain(std::move(domain)) {
+
+}
 
 Size _FireFightingGraph::getNumAgentsAtHouse(const Action& a, Size h) {
   return 0;
@@ -61,7 +65,7 @@ Domain _FireFightingGraph::getDomain() const {
 }
 
 void _FireFightingGraph::setAgentLocs(std::string locs) {
-    // parse given string into location assignment
+
     if(locs.empty()) {
         //TODO: randomize assignment
     } else if(locs.length() != _num_agents) {
@@ -69,8 +73,12 @@ void _FireFightingGraph::setAgentLocs(std::string locs) {
     }
 
     for(auto c : locs) {
-        if(!in_pos_interval());
-        _agent_locs.push_back()
+        Size loc = c - '0'; // convert char to unsigned
+        if(!in_pos_interval(loc, _num_houses-1)) {
+            _agent_locs.push_back(loc);
+        } else {
+            throw cpputil::InvalidException("Invalid agent location in location string.");
+        }
     }
 }
 
@@ -135,10 +143,14 @@ FireFightingGraph readFFG(std::istream& is) {
     int num_fls = atoi(fls("count").c_str());
 
     // construct domain
-    Domain domain = std::make_shared<_Domain>();
-//    domain->addStateFactor(0, num_links-1);
-//    domain->addActionFactor(0, 3);
-    domain->setRewardRange(-num_fls, 0);
+    Domain domain = boost::make_shared<_Domain>();
+    for(int i = 0; i < num_houses; i++) {
+        domain->addStateFactor(0, num_fls, "house_"+i);
+    }
+    for(int i = 0; i < num_agents; i++) {
+        domain->addActionFactor(0, 1, "agent_"+i);
+    }
+    domain->setRewardRange(-num_fls, 0.);
 
     // instantiate ffg problem
     FireFightingGraph ffg = boost::make_shared<_FireFightingGraph>(std::move(domain));
