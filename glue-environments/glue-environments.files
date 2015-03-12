@@ -1,6 +1,7 @@
 cfgs/chain1.xml
 cfgs/littman1.xml
 cfgs/littman2.xml
+cfgs/ffg1.xml
 include/crl/env_ffg.hpp
 src/env_littman.cpp
 src/env_poupart.cpp

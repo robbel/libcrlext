@@ -21,33 +21,39 @@
 
 using namespace std;
 using namespace crl;
+using namespace cpputil;
 
+//FIXME: is it ok to have one global ffg or does an episode reset require a fresh one to be constructed?
 FireFightingGraph _ffg;
 
-namespace {
-
-/// \brief True iff val in [0,max)
-template<class T>
-bool in_pos_interval(const T& val, const T& max) {
-    return val >= 0 && val < max;
-}
-
-} // anonymous namespace
-
 namespace crl {
-
-/*
-  TODO
-      In domain, give variables meaningful names via string
- */
 
 _FireFightingGraph::_FireFightingGraph(Domain domain)
 : _domain(std::move(domain)) {
 
+    _num_houses = _domain->getNumStateFactors();
+    _num_agents = _domain->getNumActionFactors();
+    // some basic parameter checks..
+    if(_num_houses <= 0 ||
+       _num_agents <= 0 ||
+       !in_pos_interval(_num_agents, _num_houses)) {
+      throw InvalidException("House or agent number invalid in supplied domain.");
+    }
+    // obtain the number of fire levels in this problem
+    const RangeVec& ranges = _domain->getStateRanges();
+    _num_fls = ranges[0].getMax();
 }
 
 Size _FireFightingGraph::getNumAgentsAtHouse(const Action& a, Size h) {
-  return 0;
+    assert(!_agent_locs.empty() && in_pos_interval(h, _num_houses));
+
+    Size num = 0;
+    if(h != 0)
+      num += a.getFactor(h-1); // either 0 (for left) or 1 (for right);
+    if(h < _num_houses-1)
+      num += 1-a.getFactor(h);
+
+    return num;
 }
 
 
@@ -65,30 +71,31 @@ Domain _FireFightingGraph::getDomain() const {
 }
 
 void _FireFightingGraph::setAgentLocs(std::string locs) {
+    _agent_locs.clear();
 
     if(locs.empty()) {
         //TODO: randomize assignment
+        cerr << "Location randomization not implemented yet" << endl;
     } else if(locs.length() != _num_agents) {
-        throw cpputil::InvalidException("Agent number is different from length of location string.");
+        throw InvalidException("Agent number is different from length of location string.");
     }
 
     for(auto c : locs) {
         Size loc = c - '0'; // convert char to unsigned
-        if(!in_pos_interval(loc, _num_houses-1)) {
+        if(in_pos_interval(loc, _num_houses-1)) {
             _agent_locs.push_back(loc);
         } else {
-            throw cpputil::InvalidException("Invalid agent location in location string.");
+            throw InvalidException("Invalid agent location in location string.");
         }
     }
 }
 
 State _FireFightingGraph::begin() {
-
-//  _current = State(_domain); // really?
-//  _current.setFactor(0, 0); // and what does that do different from initialization above?
-//  return _current;
-
-  return State();
+    //_current = State(_domain); // really?
+    for(Size h = 0; h < _num_houses; h++) {
+        _current.setFactor(h, randDouble()*_num_fls);
+    }
+    return _current;
 }
 
 bool _FireFightingGraph::isTerminated() {
@@ -98,12 +105,66 @@ bool _FireFightingGraph::isTerminated() {
 
 Observation _FireFightingGraph::getObservation(const Action& a) {
   // apply action, obtain resulting state n, map that to _current
+  // FIXME: do i have to care about episode ends here?
 
-  //Probability r = cpputil::randDouble();
+  for(Size h = 0; h < _num_houses; h++) {
+      // determine burning neighbor
+      bool burning_neighbor = false;
+      if((h > 0 && _current.getFactor(h-1) > 0) ||
+         (h < _num_houses-1 && _current.getFactor(h+1) > 0)) {
+          burning_neighbor = true;
+      }
 
-  //
-  // todo..
-  //
+      // transition house fire level
+      const Factor current_level = _current.getFactor(h);
+      const Factor higher_level  = min(current_level+1, _num_fls-1);
+      const Factor lower_level   = (current_level==0) ? 0 : (current_level-1);
+
+      Size num_agents = getNumAgentsAtHouse(a, h);
+      switch(num_agents) {
+          case 0:
+              //this is kind of strange: when a house is not burning, but
+              //its neigbhor is, it will increase its FL with p=0.8
+              //but when it is already burning (and its neighbor is not), it
+              //increases with p=0.4...
+
+              //fire is likely to increase
+              if(burning_neighbor) {
+                  if(randDouble() < 0.2) { }
+                  // nextLevel = currentLevel
+                  else
+                      _current.setFactor(h, higher_level);
+              }
+              else if (current_level == 0) { //fire won't get ignited
+                  // nextLevel = currentLevel
+              }
+              else { //normal burning house
+                  if(randDouble() < 0.6) { }
+                  // nextLevel == currentLevel
+                  else
+                      _current.setFactor(h, higher_level);
+              }
+              break;
+          case 1:
+              //fire is likely to decrease
+              if(burning_neighbor) {
+                  if(randDouble() < 0.4) { }
+                  // nextLevel == sameLevel
+                  else
+                      _current.setFactor(h, lower_level);
+              }
+              else if (current_level == 0) { //fire won't get ignited
+                  // nextLevel = currentLevel
+              }
+              else { //normal burning house
+                  _current.setFactor(h, lower_level);
+              }
+              break;
+          default:
+              //more than 1 agent: fire is extinguished
+              _current.setFactor(h, 0);
+      }
+  }
 
   Observation o = boost::make_shared<_Observation>(_current, getReward(_current));
   return o;
@@ -123,34 +184,39 @@ Environment getCRLEnvironment(Domain domain) {
     return _ffg; // Note: no new copy is constructed
 }
 
-FireFightingGraph readFFG(std::istream& is) {
 //
 // The FireFightingGraph layout:
 //    <FFG>
 //        <Houses count="5"/>
-//        <Agents count="3">013</Agents> <!-- or random if no locs are given -->
+//        <Agents count="3">013</Agents> <!-- Note: location assignment string (e.g., 013) is optional -->
 //        <FireLevels count="3"/>
 //    </FFG>
 //
+FireFightingGraph readFFG(std::istream& is) {
+    if(!is) {
+        return nullptr;
+    }
+
     // read problem layout from xml file
     XMLObject xobj(is);
     XMLObject houses = xobj["Houses"];
     int num_houses = atoi(houses("count").c_str());
     XMLObject agents = xobj["Agents"];
     int num_agents = atoi(agents("count").c_str());
-    string agentAssignments = agents.getText();
+    string agentAssignments = agents.size() != 0 ? agents.getText() : ""; // if an assignment string is given
     XMLObject fls = xobj["FireLevels"];
     int num_fls = atoi(fls("count").c_str());
 
     // construct domain
     Domain domain = boost::make_shared<_Domain>();
     for(int i = 0; i < num_houses; i++) {
-        domain->addStateFactor(0, num_fls, "house_"+i);
+        domain->addStateFactor(0, num_fls-1, "house_"+i);
     }
+    // two types of actions: '0' for left, '1' for right
     for(int i = 0; i < num_agents; i++) {
         domain->addActionFactor(0, 1, "agent_"+i);
     }
-    domain->setRewardRange(-num_fls, 0.);
+    domain->setRewardRange(-num_fls+1, 0.);
 
     // instantiate ffg problem
     FireFightingGraph ffg = boost::make_shared<_FireFightingGraph>(std::move(domain));
@@ -181,11 +247,21 @@ int main(int argc, char** argv) {
             cerr << "Usage: " << argv[0] << " <config>" << endl;
             return EXIT_FAILURE;
     }
-    ifstream is(argv[1]);
-    _ffg = readFFG(is);
+
+    try {
+      ifstream is(argv[1]);
+      if(!(_ffg = readFFG(is))) {
+          cerr << "Input file opening failed: " << argv[1] << endl;
+          return EXIT_FAILURE;
+      }
+    } catch(const cpputil::Exception& e) {
+        cerr << e << endl;
+        return EXIT_FAILURE;
+    }
 
     paramBuf[0] = '\0'; // the empty string
 
+    // run main glue environment loop
     glue_main_env(0, 0);
 
     return EXIT_SUCCESS;
