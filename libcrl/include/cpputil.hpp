@@ -109,12 +109,17 @@ inline std::string translateSymbol(char* symbol) {
 		}
 		s += ")";
 	}
+	else if (*rest == ')') {
+	    return std::string("unknown");
+	}
 	else {
 		s += rest;
 	}
 	char* where = strtok(0, ")");
-	s += "+";
-	s += where;
+	if(where) {
+		s += "+";
+		s += where;
+	}
 	return s;
 }
 
