@@ -237,7 +237,7 @@ Environment crl::getCRLEnvironment(Domain domain) {
 char paramBuf[256];
 const char* env_message(const char* inMessage) {
 	if (!strcmp(inMessage, "id"))
-		return (char*)"poupart-chain";
+		return (char*)"littman-chain";
 	else if (!strcmp(inMessage, "param"))
 		return paramBuf;
 	else if (!strcmp(inMessage, "version"))

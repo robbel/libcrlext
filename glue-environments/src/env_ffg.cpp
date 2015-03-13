@@ -89,7 +89,7 @@ void _FireFightingGraph::setAgentLocs(std::string locs) {
 }
 
 State _FireFightingGraph::begin() {
-    //_current = State(_domain); // really?
+    _current = State(_domain);
     for(Size h = 0; h < _num_houses; h++) {
         _current.setFactor(h, static_cast<Factor>(randDouble()*_num_fls));
     }

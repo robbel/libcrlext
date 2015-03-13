@@ -30,7 +30,7 @@ instances = [
     #Instance("BOSS_m10", agent_boss_m10, env_littman1, steps=num_steps, trials=num_trials, runs=num_runs),
     #Instance("CRMAX_m10", agent_crmax_m10, env_littman1, steps=num_steps, trials=num_trials, runs=num_runs),
     #Instance("BOSS_a5_m2", agent_boss_a5_m2, env_littman, steps=num_steps, trials=num_trials, runs=num_runs),
-    Instance("RAND", agent_random, env_littman1, steps=num_steps, trials=num_trials, runs=num_runs),
+    Instance("RAND", agent_random, env_ffg1, steps=num_steps, trials=num_trials, runs=num_runs),
     #Instance("RMAX_m2", agent_rmax2, env_littman, steps=num_steps, trials=num_trials, runs=num_runs),
     #Instance("RMAX_m5", agent_rmax5, env_littman, steps=num_steps, trials=num_trials, runs=num_runs),
     #Instance("RMAX_m10", agent_rmax10, env_littman1, steps=num_steps, trials=num_trials, runs=num_runs),
