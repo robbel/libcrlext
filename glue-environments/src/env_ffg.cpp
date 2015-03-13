@@ -46,7 +46,7 @@ _FireFightingGraph::_FireFightingGraph(Domain domain)
 
 Size _FireFightingGraph::getNumAgentsAtHouse(const Action& a, Size h) {
     assert(!_agent_locs.empty() && in_pos_interval(h, _num_houses));
-
+    //FIXME use _agent_locs!
     Size num = 0;
     if(h != 0)
       num += a.getFactor(h-1); // either 0 (for left) or 1 (for right);
@@ -56,9 +56,7 @@ Size _FireFightingGraph::getNumAgentsAtHouse(const Action& a, Size h) {
     return num;
 }
 
-
-Reward _FireFightingGraph::getReward(const State& n) const
-{
+Reward _FireFightingGraph::getReward(const State& n) const {
   Reward r = 0.;
   for(Size i = 0; i < n.size(); i++) {
     r -= n.getFactor(i);
@@ -93,7 +91,7 @@ void _FireFightingGraph::setAgentLocs(std::string locs) {
 State _FireFightingGraph::begin() {
     //_current = State(_domain); // really?
     for(Size h = 0; h < _num_houses; h++) {
-        _current.setFactor(h, randDouble()*_num_fls);
+        _current.setFactor(h, static_cast<Factor>(randDouble()*_num_fls));
     }
     return _current;
 }
