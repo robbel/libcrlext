@@ -33,8 +33,14 @@ namespace crl {
  */
 class _KnownClassifier : public _Learner {
 protected:
-	Counter _counter;
-	Size _m;
+        /**
+         * counts for each s,a
+         */
+        Counter _counter;
+        /**
+         * the threshold after which a pair becomes known
+         */
+        Size _m;
 public:
 	_KnownClassifier(Counter counter, Size m);
 	_KnownClassifier(Size m);
@@ -49,15 +55,6 @@ typedef boost::shared_ptr<_KnownClassifier> KnownClassifier;
  * using a flat table
  */
 class _FKnownClassifier : public _KnownClassifier {
-protected:
-	/**
-	 * counts for each s,a
-	 */
-	FCounter _counter;
-	/**
-	 * the threshold after which a pair becomes known
-	 */
-	Size _m;
 public:
 	_FKnownClassifier(const Domain& domain, Size m)
 	: _KnownClassifier(m) {
@@ -72,15 +69,6 @@ typedef boost::shared_ptr<_FKnownClassifier> FKnownClassifier;
  * using a flat table
  */
 class _HKnownClassifier : public _KnownClassifier {
-protected:
-	/**
-	 * counts for each s,a
-	 */
-	HCounter _counter;
-	/**
-	 * the threshold after which a pair becomes known
-	 */
-	Size _m;
 public:
 	_HKnownClassifier(const Domain& domain, Size m)
 	: _KnownClassifier(m) {
