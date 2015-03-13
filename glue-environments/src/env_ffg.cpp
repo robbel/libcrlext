@@ -46,13 +46,14 @@ _FireFightingGraph::_FireFightingGraph(Domain domain)
 
 Size _FireFightingGraph::getNumAgentsAtHouse(const Action& a, Size h) {
     assert(!_agent_locs.empty() && in_pos_interval(h, _num_houses));
-    //FIXME use _agent_locs!
-    Size num = 0;
-    if(h != 0)
-      num += a.getFactor(h-1); // either 0 (for left) or 1 (for right);
-    if(h < _num_houses-1)
-      num += 1-a.getFactor(h);
 
+    Size num = 0;
+    for(Size i = 0; i < _num_agents; i++) {
+      if(_agent_locs[i] == h-1)
+        num += a.getFactor(i); // either 0 (for left) or 1 (for right)
+      if(_agent_locs[i] == h)
+        num += 1-a.getFactor(i);
+    }
     return num;
 }
 
