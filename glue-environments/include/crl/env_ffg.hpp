@@ -35,9 +35,12 @@ protected:
   Size _num_agents;
   /// \brief The (fixed) location for each agent
   std::vector<Size> _agent_locs;
+  /// \brief A mapping from house h to (multiple) agents co-located at h
+  std::multimap<Size, Size> _house_map;
 
   /// \brief Return the number of agents fighting fire at house h
-  virtual Size getNumAgentsAtHouse(const Action& a, Size h) const;
+  /// \param joint_action True if action \a is in joint agent space, false if it is in scope-of-influence of house \a h.
+  virtual Size getNumAgentsAtHouse(const Action& a, Size h, bool joint_action = true) const;
 
   ///
   /// \brief The reward function for the FFG problem, summing up the (negative) fire levels at each house.

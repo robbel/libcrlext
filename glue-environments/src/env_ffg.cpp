@@ -44,15 +44,29 @@ _FireFightingGraph::_FireFightingGraph(Domain domain)
     _num_fls = ranges[0].getMax();
 }
 
-Size _FireFightingGraph::getNumAgentsAtHouse(const Action& a, Size h) const {
-    assert(!_agent_locs.empty() && in_pos_interval(h, _num_houses));
-
+Size _FireFightingGraph::getNumAgentsAtHouse(const Action& a, Size h, bool joint_action) const {
+    assert(!_house_map.empty() && in_pos_interval(h, _num_houses));
+#if 0
+    // linear search over agents
     Size num = 0;
     for(Size i = 0; i < _num_agents; i++) {
       if(_agent_locs[i] == h-1)
         num += a.getFactor(i); // either 0 (for left) or 1 (for right)
       else if(_agent_locs[i] == h)
         num += 1-a.getFactor(i);
+    }
+    return num;
+#endif
+    // consider only those agents in scope-of-influence of house h
+    Size num = 0;
+    Size agentNo = 0;
+    const auto& ret = _house_map.equal_range(h); // the agent ids co-located with h
+    for(auto it = ret.first; it!=ret.second; ++it) { // over all agents in scope
+        if(_agent_locs[it->second] == h-1)
+           num += a.getFactor(joint_action ? it->second : agentNo); // either 0 (for left) or 1 (for right)
+        else if(_agent_locs[it->second] == h)
+           num += 1-a.getFactor(joint_action ? it->second : agentNo);
+        agentNo++;
     }
     return num;
 }
@@ -102,7 +116,7 @@ FactoredMDP _FireFightingGraph::getFactoredMDP() const {
                           const Factor higher_level = min(cur_level+1, _num_fls-1);
                           const Factor lower_level  = (cur_level==0) ? 0 : (cur_level-1);
                           const Factor next_level   = ranges[h].getMin()+f; // postulated next fire level
-                          const Size agents_at_h    = getNumAgentsAtHouse(a, h, subdomain); // agents fighting fire at h
+                          const Size agents_at_h    = getNumAgentsAtHouse(a, h, false); // agents fighting fire at h
                           bool burning_neighbor     = false;
                           if((h > 0 && s.getFactor(h-1) > 0) ||
                              (h < _num_houses-1 && s.getFactor(h+1) > 0)) {
@@ -185,6 +199,7 @@ FactoredMDP _FireFightingGraph::getFactoredMDP() const {
 
 void _FireFightingGraph::setAgentLocs(std::string locs) {
     _agent_locs.clear();
+    _house_map.clear();
 
     if(locs.empty()) {
         //TODO: randomize assignment
@@ -196,6 +211,8 @@ void _FireFightingGraph::setAgentLocs(std::string locs) {
     for(auto c : locs) {
         Size loc = c - '0'; // convert char to unsigned
         if(in_pos_interval(loc, _num_houses-1)) {
+            _house_map.emplace(loc, _agent_locs.size());
+            _house_map.emplace(loc+1, _agent_locs.size());
             _agent_locs.push_back(loc);
         } else {
             throw InvalidException("Invalid agent location in location string.");
