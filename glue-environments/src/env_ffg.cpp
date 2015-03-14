@@ -187,10 +187,14 @@ FactoredMDP _FireFightingGraph::getFactoredMDP() const {
 
       // add random factor to dbn
       fmdp->addDBNFactor(std::move(fa));
+      //cout << "[DEBUG]: added DBNFactor for house " << h << endl;
   }
 
   // compute (flat) reward function
-  FactorIterator fitr = fmdp->T()->factors();
+  const DBN& dbn = fmdp->T();
+  const FactorIterator& fitr = dbn->factors();
+  vector<Factor> fls(_num_fls-1);
+  std::iota(fls.begin(), fls.end(), 1);
   for (Size state_index=0; state_index<_domain->getNumStates(); state_index++) {
           State s(_domain, state_index);
           for (Size action_index=0; action_index<_domain->getNumActions(); action_index++) {
@@ -202,8 +206,7 @@ FactoredMDP _FireFightingGraph::getFactoredMDP() const {
                       const DBNFactor& sf = fitr->next();
                       const ProbabilityVec& probs = sf->T(s,a);
                       assert(probs.size() == static_cast<unsigned>(_num_fls));
-
-
+                      r -= std::inner_product(probs.begin()+1, probs.end(), fls.begin(), 0);
                   }
                   fmdp->setR(s,a,r);
           }

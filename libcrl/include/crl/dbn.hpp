@@ -147,6 +147,10 @@ public:
   _DBN()
   : _has_concurrency(false) { }
   virtual ~_DBN() { }
+  /// \brief Return the number of \a DBNFactors in this DBN
+  virtual Size size() const {
+    return _dbn_factors.size();
+  }
 
   virtual void addDBNFactor(DBNFactor dbn_factor);
   /// \brief Iterator over all \a DBNFactor in this DBN
