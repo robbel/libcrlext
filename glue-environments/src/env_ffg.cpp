@@ -41,7 +41,7 @@ _FireFightingGraph::_FireFightingGraph(Domain domain)
     }
     // obtain the number of fire levels in this problem
     const RangeVec& ranges = _domain->getStateRanges();
-    _num_fls = ranges[0].getMax();
+    _num_fls = ranges[0].getSpan()+1;
 }
 
 Size _FireFightingGraph::getNumAgentsAtHouse(const Action& a, Size h, bool joint_action) const {
@@ -87,7 +87,6 @@ FactoredMDP _FireFightingGraph::getFactoredMDP() const {
   assert(!_agent_locs.empty());
   FactoredMDP fmdp = boost::make_shared<_FactoredMDP>(_domain);
 
-//time_t start_time = time_in_milli();
   const RangeVec& ranges = _domain->getStateRanges();
   for(Size h = 0; h < _num_houses; h++) {
       // create a dbn factor
@@ -189,10 +188,26 @@ FactoredMDP _FireFightingGraph::getFactoredMDP() const {
       // add random factor to dbn
       fmdp->addDBNFactor(std::move(fa));
   }
-//time_t end_time = time_in_milli();
-//cout << "created DBNFactor in " << end_time - start_time << "ms" << endl;
 
-  //mdp->setR(s, a, randDouble()); // FIXME: empty rewards, for now
+  // compute (flat) reward function
+  FactorIterator fitr = fmdp->T()->factors();
+  for (Size state_index=0; state_index<_domain->getNumStates(); state_index++) {
+          State s(_domain, state_index);
+          for (Size action_index=0; action_index<_domain->getNumActions(); action_index++) {
+                  Action a(_domain, action_index);
+                  //cout << "s: " << s << " a: " << a << endl;
+                  Reward r = 0;
+                  fitr->reset();
+                  while(fitr->hasNext()) {
+                      const DBNFactor& sf = fitr->next();
+                      const ProbabilityVec& probs = sf->T(s,a);
+                      assert(probs.size() == static_cast<unsigned>(_num_fls));
+
+
+                  }
+                  fmdp->setR(s,a,r);
+          }
+  }
 
   return fmdp;
 }
@@ -394,7 +409,10 @@ int main(int argc, char** argv) {
     //paramBuf[0] = '\0'; // the empty string
 
     // test: obtain FactoredMDP
+    time_t start_time = time_in_milli();
     FactoredMDP fmdp = _ffg->getFactoredMDP();
+    time_t end_time = time_in_milli();
+    cout << "[DEBUG]: exported to FactoredMDP in " << end_time - start_time << "ms." << endl;
 
     // run main glue environment loop
     glue_main_env(0, 0);
