@@ -44,14 +44,14 @@ _FireFightingGraph::_FireFightingGraph(Domain domain)
     _num_fls = ranges[0].getMax();
 }
 
-Size _FireFightingGraph::getNumAgentsAtHouse(const Action& a, Size h) {
+Size _FireFightingGraph::getNumAgentsAtHouse(const Action& a, Size h) const {
     assert(!_agent_locs.empty() && in_pos_interval(h, _num_houses));
 
     Size num = 0;
     for(Size i = 0; i < _num_agents; i++) {
       if(_agent_locs[i] == h-1)
         num += a.getFactor(i); // either 0 (for left) or 1 (for right)
-      if(_agent_locs[i] == h)
+      else if(_agent_locs[i] == h)
         num += 1-a.getFactor(i);
     }
     return num;
@@ -67,6 +67,120 @@ Reward _FireFightingGraph::getReward(const State& n) const {
 
 Domain _FireFightingGraph::getDomain() const {
     return _domain;
+}
+
+FactoredMDP _FireFightingGraph::getFactoredMDP() const {
+  assert(!_agent_locs.empty());
+  FactoredMDP fmdp = boost::make_shared<_FactoredMDP>(_domain);
+
+//time_t start_time = time_in_milli();
+  const RangeVec& ranges = _domain->getStateRanges();
+  for(Size h = 0; h < _num_houses; h++) {
+      // create a dbn factor
+      DBNFactor fa = boost::make_shared<_DBNFactor>(_domain, h);
+      fa->addDelayedDependency(h); // dependence on self
+      if(h > 0)
+        fa->addDelayedDependency(h-1);
+      if(h < _num_houses-1)
+        fa->addDelayedDependency(h+1);
+      for(Size i = 0; i < _num_agents; i++) {
+          if(_agent_locs[i] == h-1 || _agent_locs[i] == h)
+            fa->addActionDependency(i);
+      }
+      fa->pack();
+
+      // fill in transition function
+      Domain subdomain = fa->getSubdomain();
+      for (Size state_index=0; state_index<subdomain->getNumStates(); state_index++) {
+              State s(subdomain, state_index);
+              for (Size action_index=0; action_index<subdomain->getNumActions(); action_index++) {
+                      Action a(subdomain, action_index); // Note: in DBN factor scope, at most two agents
+                      for(Factor f=0; f<=ranges[h].getSpan(); f++) {
+                          // collect some domain specific features
+                          const Factor cur_level    = s.getFactor(h); // current fire level
+                          const Factor same_level   = cur_level;
+                          const Factor higher_level = min(cur_level+1, _num_fls-1);
+                          const Factor lower_level  = (cur_level==0) ? 0 : (cur_level-1);
+                          const Factor next_level   = ranges[h].getMin()+f; // postulated next fire level
+                          const Size agents_at_h    = getNumAgentsAtHouse(a, h, subdomain); // agents fighting fire at h
+                          bool burning_neighbor     = false;
+                          if((h > 0 && s.getFactor(h-1) > 0) ||
+                             (h < _num_houses-1 && s.getFactor(h+1) > 0)) {
+                              burning_neighbor = true;
+                          }
+
+                          // determine transition probabilities
+                          Probability p = 0.; // Probability p(f|<scope_h>)
+                          switch(agents_at_h) {
+                            case(0):
+                              //this is kind of strange: when a house is not burning, but
+                              //its neigbhor is, it will increase its FL with p=0.8
+                              //but when it is already burning (and its neighbor is not), it
+                              //increase with p=0.4...
+
+                              //fire is likely to increase
+                              if(burning_neighbor) {
+                                  if(next_level == same_level)
+                                    p+=0.2;
+                                  if(next_level == higher_level)
+                                    p+=0.8;
+                              }
+                              else if (cur_level == 0) { //fire won't get ignited
+                                  if(0 == next_level)
+                                    p=1.0;
+                                  else //not possible so we can quit...
+                                    p=0.0;
+                              }
+                              else { //normal burning house
+                                  if(next_level == same_level)
+                                    p+=0.6;
+                                  if(next_level == higher_level)
+                                    p+=0.4;
+                              }
+                              break;
+                          case(1):
+                              //fire is likely to decrease
+                              if(burning_neighbor) {
+                                  if(next_level == same_level)
+                                    p+=0.4;
+                                  if(next_level == lower_level)
+                                    p+=0.6; //.6 prob of extuinguishing 1 fl
+                              }
+                              else if (cur_level == 0) { //fire won't get ignited
+                                  if(0 == next_level)
+                                    p=1.0;
+                                  else //not possible so we can quit...
+                                    p=0.0;
+                              }
+                              else { //normal burning house
+                                  if(next_level == same_level)
+                                    p+=0.0;
+                                  if(next_level == lower_level)
+                                    p+=1.0;
+                              }
+                              break;
+                          default:
+                              //more than 1 agent: fire is extinguished
+                              if(0 == next_level)
+                                p=1.0;
+                              else //not possible so we can quit...
+                                p=0.0;
+                          }
+                          // update probability
+                          fa->setT(s,a,ranges[h].getMin()+f,p);
+                      }
+              }
+      }
+
+      // add random factor to dbn
+      fmdp->addDBNFactor(std::move(fa));
+  }
+//time_t end_time = time_in_milli();
+//cout << "created DBNFactor in " << end_time - start_time << "ms" << endl;
+
+  //mdp->setR(s, a, randDouble()); // FIXME: empty rewards, for now
+
+  return fmdp;
 }
 
 void _FireFightingGraph::setAgentLocs(std::string locs) {
@@ -102,9 +216,8 @@ bool _FireFightingGraph::isTerminated() {
   return _current.getIndex() == 0;
 }
 
+// apply action, obtain resulting state n, update _current
 Observation _FireFightingGraph::getObservation(const Action& a) {
-  // apply action, obtain resulting state n, map that to _current
-  // FIXME: do i have to care about episode ends here?
 
   for(Size h = 0; h < _num_houses; h++) {
       // determine burning neighbor
@@ -232,7 +345,7 @@ const char* env_message(const char* inMessage) {
 	if (!strcmp(inMessage, "id"))
 		return (char*)"firefighting-graph";
 	else if (!strcmp(inMessage, "param"))
-		return paramBuf; // return empty string
+		return paramBuf;
 	else if (!strcmp(inMessage, "version"))
 		return (char*)"1";
 	else if (!strncmp(inMessage, "seed", 4)) {

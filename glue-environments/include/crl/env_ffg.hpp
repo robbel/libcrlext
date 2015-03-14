@@ -14,6 +14,7 @@
 
 #include <iostream>
 #include <crl/crl.hpp>
+#include <crl/factor_learner.hpp>
 
 namespace crl {
 
@@ -36,7 +37,7 @@ protected:
   std::vector<Size> _agent_locs;
 
   /// \brief Return the number of agents fighting fire at house h
-  virtual Size getNumAgentsAtHouse(const Action& a, Size h);
+  virtual Size getNumAgentsAtHouse(const Action& a, Size h) const;
 
   ///
   /// \brief The reward function for the FFG problem, summing up the (negative) fire levels at each house.
@@ -49,6 +50,8 @@ public:
   virtual ~_FireFightingGraph() { }
   /// \brief Return domain associated with this FFG
   virtual Domain getDomain() const;
+  /// \brief Return the FactoredMDP representing this FFG
+  virtual FactoredMDP getFactoredMDP() const;
   /// \brief Parse given location string (e.g., from xml file) into an agent-to-location assignment
   /// \note If the empty string is given, agent locations are randomized
   virtual void setAgentLocs(std::string locs = "");
