@@ -92,7 +92,7 @@ FactoredMDP _FireFightingGraph::getFactoredMDP() const {
   for(Size h = 0; h < _num_houses; h++) {
       // create a dbn factor
       DBNFactor fa = boost::make_shared<_DBNFactor>(_domain, h);
-      fa->addDelayedDependency(h); // dependence on self
+      fa->addDelayedDependency(h); // entry [0]: dependence on self
       if(h > 0)
         fa->addDelayedDependency(h-1);
       if(h < _num_houses-1)
@@ -111,15 +111,15 @@ FactoredMDP _FireFightingGraph::getFactoredMDP() const {
                       Action a(subdomain, action_index); // Note: in DBN factor scope, at most two agents
                       for(Factor f=0; f<=ranges[h].getSpan(); f++) {
                           // collect some domain specific features
-                          const Factor cur_level    = s.getFactor(h); // current fire level
+                          const Factor cur_level    = s.getFactor(0); // current fire level
                           const Factor same_level   = cur_level;
                           const Factor higher_level = min(cur_level+1, _num_fls-1);
                           const Factor lower_level  = (cur_level==0) ? 0 : (cur_level-1);
                           const Factor next_level   = ranges[h].getMin()+f; // postulated next fire level
                           const Size agents_at_h    = getNumAgentsAtHouse(a, h, false); // agents fighting fire at h
                           bool burning_neighbor     = false;
-                          if((h > 0 && s.getFactor(h-1) > 0) ||
-                             (h < _num_houses-1 && s.getFactor(h+1) > 0)) {
+                          if((h > 0 && s.getFactor(1) > 0) ||
+                             (h < _num_houses-1 && s.getFactor(s.size()-1) > 0)) {
                               burning_neighbor = true;
                           }
 
@@ -392,6 +392,9 @@ int main(int argc, char** argv) {
 
     sprintf(paramBuf, "ffg=%s", argv[1]); // todo: print agent layout and initial state
     //paramBuf[0] = '\0'; // the empty string
+
+    // test: obtain FactoredMDP
+    FactoredMDP fmdp = _ffg->getFactoredMDP();
 
     // run main glue environment loop
     glue_main_env(0, 0);
