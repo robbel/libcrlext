@@ -87,6 +87,7 @@ FactoredMDP _FireFightingGraph::getFactoredMDP() const {
   assert(!_agent_locs.empty());
   FactoredMDP fmdp = boost::make_shared<_FactoredMDP>(_domain);
 
+  time_t start_time = time_in_milli();
   const RangeVec& ranges = _domain->getStateRanges();
   for(Size h = 0; h < _num_houses; h++) {
       // create a dbn factor
@@ -189,7 +190,10 @@ FactoredMDP _FireFightingGraph::getFactoredMDP() const {
       fmdp->addDBNFactor(std::move(fa));
       //cout << "[DEBUG]: added DBNFactor for house " << h << endl;
   }
+  time_t end_time = time_in_milli();
+  cout << "[DEBUG]: created (factored) DBN transition function in " << end_time - start_time << "ms." << endl;
 
+  start_time = time_in_milli();
   // compute (flat) reward function
   const DBN& dbn = fmdp->T();
   const FactorIterator& fitr = dbn->factors();
@@ -211,6 +215,8 @@ FactoredMDP _FireFightingGraph::getFactoredMDP() const {
                   fmdp->setR(s,a,r);
           }
   }
+  end_time = time_in_milli();
+  cout << "[DEBUG]: created (flat) reward function in " << end_time - start_time << "ms." << endl;
 
   return fmdp;
 }
