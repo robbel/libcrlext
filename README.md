@@ -14,4 +14,4 @@ Files are licensed under the [LGPL](http://www.gnu.org/licenses/lgpl) version 3.
 
 ### Who do I talk to? ###
 
-The repo owner can be contacted at [robbel@gmail.com](mailto:robbel@gmail.com).
+The [repo owner](https://bitbucket.org/robbel) can be contacted at [robbel@gmail.com](mailto:robbel@gmail.com).
