@@ -52,7 +52,7 @@ protected:
   SAFProbTable _prob_table;
 
   /// \brief A dummy, empty state
-  const State _empty_s;
+  State _empty_s;
   /// \brief True iff \a pack() has been called on this factor (required for some function calls)
   bool _packed;
 public:

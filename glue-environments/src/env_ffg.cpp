@@ -86,12 +86,15 @@ Domain _FireFightingGraph::getDomain() const {
 FactoredMDP _FireFightingGraph::getFactoredMDP() const {
   assert(!_agent_locs.empty());
   FactoredMDP fmdp = boost::make_shared<_FactoredMDP>(_domain);
+  vector<Factor> fls(_num_fls-1);
+  std::iota(fls.begin(), fls.end(), 1);
 
   time_t start_time = time_in_milli();
   const RangeVec& ranges = _domain->getStateRanges();
   for(Size h = 0; h < _num_houses; h++) {
       // create a dbn factor
       DBNFactor fa = boost::make_shared<_DBNFactor>(_domain, h);
+      LRF lrf = boost::make_shared<_LRF>(_domain); // those have equivalent scopes here
       fa->addDelayedDependency(h); // entry [0]: dependence on self
       if(h > 0)
         fa->addDelayedDependency(h-1);
@@ -101,7 +104,10 @@ FactoredMDP _FireFightingGraph::getFactoredMDP() const {
           if(_agent_locs[i] == h-1 || _agent_locs[i] == h)
             fa->addActionDependency(i);
       }
+      // copy scopes over into local reward function
+      *static_cast<_DBNFactor*>(lrf.get()) = *fa;
       fa->pack();
+      lrf->pack();
 
       // fill in transition function
       Domain subdomain = fa->getSubdomain();
@@ -183,15 +189,21 @@ FactoredMDP _FireFightingGraph::getFactoredMDP() const {
                           // update probability
                           fa->setT(s,a,ranges[h].getMin()+f,p);
                       }
+
+                      // set local reward function for hourse h
+                      const ProbabilityVec& probs = fa->T(s,a);
+                      Reward r = -std::inner_product(probs.begin()+1, probs.end(), fls.begin(), 0);
+                      lrf->setR(s,a,r);
               }
       }
 
       // add random factor to dbn
       fmdp->addDBNFactor(std::move(fa));
+      fmdp->addLRF(std::move(lrf));
       //cout << "[DEBUG]: added DBNFactor for house " << h << endl;
   }
   time_t end_time = time_in_milli();
-  cout << "[DEBUG]: created (factored) DBN transition function in " << end_time - start_time << "ms." << endl;
+  cout << "[DEBUG]: created (factored) transitions and rewards in " << end_time - start_time << "ms." << endl;
 #if 0
   start_time = time_in_milli();
   // compute (flat) reward function
@@ -218,13 +230,6 @@ FactoredMDP _FireFightingGraph::getFactoredMDP() const {
   end_time = time_in_milli();
   cout << "[DEBUG]: created (flat) reward function in " << end_time - start_time << "ms." << endl;
 #endif
-
-
-  start_time = time_in_milli();
-  // compute (flat) reward function
-
-  end_time = time_in_milli();
-  cout << "[DEBUG]: created (factored) reward function in " << end_time - start_time << "ms." << endl;
 
   return fmdp;
 }
