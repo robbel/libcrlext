@@ -21,6 +21,8 @@ namespace crl {
 
 typedef _StateActionTable<ProbabilityVec> _SAFProbTable;
 typedef boost::shared_ptr<_SAFProbTable> SAFProbTable;
+typedef _StateActionTable<Reward> _SAFRewardTable;
+typedef boost::shared_ptr<_SAFRewardTable> SAFRewardTable;
 
 /**
  * \brief The definition of a single DBN factor across 2 time slices (t-1 -> t), that can have its dynamics set explicitly.
@@ -35,9 +37,9 @@ protected:
   /// \note Consists of delayed and concurrent state factors, as well as action factors
   ///
   Domain _subdomain;
-  /// Denoting the (single) factor in the domain considered by this learner
+  /// Denoting the (single) factor in the domain considered by this DBNFactor
   Size _target;
-  /// The range of the (single) factor in the domain considered by this learner
+  /// The range of the (single) factor in the domain considered by this DBNFactor
   FactorRange _target_range;
   /// Denoting delayed dependencies of this factor, i.e., an edge from t to t+1 in the DBN.
   SizeVec _delayed_dep;
@@ -133,6 +135,38 @@ typedef cpputil::Iterator<DBNFactor> _FactorIterator;
 typedef boost::shared_ptr<_FactorIterator> FactorIterator;
 typedef cpputil::VectorIterator<DBNFactor> _FactorVecIterator;
 typedef boost::shared_ptr<_FactorIterator> FactorVecIterator;
+
+/**
+ * \brief A Local Reward Function (LRF) is just a DBN factor with reward storage.
+ * Rewards are defined as the mapping (s,a) -> r where (s,a) denotes the current state and action.
+ * \note Concurrent dependencies (i.e., rewards depending on successor state n) are not supported.
+ */
+class _LRF : public _DBNFactor {
+protected:
+  /// \brief A mapping from (s,a) in the subdomain -> r
+  SAFRewardTable _R_map;
+public:
+  _LRF(const Domain& domain)
+  : _DBNFactor(domain, 0) { } // target in parent ctor is initialized arbitrarily, irrelevant for LRF
+  virtual ~_LRF() { }
+
+  /// \brief The reward associated with the tuple (s,a)
+  /// \note This particular function supports either joint state/action as parameters or state/action that are already at factor scope
+  virtual Reward R(const State& s, const Action& a) const;
+  /// \brief Set the (local) reward associated with the tuple (s,a)
+  /// \note This particular function supports either joint state/action as parameters or state/action that are already at factor scope
+  virtual void setR(const State& s, const Action& a, Reward r);
+
+  virtual void addConcurrentDependency(Size index) {
+    throw cpputil::InvalidException("Reward function does not currently support concurrent dependencies.");
+  }
+  ///
+  /// \brief Assemble the table corresponding to the rewards
+  /// \note Called after all dependencies have been added
+  ///
+  virtual void pack();
+};
+typedef boost::shared_ptr<_LRF> LRF;
 
 /**
  * \brief The 2-stage DBN (2DBN) encoding the transition function from t-1 to t.

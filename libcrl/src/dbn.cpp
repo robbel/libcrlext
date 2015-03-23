@@ -15,6 +15,9 @@
 using namespace std;
 using namespace crl;
 
+//
+// DBNFactor implementation
+//
 
 State _DBNFactor::mapState(const State& s, const State& n) const {
 	assert(_packed);
@@ -107,6 +110,50 @@ void _DBNFactor::setT(const State& s, const State& n, const Action& a, Factor t,
   Factor offset = t - _target_range.getMin();
   pv[offset] = p; // not normalized
 }
+
+//
+// LRF implementation
+//
+
+Reward _LRF::R(const State &s, const Action &a) const {
+  State ms = mapState(s, _empty_s);
+  Action ma = mapAction(a);
+  return _R_map->getValue(s, a);
+}
+
+
+void _LRF::setR(const State& s, const Action& a, Reward r) {
+   State ms = mapState(s, _empty_s);
+   Action ma = mapAction(a);
+   // check if value in valid reward range
+   _domain->getRewardRange().checkThrow(r);
+   // FIXME: currently no maintaining of _known_states, _known_actions (as in _FMDP)
+   _R_map->setValue(ms, ma, r);
+}
+
+void _LRF::pack() {
+  assert(!hasConcurrentDependency());
+  _subdomain = boost::make_shared<_Domain>();
+  const RangeVec& state_ranges = _domain->getStateRanges();
+  const RangeVec& action_ranges = _domain->getActionRanges();
+  const StrVec& state_names = _domain->getStateNames();
+  const StrVec& action_names = _domain->getActionNames();
+  for (Size i=0; i<_delayed_dep.size(); i++) {
+          Size j = _delayed_dep[i];
+          _subdomain->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax(), state_names[j]);
+  }
+  for (Size i=0; i<_action_dep.size(); i++) {
+          Size j = _action_dep[i];
+          _subdomain->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax(), action_names[j]);
+  }
+
+  _R_map = boost::make_shared<_FStateActionTable<Reward>>(_subdomain);
+  _packed = true;
+}
+
+//
+// DBN implementation
+//
 
 void _DBN::addDBNFactor(DBNFactor dbn_factor) {
   if(dbn_factor->hasConcurrentDependency()) {
