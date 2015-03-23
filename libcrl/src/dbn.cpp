@@ -115,22 +115,6 @@ void _DBNFactor::setT(const State& s, const State& n, const Action& a, Factor t,
 // LRF implementation
 //
 
-Reward _LRF::R(const State &s, const Action &a) const {
-  State ms = mapState(s, _empty_s);
-  Action ma = mapAction(a);
-  return _R_map->getValue(s, a);
-}
-
-
-void _LRF::setR(const State& s, const Action& a, Reward r) {
-   State ms = mapState(s, _empty_s);
-   Action ma = mapAction(a);
-   // check if value in valid reward range
-   _domain->getRewardRange().checkThrow(r);
-   // FIXME: currently no maintaining of _known_states, _known_actions (as in _FMDP)
-   _R_map->setValue(ms, ma, r);
-}
-
 void _LRF::pack() {
   assert(!hasConcurrentDependency());
   _subdomain = boost::make_shared<_Domain>();
@@ -149,6 +133,22 @@ void _LRF::pack() {
 
   _R_map = boost::make_shared<_FStateActionTable<Reward>>(_subdomain);
   _packed = true;
+}
+
+Reward _LRF::R(const State &s, const Action &a) const {
+  State ms = mapState(s, _empty_s);
+  Action ma = mapAction(a);
+  return _R_map->getValue(s, a);
+}
+
+
+void _LRF::setR(const State& s, const Action& a, Reward r) {
+   State ms = mapState(s, _empty_s);
+   Action ma = mapAction(a);
+   // check if value in valid reward range
+   _domain->getRewardRange().checkThrow(r);
+   // FIXME: currently no maintaining of _known_states, _known_actions (as in _FMDP)
+   _R_map->setValue(ms, ma, r);
 }
 
 //

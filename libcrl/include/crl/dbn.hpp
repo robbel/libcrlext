@@ -142,6 +142,9 @@ typedef boost::shared_ptr<_FactorIterator> FactorVecIterator;
  * \note Concurrent dependencies (i.e., rewards depending on successor state n) are not supported.
  */
 class _LRF : public _DBNFactor {
+private:
+  // trick to change visibility to private -- we don't currently support reward functions with (t+1) dependencies
+  using _DBNFactor::addConcurrentDependency;
 protected:
   /// \brief A mapping from (s,a) in the subdomain -> r
   SAFRewardTable _R_map;
@@ -149,6 +152,11 @@ public:
   _LRF(const Domain& domain)
   : _DBNFactor(domain, 0) { } // target in parent ctor is initialized arbitrarily, irrelevant for LRF
   virtual ~_LRF() { }
+  ///
+  /// \brief Assemble the table corresponding to the rewards
+  /// \note Called after all dependencies have been added
+  ///
+  virtual void pack() override;
 
   /// \brief The reward associated with the tuple (s,a)
   /// \note This particular function supports either joint state/action as parameters or state/action that are already at factor scope
@@ -156,15 +164,6 @@ public:
   /// \brief Set the (local) reward associated with the tuple (s,a)
   /// \note This particular function supports either joint state/action as parameters or state/action that are already at factor scope
   virtual void setR(const State& s, const Action& a, Reward r);
-
-  virtual void addConcurrentDependency(Size index) override {
-    throw cpputil::InvalidException("Reward function does not currently support concurrent dependencies.");
-  }
-  ///
-  /// \brief Assemble the table corresponding to the rewards
-  /// \note Called after all dependencies have been added
-  ///
-  virtual void pack() override;
 };
 typedef boost::shared_ptr<_LRF> LRF;
 
