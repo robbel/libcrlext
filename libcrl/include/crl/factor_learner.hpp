@@ -81,10 +81,12 @@ protected:
   /// \brief The factored transition function
   _DBN _T_map;
   /// \brief A mapping from (s,a) -> r
-  _FStateActionTable<Reward> _R_map;
+  //_FStateActionTable<Reward> _R_map;
+  /// \brief The local reward functions, each mapping (ms,ma) -> r, where ms,ma have local scope
+  std::vector<LRF> _lrf_factors;
 public:
   _FactoredMDP(Domain domain)
-  : _domain(domain), _R_map(domain, 0) { }
+  : _domain(domain)/*, _R_map(domain, 0)*/ { }
   virtual ~_FactoredMDP() { }
   Domain getDomain() const {return _domain;}
 
@@ -97,8 +99,18 @@ public:
   virtual Probability T(const State& s, const Action& a, const State& s_next) override {
     return _T_map.T(s, a, s_next);
   }
+#if 0
   virtual Reward R(const State& s, const Action& a) override {
     return _R_map.getValue(s, a);
+  }
+#endif
+  /// \brief return the sum of rewards accumulated over all local reward functions (LRFs)
+  virtual Reward R(const State& s, const Action& a) override {
+    Reward rew = 0.;
+    for(const auto& lrf : _lrf_factors) {
+      rew += lrf->R(s,a); //FIXME: every call reduces (s,a) to local scope -- expensive!
+    }
+    return rew;
   }
 
   /// \brief return entire factored transition function
@@ -111,6 +123,7 @@ public:
   virtual void addDBNFactor(DBNFactor dbn_factor) {
     _T_map.addDBNFactor(std::move(dbn_factor));
   }
+#if 0
   ///
   /// \brief Set reward for (s,a)
   /// \note Rewards are currently not factored!
@@ -118,7 +131,11 @@ public:
   virtual void setR(const State& s, const Action& a, Reward r) {
     _R_map.setValue(s, a, r);
   }
-
+#endif
+  /// \brief Add a local reward function to this factored MDP
+  virtual void addLRF(LRF lrf) {
+    _lrf_factors.push_back(std::move(lrf));
+  }
 };
 typedef boost::shared_ptr<_FactoredMDP> FactoredMDP;
 

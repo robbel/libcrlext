@@ -157,14 +157,14 @@ public:
   /// \note This particular function supports either joint state/action as parameters or state/action that are already at factor scope
   virtual void setR(const State& s, const Action& a, Reward r);
 
-  virtual void addConcurrentDependency(Size index) {
+  virtual void addConcurrentDependency(Size index) override {
     throw cpputil::InvalidException("Reward function does not currently support concurrent dependencies.");
   }
   ///
   /// \brief Assemble the table corresponding to the rewards
   /// \note Called after all dependencies have been added
   ///
-  virtual void pack();
+  virtual void pack() override;
 };
 typedef boost::shared_ptr<_LRF> LRF;
 

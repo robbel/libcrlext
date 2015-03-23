@@ -192,7 +192,7 @@ FactoredMDP _FireFightingGraph::getFactoredMDP() const {
   }
   time_t end_time = time_in_milli();
   cout << "[DEBUG]: created (factored) DBN transition function in " << end_time - start_time << "ms." << endl;
-
+#if 0
   start_time = time_in_milli();
   // compute (flat) reward function
   const DBN& dbn = fmdp->T();
@@ -217,6 +217,14 @@ FactoredMDP _FireFightingGraph::getFactoredMDP() const {
   }
   end_time = time_in_milli();
   cout << "[DEBUG]: created (flat) reward function in " << end_time - start_time << "ms." << endl;
+#endif
+
+
+  start_time = time_in_milli();
+  // compute (flat) reward function
+
+  end_time = time_in_milli();
+  cout << "[DEBUG]: created (factored) reward function in " << end_time - start_time << "ms." << endl;
 
   return fmdp;
 }
