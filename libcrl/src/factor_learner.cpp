@@ -100,6 +100,14 @@ StateDistribution _FactoredMDP::T(const State& s, const Action& a) {
 	return StateDistribution();
 }
 
+Reward _FactoredMDP::R(const State& s, const Action& a) {
+   Reward rew = 0.;
+   for(const auto& lrf : _lrf_factors) {
+     rew += lrf->R(s,a);
+   }
+   return rew;
+}
+
 void _FactoredMDPLearner::addFactorLearner(FactorLearner factor_learner) {
 	_FactoredMDP::addDBNFactor(std::move(factor_learner));
 }
