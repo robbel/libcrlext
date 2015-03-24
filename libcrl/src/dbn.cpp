@@ -138,7 +138,7 @@ void _LRF::pack() {
 Reward _LRF::R(const State &s, const Action &a) const {
   State ms = mapState(s, _empty_s);
   Action ma = mapAction(a);
-  return _R_map->getValue(s, a);
+  return _R_map->getValue(ms, ma);
 }
 
 
