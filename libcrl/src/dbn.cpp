@@ -64,7 +64,8 @@ _DBNFactor::_DBNFactor(const Domain& domain, Size target)
 : _domain(domain), _target(target), _packed(false) {
   _target_range = _domain->getStateRanges()[_target];
 
-  // create a validation function for this DBNFactor (using C++14 init capture)
+  // create a validation function for this DBNFactor that
+  // checks correct variable ordering if local DBN factor scope equals global scope (either states or actions)
   validator = [&, s_order = ordered_vec(_domain->getNumStateFactors()),
                   a_order = ordered_vec(_domain->getNumActionFactors())]() {
       if(getSubdomain()->getNumStateFactors() == s_order.size() && !hasConcurrentDependency()) {
