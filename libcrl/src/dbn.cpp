@@ -141,7 +141,6 @@ Reward _LRF::R(const State &s, const Action &a) const {
   return _R_map->getValue(ms, ma);
 }
 
-
 void _LRF::setR(const State& s, const Action& a, Reward r) {
    State ms = mapState(s, _empty_s);
    Action ma = mapAction(a);

@@ -110,9 +110,8 @@ public:
     _T_map.addDBNFactor(std::move(dbn_factor));
   }
   /// \brief Add a local reward function to this factored MDP
-  virtual void addLRF(LRF lrf) {
-    _lrf_factors.push_back(std::move(lrf));
-  }
+  virtual void addLRF(LRF lrf);
+
 };
 typedef boost::shared_ptr<_FactoredMDP> FactoredMDP;
 
