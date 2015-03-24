@@ -95,9 +95,12 @@ FactoredMDP _FireFightingGraph::getFactoredMDP() const {
       // create a dbn factor
       DBNFactor fa = boost::make_shared<_DBNFactor>(_domain, h);
       LRF lrf = boost::make_shared<_LRF>(_domain); // those have equivalent scopes here
-      fa->addDelayedDependency(h); // entry [0]: dependence on self
-      if(h > 0)
+      Size h_local = 0;
+      if(h > 0) {
         fa->addDelayedDependency(h-1);
+        h_local++;
+      }
+      fa->addDelayedDependency(h); // dependence on self
       if(h < _num_houses-1)
         fa->addDelayedDependency(h+1);
       for(Size i = 0; i < _num_agents; i++) {
@@ -117,15 +120,15 @@ FactoredMDP _FireFightingGraph::getFactoredMDP() const {
                       Action a(subdomain, action_index); // Note: in DBN factor scope, at most two agents
                       for(Factor f=0; f<=ranges[h].getSpan(); f++) {
                           // collect some domain specific features
-                          const Factor cur_level    = s.getFactor(0); // current fire level
+                          const Factor cur_level    = s.getFactor(h_local); // current fire level
                           const Factor same_level   = cur_level;
                           const Factor higher_level = min(cur_level+1, _num_fls-1);
                           const Factor lower_level  = (cur_level==0) ? 0 : (cur_level-1);
                           const Factor next_level   = ranges[h].getMin()+f; // postulated next fire level
                           const Size agents_at_h    = getNumAgentsAtHouse(a, h, false); // agents fighting fire at h
                           bool burning_neighbor     = false;
-                          if((h > 0 && s.getFactor(1) > 0) ||
-                             (h < _num_houses-1 && s.getFactor(s.size()-1) > 0)) {
+                          if((h > 0 && s.getFactor(h_local-1) > 0) || // left burning
+                             (h < _num_houses-1 && s.getFactor(h_local+1) > 0)) { // right burning
                               burning_neighbor = true;
                           }
 
@@ -192,7 +195,7 @@ FactoredMDP _FireFightingGraph::getFactoredMDP() const {
 
                       // set local reward function for hourse h
                       const ProbabilityVec& probs = fa->T(s,a);
-                      Reward r = -std::inner_product(probs.begin()+1, probs.end(), fls.begin(), 0);
+                      Reward r = -std::inner_product(probs.begin()+1, probs.end(), fls.begin(), static_cast<Probability>(0.));
                       lrf->setR(s,a,r);
               }
       }
@@ -222,7 +225,7 @@ FactoredMDP _FireFightingGraph::getFactoredMDP() const {
                       const DBNFactor& sf = fitr->next();
                       const ProbabilityVec& probs = sf->T(s,a);
                       assert(probs.size() == static_cast<unsigned>(_num_fls));
-                      r -= std::inner_product(probs.begin()+1, probs.end(), fls.begin(), 0);
+                      r -= std::inner_product(probs.begin()+1, probs.end(), fls.begin(), static_cast<Probability>(0.));
                   }
                   fmdp->setR(s,a,r);
           }
@@ -435,7 +438,21 @@ int main(int argc, char** argv) {
     FactoredMDP fmdp = _ffg->getFactoredMDP();
     time_t end_time = time_in_milli();
     cout << "[DEBUG]: exported to FactoredMDP in " << end_time - start_time << "ms." << endl;
-
+#if 0
+    Domain domain = fmdp->getDomain();
+    for (Size state_index=0; state_index<domain->getNumStates(); state_index++) {
+            State s(domain, state_index);
+            for (Size action_index=0; action_index<domain->getNumActions(); action_index++) {
+                    Action a(domain, action_index);
+                    for (Size n_index=0; n_index<domain->getNumStates(); n_index++) {
+                            State n(domain, n_index);
+                            std::cout << "T(s,a,n) = T(" << s << "," << a << "," << n << "): "
+                                      << fmdp->T(s,a,n) << std::endl;
+                    }
+//                    std::cout << "(a: " << a << " in s: " << s << " T: " << fmdp->T(s,a) << std::endl;
+            }
+    }
+#endif
     // run main glue environment loop
     glue_main_env(0, 0);
 
