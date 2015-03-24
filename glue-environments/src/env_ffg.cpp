@@ -449,7 +449,7 @@ int main(int argc, char** argv) {
                             std::cout << "T(s,a,n) = T(" << s << "," << a << "," << n << "): "
                                       << fmdp->T(s,a,n) << std::endl;
                     }
-//                    std::cout << "(a: " << a << " in s: " << s << " T: " << fmdp->T(s,a) << std::endl;
+                    std::cout << "R: " << fmdp->R(s,a) << std::endl;
             }
     }
 #endif
