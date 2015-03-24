@@ -15,36 +15,21 @@
 using namespace std;
 using namespace crl;
 
+
+namespace {
+
+// helper function to create a vector of consecutive values [0,size).
+SizeVec ordered_vec(Size size) {
+  SizeVec order(size);
+  std::iota(order.begin(), order.end(), 0);
+  return order;
+}
+
+} // anonymous ns
+
 //
 // DBNFactor implementation
 //
-
-// check correct variable ordering if local DBNFactor scope equals global scope (either states or actions)
-bool _DBNFactor::validate() const {
-  assert(_packed);
-  // create a vector of successive values once (for states in domain)
-  static SizeVec s_order = [&]() {
-    SizeVec order(_domain->getNumStateFactors());
-    std::iota(order.begin(), order.end(), 0);
-    return order;
-  }();
-  // create a vector of successive values once (for actions in domain)
-  static SizeVec a_order = [&]() {
-    SizeVec order(_domain->getNumActionFactors());
-    std::iota(order.begin(), order.end(), 0);
-    return order;
-  }();
-
-  if(getSubdomain()->getNumStateFactors() == s_order.size() && !hasConcurrentDependency()) {
-    if(_delayed_dep != s_order)
-      return false;
-  }
-  if(getSubdomain()->getNumActionFactors() == a_order.size()) {
-    if(_action_dep != a_order)
-      return false;
-  }
-  return true;
-}
 
 State _DBNFactor::mapState(const State& s, const State& n) const {
 	assert(_packed);
@@ -77,7 +62,21 @@ Action _DBNFactor::mapAction(const Action& a) const {
 
 _DBNFactor::_DBNFactor(const Domain& domain, Size target)
 : _domain(domain), _target(target), _packed(false) {
-	_target_range = _domain->getStateRanges()[_target];
+  _target_range = _domain->getStateRanges()[_target];
+
+  // create a validation function for this DBNFactor (using C++14 init capture)
+  validator = [&, s_order = ordered_vec(_domain->getNumStateFactors()),
+                  a_order = ordered_vec(_domain->getNumActionFactors())]() {
+      if(getSubdomain()->getNumStateFactors() == s_order.size() && !hasConcurrentDependency()) {
+          if(_delayed_dep != s_order)
+            return false;
+      }
+      if(getSubdomain()->getNumActionFactors() == a_order.size()) {
+          if(_action_dep != a_order)
+            return false;
+      }
+      return true;
+  };
 }
 
 void _DBNFactor::addDelayedDependency(Size index) {
@@ -115,7 +114,7 @@ void _DBNFactor::pack() {
 	}
 	_prob_table = boost::make_shared<_FStateActionTable<ProbabilityVec>>(_subdomain);
 	_packed = true;
-	if(!validate()) {
+	if(!validator()) {
 	    throw cpputil::InvalidException("DBN factor has global state or action scope and requires variable ordering to match global ordering.");
 	}
 }
@@ -160,7 +159,7 @@ void _LRF::pack() {
   }
   _R_map = boost::make_shared<_FStateActionTable<Reward>>(_subdomain);
   _packed = true;
-  if(!validate()) {
+  if(!validator()) {
       throw cpputil::InvalidException("LRF has global state or action scope and requires variable ordering to match global ordering.");
   }
 }

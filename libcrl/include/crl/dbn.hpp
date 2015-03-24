@@ -56,8 +56,8 @@ protected:
   State _empty_s;
   /// \brief True iff \a pack() has been called on this factor (required for some function calls)
   bool _packed;
-  /// \brief sanity check
-  bool validate() const;
+  /// \brief sanity check for this DBNFactor
+  std::function<bool()> validator;
 public:
   ///
   /// \brief Extract the relevant state information for this factor (i.e., those corresponding to this \a _subdomain)
