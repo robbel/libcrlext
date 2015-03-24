@@ -58,15 +58,17 @@ protected:
 public:
   ///
   /// \brief Extract the relevant state information for this factor (i.e., those corresponding to this \a _subdomain)
-  /// \param s The current (complete) state
-  /// \param n The (complete) successor state (e.g., from an \a Observation)
+  /// \param s The current (joint) state
+  /// \param n The (joint) successor state (e.g., from an \a Observation)
   /// \note Only available after call to \a pack()
+  /// \warning When the size of state s corresponds to size of local state space, s is directly returned!
   ///
   State mapState(const State& s, const State& n) const;
   ///
   /// \brief Extract the relevant action information for this factor (i.e., those corresponding to this \a _subdomain)
   /// \param a The (complete) joint action
   /// \note Only available after call to \a pack()
+  /// \warning When the size of action a corresponds to size of local action space, a is directly returned!
   ///
   Action mapAction(const Action& a) const;
 

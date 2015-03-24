@@ -21,7 +21,7 @@ using namespace crl;
 
 State _DBNFactor::mapState(const State& s, const State& n) const {
 	assert(_packed);
-	if(s.size() == _delayed_dep.size() && !n) // under these conditions no reduction to local scope needed
+	if(s.size() == _delayed_dep.size() && !n) // under these conditions no reduction to local scope performed
 	  return s;
 	State ms(_subdomain);
 	for (Size i=0; i<_delayed_dep.size(); i++) {
@@ -38,7 +38,7 @@ State _DBNFactor::mapState(const State& s, const State& n) const {
 
 Action _DBNFactor::mapAction(const Action& a) const {
 	assert(_packed);
-	if(a.size() == _action_dep.size()) // if it has already been reduced to local scope
+	if(a.size() == _action_dep.size()) // under this condition no reduction to local scope performed
 	  return a;
 	Action ma(_subdomain);
 	for (Size i=0; i<_action_dep.size(); i++) {
@@ -171,7 +171,7 @@ Probability _DBN::T(const State& js, const Action& ja, const State& jn) {
   Size fidx = 0;
   while(fitr.hasNext()) {
       const DBNFactor& f = fitr.next();
-      Factor t = jn.getFactor(fidx); // the target value of that factor in jn
+      Factor t = jn.getFactor(fidx++); // the target value of that factor in jn
       Factor offset = t - f->getTargetRange().getMin();
       const ProbabilityVec& pv = f->T(js, jn, ja);
       p *= pv[offset];
