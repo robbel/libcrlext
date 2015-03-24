@@ -106,9 +106,7 @@ public:
   }
 
   /// \brief Add a factor to the factored transition function
-  virtual void addDBNFactor(DBNFactor dbn_factor) {
-    _T_map.addDBNFactor(std::move(dbn_factor));
-  }
+  virtual void addDBNFactor(DBNFactor fac);
   /// \brief Add a local reward function to this factored MDP
   virtual void addLRF(LRF lrf);
 

@@ -92,8 +92,7 @@ void _DBNFactor::pack() {
 }
 
 // FIXME may be costly to always convert from (s,n,a) to index (!)
-const ProbabilityVec& _DBNFactor::T(const State& s, const State& n, const Action& a)
-{
+const ProbabilityVec& _DBNFactor::T(const State& s, const State& n, const Action& a) {
    State ms = mapState(s, n);
    Action ma = mapAction(a);
    ProbabilityVec& pv = _prob_table->getValue(ms, ma);

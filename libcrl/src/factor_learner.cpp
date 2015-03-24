@@ -23,6 +23,10 @@
  
 using namespace crl;
 
+//
+// FactorLearner implementation
+//
+
 void _FactorLearner::pack() {
 	_DBNFactor::pack();
 	// allocate remaining counters
@@ -80,6 +84,10 @@ StateDistribution _FactorLearner::augmentDistribution(StateDistribution sd, cons
 	return sdp;
 }
 
+//
+// FactoredMDP implementation
+//
+
 StateIterator _FactoredMDP::S() {
 	return StateIterator();
 }
@@ -108,6 +116,14 @@ Reward _FactoredMDP::R(const State& s, const Action& a) {
    return rew;
 }
 
+void _FactoredMDP::addDBNFactor(DBNFactor fac) {
+  if(fac->getSubdomain()->getNumStateFactors() == _domain->getNumStateFactors() ||
+     fac->getSubdomain()->getNumActionFactors() == _domain->getNumActionFactors()) {
+      std::cout << "[WARNING]: DBNFactor has global state or action scope. Ensure variable ordering in DBNFactor is identical to global ordering." << std::endl;
+  }
+  _T_map.addDBNFactor(std::move(dbn_factor));
+}
+
 void _FactoredMDP::addLRF(LRF lrf) {
   if(lrf->getSubdomain()->getNumStateFactors() == _domain->getNumStateFactors() ||
      lrf->getSubdomain()->getNumActionFactors() == _domain->getNumActionFactors()) {
@@ -115,6 +131,10 @@ void _FactoredMDP::addLRF(LRF lrf) {
   }
   _lrf_factors.push_back(std::move(lrf));
 }
+
+//
+// FactoredMDPLearner implementation
+//
 
 void _FactoredMDPLearner::addFactorLearner(FactorLearner factor_learner) {
 	_FactoredMDP::addDBNFactor(std::move(factor_learner));
