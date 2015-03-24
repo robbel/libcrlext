@@ -19,6 +19,33 @@ using namespace crl;
 // DBNFactor implementation
 //
 
+// check correct variable ordering if local DBNFactor scope equals global scope (either states or actions)
+bool _DBNFactor::validate() const {
+  assert(_packed);
+  // create a vector of successive values once (for states in domain)
+  static SizeVec s_order = [&]() {
+    SizeVec order(_domain->getNumStateFactors());
+    std::iota(order.begin(), order.end(), 0);
+    return order;
+  }();
+  // create a vector of successive values once (for actions in domain)
+  static SizeVec a_order = [&]() {
+    SizeVec order(_domain->getNumActionFactors());
+    std::iota(order.begin(), order.end(), 0);
+    return order;
+  }();
+
+  if(getSubdomain()->getNumStateFactors() == s_order.size() && !hasConcurrentDependency()) {
+    if(_delayed_dep != s_order)
+      return false;
+  }
+  if(getSubdomain()->getNumActionFactors() == a_order.size()) {
+    if(_action_dep != a_order)
+      return false;
+  }
+  return true;
+}
+
 State _DBNFactor::mapState(const State& s, const State& n) const {
 	assert(_packed);
 	if(s.size() == _delayed_dep.size() && !n) // under these conditions no reduction to local scope performed
@@ -86,9 +113,11 @@ void _DBNFactor::pack() {
 		Size j = _action_dep[i];
 		_subdomain->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax(), action_names[j]);
 	}
-
 	_prob_table = boost::make_shared<_FStateActionTable<ProbabilityVec>>(_subdomain);
 	_packed = true;
+	if(!validate()) {
+	    throw cpputil::InvalidException("DBN factor has global state or action scope and requires variable ordering to match global ordering.");
+	}
 }
 
 // FIXME may be costly to always convert from (s,n,a) to index (!)
@@ -129,9 +158,11 @@ void _LRF::pack() {
           Size j = _action_dep[i];
           _subdomain->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax(), action_names[j]);
   }
-
   _R_map = boost::make_shared<_FStateActionTable<Reward>>(_subdomain);
   _packed = true;
+  if(!validate()) {
+      throw cpputil::InvalidException("LRF has global state or action scope and requires variable ordering to match global ordering.");
+  }
 }
 
 Reward _LRF::R(const State &s, const Action &a) const {

@@ -72,7 +72,6 @@ typedef boost::shared_ptr<_FactorLearner> FactorLearner;
 /**
  * \brief An implementation of a factored MDP with factored state and action spaces.
  * Implemented with tabular storage.
- * \note Rewards are currently not factored
  */
 class _FactoredMDP : public _MDP {
 protected:
@@ -97,7 +96,7 @@ public:
   virtual Probability T(const State& s, const Action& a, const State& s_next) override {
     return _T_map.T(s, a, s_next);
   }
-  /// \brief return the sum of rewards accumulated over all local reward functions (LRFs)
+  /// \brief return the sum of rewards accumulated over all local reward functions (LRFs) at (s,a)
   virtual Reward R(const State& s, const Action& a) override;
   /// \brief return entire factored transition function
   DBN T() const {
@@ -106,10 +105,13 @@ public:
   }
 
   /// \brief Add a factor to the factored transition function
-  virtual void addDBNFactor(DBNFactor fac);
+  virtual void addDBNFactor(DBNFactor fac) {
+    _T_map.addDBNFactor(std::move(fac));
+  }
   /// \brief Add a local reward function to this factored MDP
-  virtual void addLRF(LRF lrf);
-
+  virtual void addLRF(LRF lrf) {
+    _lrf_factors.push_back(std::move(lrf));
+  }
 };
 typedef boost::shared_ptr<_FactoredMDP> FactoredMDP;
 
@@ -131,7 +133,6 @@ public:
 
 	// Learner interface
 	virtual bool observe(const State& s, const Action& a, const Observation& o) override;
-
 };
 typedef boost::shared_ptr<_FactoredMDPLearner> FactorMDPLearner;
 

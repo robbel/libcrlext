@@ -116,22 +116,6 @@ Reward _FactoredMDP::R(const State& s, const Action& a) {
    return rew;
 }
 
-void _FactoredMDP::addDBNFactor(DBNFactor fac) {
-  if(fac->getSubdomain()->getNumStateFactors() == _domain->getNumStateFactors() ||
-     fac->getSubdomain()->getNumActionFactors() == _domain->getNumActionFactors()) {
-      std::cout << "[WARNING]: DBNFactor has global state or action scope. Ensure variable ordering in DBNFactor is identical to global ordering." << std::endl;
-  }
-  _T_map.addDBNFactor(std::move(dbn_factor));
-}
-
-void _FactoredMDP::addLRF(LRF lrf) {
-  if(lrf->getSubdomain()->getNumStateFactors() == _domain->getNumStateFactors() ||
-     lrf->getSubdomain()->getNumActionFactors() == _domain->getNumActionFactors()) {
-      std::cout << "[WARNING]: LRF has global state or action scope. Ensure variable ordering in LRF is identical to global ordering." << std::endl;
-  }
-  _lrf_factors.push_back(std::move(lrf));
-}
-
 //
 // FactoredMDPLearner implementation
 //

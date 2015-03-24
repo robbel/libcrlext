@@ -425,19 +425,15 @@ int main(int argc, char** argv) {
           cerr << "Input file opening failed: " << argv[1] << endl;
           return EXIT_FAILURE;
       }
-    } catch(const cpputil::Exception& e) {
-        cerr << e << endl;
-        return EXIT_FAILURE;
-    }
 
-    sprintf(paramBuf, "ffg=%s", argv[1]); // todo: print agent layout and initial state
-    //paramBuf[0] = '\0'; // the empty string
+      sprintf(paramBuf, "ffg=%s", argv[1]); // todo: print agent layout and initial state
+      //paramBuf[0] = '\0'; // the empty string
 
-    // test: obtain FactoredMDP
-    time_t start_time = time_in_milli();
-    FactoredMDP fmdp = _ffg->getFactoredMDP();
-    time_t end_time = time_in_milli();
-    cout << "[DEBUG]: exported to FactoredMDP in " << end_time - start_time << "ms." << endl;
+      // test: obtain FactoredMDP
+      time_t start_time = time_in_milli();
+      FactoredMDP fmdp = _ffg->getFactoredMDP();
+      time_t end_time = time_in_milli();
+      cout << "[DEBUG]: exported to FactoredMDP in " << end_time - start_time << "ms." << endl;
 #if 0
     Domain domain = fmdp->getDomain();
     for (Size state_index=0; state_index<domain->getNumStates(); state_index++) {
@@ -453,6 +449,11 @@ int main(int argc, char** argv) {
             }
     }
 #endif
+    } catch(const cpputil::Exception& e) {
+        cerr << e << endl;
+        return EXIT_FAILURE;
+    }
+
     // run main glue environment loop
     glue_main_env(0, 0);
 
