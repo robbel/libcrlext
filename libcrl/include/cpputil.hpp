@@ -502,6 +502,16 @@ bool in_pos_interval(const T& val, const T& max) {
     return in_interval<T>(val, 0, max);
 }
 
+///
+/// \brief Create a vector of consecutive values [start,start+size)
+///
+template<class T>
+std::vector<T> ordered_vec(typename std::vector<T>::size_type size, T start = 0) {
+  std::vector<T> order(size);
+  std::iota(order.begin(), order.end(), start);
+  return order;
+}
+
 }
 
 #endif

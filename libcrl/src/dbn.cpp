@@ -15,18 +15,6 @@
 using namespace std;
 using namespace crl;
 
-
-namespace {
-
-// helper function to create a vector of consecutive values [0,size).
-SizeVec ordered_vec(Size size) {
-  SizeVec order(size);
-  std::iota(order.begin(), order.end(), 0);
-  return order;
-}
-
-} // anonymous ns
-
 //
 // DBNFactor implementation
 //
@@ -66,8 +54,8 @@ _DBNFactor::_DBNFactor(const Domain& domain, Size target)
 
   // create a validation function for this DBNFactor that
   // checks correct variable ordering if local DBN factor scope equals global scope (either states or actions)
-  validator = [&, s_order = ordered_vec(_domain->getNumStateFactors()),
-                  a_order = ordered_vec(_domain->getNumActionFactors())]() {
+  validator = [&, s_order = cpputil::ordered_vec<Size>(_domain->getNumStateFactors()),
+                  a_order = cpputil::ordered_vec<Size>(_domain->getNumActionFactors())]() {
       if(getSubdomain()->getNumStateFactors() == s_order.size() && !hasConcurrentDependency()) {
           if(_delayed_dep != s_order)
             return false;
