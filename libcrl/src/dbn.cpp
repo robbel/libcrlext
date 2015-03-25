@@ -55,7 +55,7 @@ _DBNFactor::_DBNFactor(const Domain& domain, Size target)
   // create a validation function for this DBNFactor that
   // checks correct variable ordering if local DBN factor scope equals global scope (either states or actions)
   validator = [&, s_order = cpputil::ordered_vec<Size>(_domain->getNumStateFactors()),
-                  a_order = cpputil::ordered_vec<Size>(_domain->getNumActionFactors())]() {
+                  a_order = cpputil::ordered_vec<Size>(_domain->getNumActionFactors())] {
       if(getSubdomain()->getNumStateFactors() == s_order.size() && !hasConcurrentDependency()) {
           if(_delayed_dep != s_order)
             return false;
