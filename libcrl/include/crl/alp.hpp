@@ -61,8 +61,8 @@ protected:
   State _s;
 public:
   Indicator(const Domain& domain, const State& s)
-  : Basis(_domain) {
-    assert(s && s.size() == _state_dep.size()); // could also compare ranges to be sure s is valid in domain
+  : Basis(domain) {
+    assert(s && s.size() == _state_dep.size());
     _s = s;
   }
   virtual ~Indicator() { }
