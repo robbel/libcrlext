@@ -129,7 +129,7 @@ public:
 	virtual ~_FactoredMDPLearner() { }
 
 	/// \brief add a \a FactorLearner to this \a FactorMDPLearner
-	void addFactorLearner(FactorLearner factor_learner);
+	virtual void addFactorLearner(FactorLearner factor_learner);
 
 	// Learner interface
 	virtual bool observe(const State& s, const Action& a, const Observation& o) override;
