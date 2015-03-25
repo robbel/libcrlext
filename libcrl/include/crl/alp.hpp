@@ -14,6 +14,7 @@
 
 #include <iostream>
 #include "crl/common.hpp"
+#include "crl/dbn.hpp"
 
 namespace crl {
 
@@ -45,10 +46,10 @@ public:
   /// \brief evaluate the basis function at \a State s
   /// \note The number of state factor values in s must match the scope of this basis function.
   ///
-  virtual T compute(const State& s) const = 0;
+  virtual T eval(const State& s) const = 0;
   /// \brief convenience function for evaluating this basis function
   virtual T operator()(const State& s) const {
-    return compute(std::move(s));
+    return eval(std::move(s));
   }
 };
 
@@ -67,11 +68,31 @@ public:
   }
   virtual ~Indicator() { }
 
-  virtual int compute(const State& s) const override {
+  virtual int eval(const State& s) const override {
     return static_cast<int>(_s == s); // note: internally also compares the ranges
   }
+};
+
+/**
+ * \brief Backprojection of a basis function through a DBN
+ */
+template<class T>
+class _Backprojection : public _DBNFactor {
+private:
+  // trick to change visibility to private
+  using _DBNFactor::addDelayedDependency;
+  using _DBNFactor::addConcurrentDependency;
+  using _DBNFactor::addActionDependency;
+protected:
+
+public:
+  _Backprojection() { }
+  virtual ~_Backprojection() { }
 
 };
+// instead of typedef (which needs full type)
+template<class T>
+using Backprojection = boost::shared_ptr<_Backprojection<T>>;
 
 } // namespace crl
 
