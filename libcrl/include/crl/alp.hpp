@@ -23,7 +23,8 @@ namespace crl {
 template<class T>
 class Basis {
 protected:
-  /// \brief The domain which includes all state and action factors
+  /// \brief The (global) domain which includes all state and action factors
+  /// \note This is not necessarily equivalent to the (local) basis function scope
   const Domain _domain;
   /// \brief The (subset of) state factors relevant for this basis function
   SizeVec _state_dep;
@@ -34,20 +35,42 @@ public:
   /// \brief dtor
   virtual ~Basis() { }
 
-  /// \brief
+  /// \brief Define the state factor scope for this basis function
   void addStateFactor(Size i) {
     assert(i < _domain->getNumStateFactors());
     _state_dep.push_back(i);
   }
 
   ///
-  /// \brief evaluate the basis function
+  /// \brief evaluate the basis function at \a State s
+  /// \note The number of state factor values in s must match the scope of this basis function.
   ///
-  virtual T compute(std::initializer_list<Factor> fac_val) const = 0;
+  virtual T compute(const State& s) const = 0;
   /// \brief convenience function for evaluating this basis function
-  virtual T operator()(std::initializer_list<Factor> fac_val) const {
-    return compute(std::move(fac_val));
+  virtual T operator()(const State& s) const {
+    return compute(std::move(s));
   }
+};
+
+/**
+ * \brief Indicator basis centered on a specific state
+ */
+class Indicator : public Basis<int> {
+protected:
+  /// \brief The state on which this indicator function is centered
+  State _s;
+public:
+  Indicator(const Domain& domain, const State& s)
+  : Basis(_domain) {
+    assert(s && s.size() == _state_dep.size()); // could also compare ranges to be sure s is valid in domain
+    _s = s;
+  }
+  virtual ~Indicator() { }
+
+  virtual int compute(const State& s) const override {
+    return static_cast<int>(_s == s); // note: internally also compares the ranges
+  }
+
 };
 
 } // namespace crl
