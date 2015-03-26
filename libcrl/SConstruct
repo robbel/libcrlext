@@ -55,12 +55,13 @@ config = Configure(env)
 config.CheckCXXHeader('cpputil.hpp')
 config.CheckCXXHeader('boost/shared_ptr.hpp')
 has_dai = config.CheckLibWithHeader('dai', 'dai/alldai.h', 'cpp')
+has_lpsolve = config.CheckLibWithHeader('lpsolve55', 'lpsolve/lp_lib.h', 'cpp')
 env = config.Finish()
 
 lib_targets = []
 bin_targets = []
 
-if has_dai:
+if has_dai and has_lpsolve:
         libcrl = env.SharedLibrary(lib.File('libcrl'+shared_lib_suffix), build_sources)
         lib_targets += [libcrl]
 
@@ -70,7 +71,7 @@ if has_dai:
         test_spudd = env.Program(bin.Entry('test_spudd'), test_spudd_sources, LIBS=['crl'])
         bin_targets += [test_spudd]
 else:
-        print "Cannot build libcrl: libdai is not installed."
+        print "Cannot build libcrl: libdai or liblpsolve55 not found."
 
 if prefix != Dir('.'):
 	for header in headers:
