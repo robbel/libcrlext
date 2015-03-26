@@ -141,7 +141,7 @@ protected:
 	Size _index;
 
 	RLType()
-	: _ranges(0), _components(0), _index(0) { }
+	: _ranges(nullptr), _components(nullptr), _index(0) { }
 	RLType(const RangeVec* ranges, const SizeVec* components)
 	: _ranges(ranges), _components(components), _index(0) { }
 	RLType(const RangeVec* ranges, const SizeVec* components, Size index)

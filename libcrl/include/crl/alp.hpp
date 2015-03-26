@@ -19,47 +19,82 @@
 namespace crl {
 
 /**
- * \brief The abstract interface for a basis function defined over a subset of state variables.
+ * \brief An abstract interface for a discrete function defined over a subset of (either state or action) variables.
+ * Maps tuples {x_1,...,x_N,a_1,...,a_K} -> val<T>, where X_1,...,X_N are state variables and A_1,...,A_K action variables
+ * that have been added to this function
+ * \note Variables are sorted internally in ascending order; first all state followed by all action variables
  */
 template<class T>
-class Basis {
+class _DiscreteFunction {
 protected:
   /// \brief The (global) domain which includes all state and action factors
-  /// \note This is not necessarily equivalent to the (local) basis function scope
+  /// \note This is not necessarily equivalent to the (local) function scope
   const Domain _domain;
-  /// \brief The (subset of) state factors relevant for this basis function
-  SizeVec _state_dep;
+  /// \brief The (subset of) state factors relevant for this function
+  SizeVec _state_dom;
+  /// \brief The (subset of) action factors relevant for this function
+  SizeVec _action_dom;
 public:
   /// \brief ctor
-  Basis(const Domain& domain)
+  _DiscreteFunction(const Domain& domain)
   : _domain(domain) { }
   /// \brief dtor
-  virtual ~Basis() { }
+  virtual ~_DiscreteFunction() { }
 
-  /// \brief Define the state factor scope for this basis function
-  void addStateFactor(Size i) {
+  /// \brief Add state factor `i' to the scope of this function.
+  virtual void addStateFactor(Size i) {
     assert(i < _domain->getNumStateFactors());
-    _state_dep.push_back(i);
+    // insert preserving order
+    SizeVec::iterator it = std::lower_bound(_state_dom.begin(), _state_dom.end(), i);
+    if(it == _state_dom.end() || *it != i) {
+      _state_dom.insert(it, i);
+    }
+  }
+  /// \brief Add action factor `i' to the scope of this function
+  virtual void addActionFactor(Size i) {
+    assert(i < _domain->getNumActionFactors());
+    // insert preserving order
+    SizeVec::iterator it = std::lower_bound(_action_dom.begin(), _action_dom.end(), i);
+    if(it == _action_dom.end() || *it != i) {
+      _action_dom.insert(it, i);
+    }
+  }
+
+  /// \brief True iff state factor i is included in the domain of this function
+  virtual bool containsStateFactor(Size i) const {
+    return std::binary_search(_state_dom.begin(), _state_dom.end(), i); // sorted assumption
+  }
+  /// \brief True iff action factor i is included in the domain of this function
+  virtual bool containsActionFactor(Size i) const {
+    // sorted assumption
+    return std::binary_search(_action_dom.begin(), _action_dom.end(), i); // sorted assumption
   }
 
   ///
-  /// \brief evaluate the basis function at \a State s
-  /// \note The number of state factor values in s must match the scope of this basis function.
+  /// \brief evaluate the function at \a State s and \a Action a.
+  /// \note The number of state and action factor values in s must match the scope of this function
   ///
-  virtual T eval(const State& s) const = 0;
+  virtual T eval(const State& s, const Action& a) const = 0;
   /// \brief convenience function for evaluating this basis function
+  virtual T operator()(const State& s, const Action& a) const {
+    return eval(std::move(s), std::move(a));
+  }
+  /// \brief convenience function for functions that do not depend on action variables
   virtual T operator()(const State& s) const {
-    return eval(std::move(s));
+    return eval(std::move(s), Action());
   }
 };
-
+// instead of typedef (which needs full type)
+template<class T>
+using DiscreteFunction = boost::shared_ptr<_DiscreteFunction<T>>;
+#if 0
 /**
  * \brief Indicator basis centered on a specific state
  */
 class Indicator : public Basis<int> {
 protected:
   /// \brief The state on which this indicator function is centered
-  State _s;
+  State _s; // FIXME: don't copy, only store index perhaps
 public:
   Indicator(const Domain& domain, const State& s)
   : Basis(domain) {
@@ -116,7 +151,7 @@ public:
 // instead of typedef (which needs full type)
 template<class T>
 using Backprojection = boost::shared_ptr<_Backprojection<T>>;
-
+#endif
 } // namespace crl
 
 #endif
