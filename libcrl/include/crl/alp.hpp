@@ -28,6 +28,8 @@ namespace crl {
 template<class T>
 class _DiscreteFunction {
 protected:
+  /// \brief Unique name of this function
+  std::string _name;
   /// \brief The (global) domain which includes all state and action factors
   /// \note This is not necessarily equivalent to the (local) function scope
   const Domain _domain;
@@ -37,8 +39,15 @@ protected:
   SizeVec _action_dom;
 public:
   /// \brief ctor
-  _DiscreteFunction(const Domain& domain)
-  : _domain(domain) { }
+  _DiscreteFunction(const Domain& domain, std::string name = "")
+  : _domain(domain), _name(name) { }
+  /// \brief Construct function from
+  _DiscreteFunction(std::initializer_list<_DiscreteFunction<T>> funcs, std::string name = "")
+  : _name(name) {
+    for(const auto& func : funcs) {
+      join(func);
+    }
+  }
   /// \brief dtor
   virtual ~_DiscreteFunction() { }
 
@@ -74,6 +83,20 @@ public:
     SizeVec::iterator it = std::lower_bound(_action_dom.begin(), _action_dom.end(), i);
     if(it != _action_dom.end()) {
       _action_dom.erase(it);
+    }
+  }
+
+  /// \brief Join state and action factor scopes of this function with those of another one
+  virtual void join(const _DiscreteFunction<T>& func) {
+    if(_state_dom != func._state_dom) {
+        SizeVec joint_s;
+        std::set_union(_state_dom.begin(), _state_dom.end(), func._state_dom.begin(), func._state_dom.end(), joint_s.begin());
+        _state_dom = joint_s;
+    }
+    if(_action_dom != func._action_dom) {
+        SizeVec joint_a;
+        std::set_union(_action_dom.begin(), _action_dom.end(), func._action_dom.begin(), func._action_dom.end(), joint_a.begin());
+        _action_dom = joint_a;
     }
   }
 
@@ -152,7 +175,7 @@ using FlatTable = boost::shared_ptr<_FlatTable<T>>;
  * \note Both input type (I) and output type (O) can be specified.
  * Internally implemented with tabular storage.
  */
-template<class I, class O>
+template<class I, class O = double>
 class _Backprojection : public _DiscreteFunction<O> {
 protected:
   /// \brief The \a DBN used for backprojections
@@ -164,8 +187,8 @@ protected:
   /// \brief True iff function has been computed over entire domain.
   bool _cached;
 public:
-  _Backprojection(const DBN& dbn, const DiscreteFunction<I>& func)
-  : _dbn(dbn), _func(func), _cached(false) { }
+  _Backprojection(const DBN& dbn, const DiscreteFunction<I>& func, std::string name = "")
+  : _dbn(dbn), _func(func, name), _cached(false) { }
   virtual ~_Backprojection() { }
 
   /// \brief Compute backprojection for every variable setting in the domain
@@ -180,7 +203,7 @@ public:
   }
 };
 // instead of typedef (which needs full type)
-template<class I, class O>
+template<class I, class O = double>
 using Backprojection = boost::shared_ptr<_Backprojection<I,O>>;
 
 } // namespace crl
