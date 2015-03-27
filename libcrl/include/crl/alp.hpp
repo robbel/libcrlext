@@ -23,6 +23,7 @@ namespace crl {
  * Maps tuples {x_1,...,x_N,a_1,...,a_K} -> val<T>, where X_1,...,X_N are state variables and A_1,...,A_K action variables
  * that have been added to this function
  * \note Variables are sorted internally in ascending order; first all state followed by all action variables
+ * \note Unlike (e.g.) the \a LRF function in dbn.hpp, this class indicates support for modification of the domain, e.g., for marginalization of variables.
  */
 template<class T>
 class _DiscreteFunction {
@@ -41,7 +42,7 @@ public:
   /// \brief dtor
   virtual ~_DiscreteFunction() { }
 
-  /// \brief Add state factor `i' to the scope of this function.
+  /// \brief Add state factor `i' to the domain of this function.
   virtual void addStateFactor(Size i) {
     assert(i < _domain->getNumStateFactors());
     // insert preserving order
@@ -50,13 +51,29 @@ public:
       _state_dom.insert(it, i);
     }
   }
-  /// \brief Add action factor `i' to the scope of this function
+  /// \brief Add action factor `i' to the domain of this function
   virtual void addActionFactor(Size i) {
     assert(i < _domain->getNumActionFactors());
     // insert preserving order
     SizeVec::iterator it = std::lower_bound(_action_dom.begin(), _action_dom.end(), i);
     if(it == _action_dom.end() || *it != i) {
       _action_dom.insert(it, i);
+    }
+  }
+  /// \brief Erase state factor `i' from the domain of this function
+  virtual void eraseStateFactor(Size i) {
+    assert(i < _state_dom.size());
+    SizeVec::iterator it = std::lower_bound(_state_dom.begin(), _state_dom.end(), i);
+    if(it != _state_dom.end()) {
+      _state_dom.erase(it);
+    }
+  }
+  /// \brief Erase action factor `i' from the domain of this function
+  virtual void eraseActionFactor(Size i) {
+    assert(i < _action_dom.size());
+    SizeVec::iterator it = std::lower_bound(_action_dom.begin(), _action_dom.end(), i);
+    if(it != _action_dom.end()) {
+      _action_dom.erase(it);
     }
   }
 
@@ -66,7 +83,6 @@ public:
   }
   /// \brief True iff action factor i is included in the domain of this function
   virtual bool containsActionFactor(Size i) const {
-    // sorted assumption
     return std::binary_search(_action_dom.begin(), _action_dom.end(), i); // sorted assumption
   }
 
@@ -126,32 +142,47 @@ public:
   virtual Reward eval(const State& s) const;
 };
 typedef boost::shared_ptr<_FactoredV> FactoredV;
+#endif
+
+template<class T>
+using FlatTable = boost::shared_ptr<_FlatTable<T>>;
 
 /**
- * \brief Backprojection of a basis function through a DBN
- * Implemented with tabular storage.
+ * \brief Backprojection of a function through a DBN
+ * \note Both input type (I) and output type (O) can be specified.
+ * Internally implemented with tabular storage.
  */
-template<class T>
-class _Backprojection : public _DBNFactor {
-private:
-  // trick to change visibility to private
-  using _DBNFactor::addDelayedDependency;
-  using _DBNFactor::addConcurrentDependency;
-  using _DBNFactor::addActionDependency;
+template<class I, class O>
+class _Backprojection : public _DiscreteFunction<O> {
 protected:
-
+  /// \brief The \a DBN used for backprojections
+  DBN _dbn;
+  /// \brief The \a DiscreteFunction to backproject
+  DiscreteFunction<I> _func;
+  /// \brief The internal tabular storage for this function
+  FlatTable<O> _val;
+  /// \brief True iff function has been computed over entire domain.
+  bool _cached;
 public:
-  _Backprojection() { }
+  _Backprojection(const DBN& dbn, const DiscreteFunction<I>& func)
+  : _dbn(dbn), _func(func), _cached(false) { }
   virtual ~_Backprojection() { }
 
-  /// \brief Compute backprojection for every
-  void cache();
+  /// \brief Compute backprojection for every variable setting in the domain
+  virtual void cache();
 
+  ///
+  /// \brief evaluate the function at \a State s and \a Action a.
+  /// \note The number of state and action factor values in s must match the scope of this function
+  ///
+  virtual O eval(const State& s, const Action& a) const override {
+    assert(_cached);
+  }
 };
 // instead of typedef (which needs full type)
-template<class T>
-using Backprojection = boost::shared_ptr<_Backprojection<T>>;
-#endif
+template<class I, class O>
+using Backprojection = boost::shared_ptr<_Backprojection<I,O>>;
+
 } // namespace crl
 
 #endif

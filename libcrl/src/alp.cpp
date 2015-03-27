@@ -15,7 +15,4 @@ using namespace std;
 
 namespace crl {
 
-
-
-
 } // namespace crl
