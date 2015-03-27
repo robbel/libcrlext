@@ -22,8 +22,8 @@ namespace crl {
  * \brief An abstract interface for a discrete function defined over a subset of (either state or action) variables.
  * Maps tuples {x_1,...,x_N,a_1,...,a_K} -> val<T>, where X_1,...,X_N are state variables and A_1,...,A_K action variables
  * that have been added to this function
+ * \note Unlike (e.g.) the \a LRF or \a DBNFactor functions in dbn.hpp, this class supports modification of the scopes, e.g., for marginalization of variables.
  * \note Variables are sorted internally in ascending order
- * \note Unlike (e.g.) the \a LRF function in dbn.hpp, this class supports modification of the scopes, e.g., for marginalization of variables.
  */
 template<class T>
 class _DiscreteFunction {
@@ -174,14 +174,18 @@ using FlatTable = boost::shared_ptr<_FlatTable<T>>;
  * \brief Backprojection of a function through a DBN
  * The back-projected function (the input) is defined over state factors only.
  * The back-projection (the output) is defined over both state and action factors.
- * \note Different input (I) and output (O) types are supported.
  * Internally implemented with tabular storage.
+ * \note Different input (I) and output (O) types are supported.
+ * \note DBNs with concurrent dependencies are currently not supported (should be minor change, though)
  */
 template<class I, class O = double>
 class _Backprojection : public _DiscreteFunction<O> {
 protected:
   /// \brief The \a DBN used for backprojections
   DBN _dbn;
+  /// \brief The parent scope relevant for this state factor
+  /// \note Consists of state and action factors
+  Domain _parents;
   /// \brief The \a DiscreteFunction to backproject
   DiscreteFunction<I> _func;
   /// \brief The internal tabular storage for this function
@@ -192,10 +196,22 @@ public:
   _Backprojection(const DBN& dbn, const DiscreteFunction<I>& func, std::string name = "")
   : _dbn(dbn), _func(func, name), _cached(false) {
     assert(func._action_dom.empty());
+    if(_dbn->hasConcurrentDependency()) {
+      throw cpputil::InvalidException("Backprojection does currently not support concurrent dependencies in DBN.");
+    }
     // determine parent scope via DBN
     for(Size t : func._state_dom) {
-      // TODO..
-      _dbn->factor(t);
+#if 0
+      const _Domain& subdt = *(_dbn->factor(t)->getSubdomain());
+
+      if(*_parents!= subdt) {
+          SizeVec joint_s;
+          std::set_union(_state_dom.begin(), _state_dom.end(), func._state_dom.begin(), func._state_dom.end(), joint_s.begin());
+          _state_dom = joint_s;
+      }
+
+      _parents.
+#endif
     }
   }
   virtual ~_Backprojection() { }
