@@ -54,6 +54,7 @@ _DBNFactor::_DBNFactor(const Domain& domain, Size target)
 
   // create a validation function for this DBNFactor that
   // checks correct variable ordering if local DBN factor scope equals global scope (either states or actions)
+  // Note: not strictly required anymore since ascending ordering is now enforced internally
   validator = [&, s_order = cpputil::ordered_vec<Size>(_domain->getNumStateFactors()),
                   a_order = cpputil::ordered_vec<Size>(_domain->getNumActionFactors())] {
       if(getSubdomain()->getNumStateFactors() == s_order.size() && !hasConcurrentDependency()) {
@@ -69,43 +70,52 @@ _DBNFactor::_DBNFactor(const Domain& domain, Size target)
 }
 
 void _DBNFactor::addDelayedDependency(Size index) {
-	_delayed_dep.push_back(index);
-	_packed = false;
+  SizeVec::iterator it = std::lower_bound(_delayed_dep.begin(), _delayed_dep.end(), index);
+  if(it == _delayed_dep.end() || *it != index) {
+    _delayed_dep.insert(it, index);
+  }
+  _packed = false;
 }
 
 void _DBNFactor::addConcurrentDependency(Size index) {
-	_concurrent_dep.push_back(index);
-	_packed = false;
+  SizeVec::iterator it = std::lower_bound(_concurrent_dep.begin(), _concurrent_dep.end(), index);
+  if(it == _concurrent_dep.end() || *it != index) {
+    _concurrent_dep.insert(it, index);
+  }
+  _packed = false;
 }
 
 void _DBNFactor::addActionDependency(Size index) {
-	_action_dep.push_back(index);
-	_packed = false;
+  SizeVec::iterator it = std::lower_bound(_action_dep.begin(), _action_dep.end(), index);
+  if(it == _action_dep.end() || *it != index) {
+    _action_dep.insert(it, index);
+  }
+  _packed = false;
 }
 
 void _DBNFactor::pack() {
-	_subdomain = boost::make_shared<_Domain>();
-	const RangeVec& state_ranges = _domain->getStateRanges();
-	const RangeVec& action_ranges = _domain->getActionRanges();
-	const StrVec& state_names = _domain->getStateNames();
-	const StrVec& action_names = _domain->getActionNames();
-	for (Size i=0; i<_delayed_dep.size(); i++) {
-		Size j = _delayed_dep[i];
-		_subdomain->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax(), state_names[j]);
-	}
-	for (Size i=0; i<_concurrent_dep.size(); i++) {
-		Size j = _concurrent_dep[i];
-		_subdomain->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax(), state_names[j]);
-	}
-	for (Size i=0; i<_action_dep.size(); i++) {
-		Size j = _action_dep[i];
-		_subdomain->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax(), action_names[j]);
-	}
-	_prob_table = boost::make_shared<_FStateActionTable<ProbabilityVec>>(_subdomain);
-	_packed = true;
-	if(!validator()) {
-	    throw cpputil::InvalidException("DBN factor has global state or action scope and requires variable ordering to match global ordering.");
-	}
+  _subdomain = boost::make_shared<_Domain>();
+  const RangeVec& state_ranges = _domain->getStateRanges();
+  const RangeVec& action_ranges = _domain->getActionRanges();
+  const StrVec& state_names = _domain->getStateNames();
+  const StrVec& action_names = _domain->getActionNames();
+  for (Size i=0; i<_delayed_dep.size(); i++) {
+      Size j = _delayed_dep[i];
+      _subdomain->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax(), state_names[j]);
+  }
+  for (Size i=0; i<_concurrent_dep.size(); i++) {
+      Size j = _concurrent_dep[i];
+      _subdomain->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax(), state_names[j]);
+  }
+  for (Size i=0; i<_action_dep.size(); i++) {
+      Size j = _action_dep[i];
+      _subdomain->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax(), action_names[j]);
+  }
+  _prob_table = boost::make_shared<_FStateActionTable<ProbabilityVec>>(_subdomain);
+  _packed = true;
+  if(!validator()) {
+      throw cpputil::InvalidException("DBN factor has global state or action scope and requires variable ordering to match global ordering.");
+  }
 }
 
 // FIXME may be costly to always convert from (s,n,a) to index (!)
@@ -176,9 +186,11 @@ void _DBN::addDBNFactor(DBNFactor dbn_factor) {
   if(dbn_factor->hasConcurrentDependency()) {
     _has_concurrency = true;
   }
-
-  _dbn_factors.push_back(std::move(dbn_factor));
-  //check deps, reorder?
+  // insert preserving order
+  std::vector<DBNFactor>::iterator it = std::lower_bound(_dbn_factors.begin(), _dbn_factors.end(), dbn_factor);
+  if(it == _dbn_factors.end()) {
+    _dbn_factors.insert(it, dbn_factor); // overwrite and de-allocate previous if it exists
+  }
 }
 
 Probability _DBN::T(const State& js, const Action& ja, const State& jn) {

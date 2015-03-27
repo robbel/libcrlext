@@ -27,7 +27,7 @@ typedef boost::shared_ptr<_SAFRewardTable> SAFRewardTable;
 /**
  * \brief The definition of a single DBN factor across 2 time slices (t-1 -> t), that can have its dynamics set explicitly.
  *  Includes the transition probabilities encoded with tabular storage.
- * \note In the case that local DBNFactor scope equals joint state or action scope, variable ordering (for those) needs to be equivalent.
+ * \note All dependencies (delayed, concurrent, action) are sorted internally in ascending order.
  */
 class _DBNFactor {
 protected:
@@ -99,9 +99,17 @@ public:
     assert(_packed);
     return _subdomain;
   }
+  /// \brief Return the (number referring to the) factor in the domain that this DBNFactor represents
+  virtual Size getTarget() const {
+    return _target;
+  }
   /// \brief Return range of this factor
   virtual const FactorRange& getTargetRange() const {
     return _target_range;
+  }
+  /// \brief Less-than operator overload to support sorting
+  bool operator<(const _DBNFactor &rhs) const {
+    return _target < rhs._target;
   }
 
   /// \brief The vector of probabilities for successor values associated with the tuple (s,n,a)
@@ -176,11 +184,12 @@ typedef boost::shared_ptr<_LRF> LRF;
 /**
  * \brief The 2-stage DBN (2DBN) encoding the transition function from t-1 to t.
  * The 2DBN supports factored states and actions.
+ * \note DBNFactors are sorted internally in ascending order of their target variables.
  */
 class _DBN {
 protected:
   std::vector<DBNFactor> _dbn_factors;
-  /// \brief whether there are any concurrent dependencies in the DBN (at time slice t)
+  /// \brief True iff there are any concurrent dependencies in the DBN (i.e., at time slice t)
   bool _has_concurrency;
 public:
   _DBN()
@@ -191,10 +200,17 @@ public:
     return _dbn_factors.size();
   }
 
+  /// \brief Add a \a DBNFactor to this \a DBN
+  /// \note Overwrites an existing DBNFactor with the identical target variable
   virtual void addDBNFactor(DBNFactor dbn_factor);
   /// \brief Iterator over all \a DBNFactor in this DBN
   virtual FactorIterator factors() {
     return boost::make_shared<_FactorVecIterator>(_dbn_factors);
+  }
+  /// \brief Return \a DBNFactor for a specific target variable
+  virtual DBNFactor factor(Size t) {
+    assert(t < size());
+    return _dbn_factors[t];
   }
   /// \brief Compute the probability of transitioning from (joint) s -> n under (joint) \a Action a
   virtual Probability T(const State& js, const Action& ja, const State& jn);

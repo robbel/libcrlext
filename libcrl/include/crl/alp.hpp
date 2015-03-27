@@ -22,8 +22,8 @@ namespace crl {
  * \brief An abstract interface for a discrete function defined over a subset of (either state or action) variables.
  * Maps tuples {x_1,...,x_N,a_1,...,a_K} -> val<T>, where X_1,...,X_N are state variables and A_1,...,A_K action variables
  * that have been added to this function
- * \note Variables are sorted internally in ascending order; first all state followed by all action variables
- * \note Unlike (e.g.) the \a LRF function in dbn.hpp, this class indicates support for modification of the domain, e.g., for marginalization of variables.
+ * \note Variables are sorted internally in ascending order
+ * \note Unlike (e.g.) the \a LRF function in dbn.hpp, this class supports modification of the scopes, e.g., for marginalization of variables.
  */
 template<class T>
 class _DiscreteFunction {
@@ -172,7 +172,9 @@ using FlatTable = boost::shared_ptr<_FlatTable<T>>;
 
 /**
  * \brief Backprojection of a function through a DBN
- * \note Both input type (I) and output type (O) can be specified.
+ * The back-projected function (the input) is defined over state factors only.
+ * The back-projection (the output) is defined over both state and action factors.
+ * \note Different input (I) and output (O) types are supported.
  * Internally implemented with tabular storage.
  */
 template<class I, class O = double>
@@ -183,16 +185,33 @@ protected:
   /// \brief The \a DiscreteFunction to backproject
   DiscreteFunction<I> _func;
   /// \brief The internal tabular storage for this function
-  FlatTable<O> _val;
+  FlatTable<O> _values;
   /// \brief True iff function has been computed over entire domain.
   bool _cached;
 public:
   _Backprojection(const DBN& dbn, const DiscreteFunction<I>& func, std::string name = "")
-  : _dbn(dbn), _func(func, name), _cached(false) { }
+  : _dbn(dbn), _func(func, name), _cached(false) {
+    assert(func._action_dom.empty());
+    // determine parent scope via DBN
+    for(Size t : func._state_dom) {
+      // TODO..
+      _dbn->factor(t);
+    }
+  }
   virtual ~_Backprojection() { }
 
   /// \brief Compute backprojection for every variable setting in the domain
-  virtual void cache();
+  virtual void cache() {
+    // allocate memory
+    //_values = boost::make_shared<_FlatTable<O>>();
+    _cached = true;
+  }
+
+  /// \brief Join state and action factor scopes of this function with those of another one
+  virtual void join(const _DiscreteFunction<O>& func) {
+    _DiscreteFunction<O>::join(func);
+    _cached = false;
+  }
 
   ///
   /// \brief evaluate the function at \a State s and \a Action a.
@@ -200,6 +219,7 @@ public:
   ///
   virtual O eval(const State& s, const Action& a) const override {
     assert(_cached);
+    // todo: compute values for all instantiations of parent scope
   }
 };
 // instead of typedef (which needs full type)
