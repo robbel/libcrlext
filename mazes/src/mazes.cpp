@@ -39,22 +39,22 @@ _Maze::_Maze(size_t width, size_t height)
 }
 
 bool _Maze::getWallEast(size_t x, size_t y) {
-	if (x<0 || x>=_width-1 || y<0 || y>=_height)
+	if (x>=_width-1 || y>=_height)
 		return true;
 	return _vertical_walls[x][y];
 }
 bool _Maze::getWallSouth(size_t x, size_t y) {
-	if (x<0 || x>=_width || y<0 || y>=_height-1)
+	if (x>=_width || y>=_height-1)
 		return true;
 	return _horizontal_walls[x][y];
 }
 void _Maze::setWallEast(size_t x, size_t y, bool wall) {
-	if (x<0 || x>=_width-1 || y<0 || y>=_height)
+	if (x>=_width-1 || y>=_height)
 		return;
 	_vertical_walls[x][y] = wall;
 }
 void _Maze::setWallSouth(size_t x, size_t y, bool wall) {
-	if (x<0 || x>=_width || y<0 || y>=_height-1)
+	if (x>=_width || y>=_height-1)
 		return;
 	_horizontal_walls[x][y] = wall;
 }
@@ -75,13 +75,13 @@ void _Maze::setWallWest(size_t x, size_t y, bool wall) {
 }
 
 char _Maze::getTile(size_t x, size_t y) {
-	if (x<0 || x>=_width || y<0 || y>=_height)
+	if (x>=_width || y>=_height)
 		return '#';
 	return _tiles[x][y];
 }
 
 void _Maze::setTile(size_t x, size_t y, char tile) {
-	if (x<0 || x>=_width || y<0 || y>=_height)
+	if (x>=_width || y>=_height)
 		return;
 	_tiles[x][y] = tile;
 }
