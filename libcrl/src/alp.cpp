@@ -16,3 +16,29 @@ using namespace std;
 namespace crl {
 
 } // namespace crl
+
+using namespace crl;
+
+int main() {
+  srand(0);
+
+  Domain domain = boost::make_shared<_Domain>();
+  domain->addStateFactor(0, 299, "first_state"); // 300 states
+  domain->addActionFactor(0, 4, "first_agent");  // 5 actions
+  domain->setRewardRange(-1, 0);
+
+  State s(domain, 1);
+  State s2(domain,2);
+  _Indicator I(domain, s); // an indicator function for that state
+  cout << "indicator.eval: " << I(s) << " and " << I(s2) << endl;
+
+  _DBN dbn;
+
+  _Backprojection<double> b(domain, dbn, I);
+
+//  Backprojection<int> b = boost::make_shared<_Backprojection<int>>(dbn,I);
+
+
+
+  std::cout << "hello" << std::endl;
+}

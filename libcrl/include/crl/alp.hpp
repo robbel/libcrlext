@@ -51,6 +51,9 @@ public:
   /// \brief dtor
   virtual ~_DiscreteFunction() { }
 
+  virtual const SizeVec& getStateDependencies() const { return _state_dom; }
+  virtual const SizeVec& getActionDependencies() const { return _action_dom; }
+
   //
   // Implementation of the interface that maintains the domain (state and action factors) of this function
   //
@@ -148,31 +151,25 @@ using DiscreteFunction = boost::shared_ptr<_DiscreteFunction<T>>;
 /**
  * \brief Indicator basis centered on a specific state
  */
-class Indicator : public _DiscreteFunction<int> {
+class _Indicator : public _DiscreteFunction<double> {
 protected:
   /// \brief The state on which this indicator function is centered
   State _s; // FIXME: don't copy, only store index perhaps
 public:
-  Indicator(const Domain& domain, const State& s)
+  _Indicator(const Domain& domain, const State& s)
   : _DiscreteFunction(domain) {
     assert(s && s.size() == _state_dom.size());
     _s = s;
   }
-  virtual ~Indicator() { }
+  virtual ~_Indicator() { }
 
-  virtual int eval(const State& s, const Action& a) const override {
-    return static_cast<int>(_s == s); // note: internally also compares the ranges
+  virtual double eval(const State& s, const Action& a) const override {
+    return static_cast<double>(_s == s); // note: internally also compares the ranges
   }
-//  virtual _DiscreteFunction<int> operator*(int s) const override {
-//    return *this;
-//  }
-  virtual _DiscreteFunction<int>& operator*=(int s) override {
+  virtual _DiscreteFunction<double>& operator*=(double s) override {
     return *this;
   }
-//  virtual _DiscreteFunction<int> operator+(const _DiscreteFunction<int>& f) const override {
-//    return *this;
-//  }
-  virtual _DiscreteFunction<int>& operator+=(const _DiscreteFunction<int>& f) override {
+  virtual _DiscreteFunction<double>& operator+=(const _DiscreteFunction<double>& f) override {
     return *this;
   }
 };
@@ -207,40 +204,39 @@ using StateTable =  boost::shared_ptr<_StateTable<T>>;
  * The input function is defined over state factors only.
  * The back-projection (the output) is defined over (state,action) or state factors alone.
  * Internally implemented with tabular storage.
- * \note Different input (I) and output (O) types are supported.
  * \note DBNs with concurrent dependencies are currently not supported (should be minor change, though)
  */
-template<class I, class O = double>
-class _Backprojection : public _DiscreteFunction<O> {
+template<class T>
+class _Backprojection : public _DiscreteFunction<T> {
 protected:
   /// \brief The \a DBN used for backprojections
-  const DBN& _dbn;
+  const _DBN& _dbn;
+  /// \brief The \a DiscreteFunction to backproject
+  const _DiscreteFunction<T>& _func;
   /// \brief The parent scope relevant for this state factor (consisting of both state and action variables)
   /// \note Only available after a call to \a cache()
   Domain _parents;
-  /// \brief The \a DiscreteFunction to backproject
-  const _DiscreteFunction<I>& _func;
   /// \brief The internal storage for this backprojection
   union {
-    StateTable<O> _state_table;
-    StateActionTable<O> _state_action_table;
+    StateTable<T> _state_table;
+    StateActionTable<T> _state_action_table;
   };
   /// \brief Obtain element from internal storage
   /// \note This is a common interface independent of the storage type (StateTable, StateActionTable)
-  std::function<O(std::initializer_list<RLType>)> getValue;
+  std::function<T(std::initializer_list<RLType>)> getValue;
   /// \brief True iff function has been computed over entire domain.
   bool _cached;
 public:
-  _Backprojection(const _DBN& dbn, const _DiscreteFunction<I>& other, std::string name = "")
-    : _DiscreteFunction<O>(_dbn(dbn), _func(other), _name(name), _cached(false) {
-    assert(other._action_dom.empty());
-    if(_dbn->hasConcurrentDependency()) {
+  _Backprojection(const Domain& domain, const _DBN& dbn, const _DiscreteFunction<T>& other, std::string name = "")
+  : _DiscreteFunction<T>(domain, name), _dbn(dbn), _func(other), _cached(false) {
+    assert(other.getActionDependencies().empty());
+    if(_dbn.hasConcurrentDependency()) {
       throw cpputil::InvalidException("Backprojection does currently not support concurrent dependencies in DBN.");
     }
     // determine parent scope via DBN
-    for(Size t : other._state_dom) {
-        const SizeVec& delayed_dep = _dbn->factor(t)->getDelayedDependencies();
-        const SizeVec& action_dep = _dbn->factor(t)->getActionDependencies();
+    for(Size t : other.getStateDependencies()) {
+        const SizeVec& delayed_dep = _dbn.factor(t)->getDelayedDependencies();
+        const SizeVec& action_dep = _dbn.factor(t)->getActionDependencies();
         join(delayed_dep, action_dep);
     }
   }
@@ -250,29 +246,29 @@ public:
   virtual void cache() {
     // allocate memory
     _parents = boost::make_shared<_Domain>();
-    const RangeVec& state_ranges = _DiscreteFunction<O>::_domain->getStateRanges();
-    const RangeVec& action_ranges = _DiscreteFunction<O>::_domain->getActionRanges();
-    const StrVec& state_names = _DiscreteFunction<O>::_domain->getStateNames();
-    const StrVec& action_names = _DiscreteFunction<O>::_domain->getActionNames();
-    for (Size i=0; i<_DiscreteFunction<O>::_state_dom.size(); i++) {
-        Size j = _DiscreteFunction<O>::_state_dom[i];
+    const RangeVec& state_ranges = _DiscreteFunction<T>::_domain->getStateRanges();
+    const RangeVec& action_ranges = _DiscreteFunction<T>::_domain->getActionRanges();
+    const StrVec& state_names = _DiscreteFunction<T>::_domain->getStateNames();
+    const StrVec& action_names = _DiscreteFunction<T>::_domain->getActionNames();
+    for (Size i=0; i<_DiscreteFunction<T>::_state_dom.size(); i++) {
+        Size j = _DiscreteFunction<T>::_state_dom[i];
         _parents->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax(), state_names[j]);
     }
-    for (Size i=0; i<_DiscreteFunction<O>::_action_dom.size(); i++) {
-        Size j = _DiscreteFunction<O>::_action_dom[i];
+    for (Size i=0; i<_DiscreteFunction<T>::_action_dom.size(); i++) {
+        Size j = _DiscreteFunction<T>::_action_dom[i];
         _parents->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax(), action_names[j]);
     }
     // define accessor function to internal memory
     if(_parents->getNumActionFactors() == 0) { // flat table in case of no action dependencies
-      _state_table = boost::make_shared<_FStateTable<O>>(_parents);
-      getValue = [&](std::initializer_list<RLType> params)->O {
+      _state_table = boost::make_shared<_FStateTable<T>>(_parents);
+      getValue = [&](std::initializer_list<RLType> params) {
         State s = *params.begin();
         return _state_table->getValue(std::move(s));
       };
     }
     else { // two-dimensional table in case of action dependencies
-      _state_action_table = boost::make_shared<_FStateActionTable<O>>(_parents);
-      getValue = [&](std::initializer_list<RLType> params)->O {
+      _state_action_table = boost::make_shared<_FStateActionTable<T>>(_parents);
+      getValue = [&](std::initializer_list<RLType> params) {
         auto it = params.begin();
         State s = *it++; // increment after dereference
         Action a = *it;
@@ -289,11 +285,11 @@ public:
   }
 
   virtual void join(const SizeVec& state_dom, const SizeVec& action_dom) override {
-    _DiscreteFunction<O>::join(state_dom, action_dom);
+    _DiscreteFunction<T>::join(state_dom, action_dom);
     _cached = false;
   }
-  virtual void join(const _DiscreteFunction<O>& func) override {
-    _DiscreteFunction<O>::join(func);
+  virtual void join(const _DiscreteFunction<T>& func) override {
+    _DiscreteFunction<T>::join(func);
     _cached = false;
   }
 
@@ -301,31 +297,25 @@ public:
   // Function computations
   //
 
-  virtual O eval(const State& s, const Action& a) const override {
+  virtual T eval(const State& s, const Action& a) const override {
     assert(_cached);
     return getValue({s,a});
   }
 
-//  virtual _DiscreteFunction<O> operator*(O s) const override {
-//    assert(_cached);
-//  }
-
-  virtual _DiscreteFunction<O>& operator*=(O s) override {
+  virtual _DiscreteFunction<T>& operator*=(T s) override {
     assert(_cached);
+    return *this;
   }
 
-//  virtual _DiscreteFunction<O> operator+(const _DiscreteFunction<O>& f) const override {
-//    assert(_cached);
-//  }
-
-  virtual _DiscreteFunction<O>& operator+=(const _DiscreteFunction<O>& f) override {
+  virtual _DiscreteFunction<T>& operator+=(const _DiscreteFunction<T>& f) override {
     assert(_cached);
+    return *this;
   }
 
 };
 // instead of typedef (which needs full type)
-template<class I, class O = double>
-using Backprojection = boost::shared_ptr<_Backprojection<I,O>>;
+template<class T>
+using Backprojection = boost::shared_ptr<_Backprojection<T>>;
 
 } // namespace crl
 

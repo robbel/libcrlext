@@ -210,7 +210,7 @@ public:
     return boost::make_shared<_FactorVecIterator>(_dbn_factors);
   }
   /// \brief Return \a DBNFactor for a specific target variable
-  virtual DBNFactor factor(Size t) {
+  virtual DBNFactor factor(Size t) const {
     assert(t < size());
     return _dbn_factors[t];
   }
