@@ -86,18 +86,22 @@ public:
     }
   }
 
-  /// \brief Join state and action factor scopes of this function with those of another one
-  virtual void join(const _DiscreteFunction<T>& func) {
-    if(_state_dom != func._state_dom) {
+  /// \brief Join state and action factor scopes of this function with the supplied ones
+  virtual void join(const SizeVec& state_dom, const SizeVec& action_dom) {
+    if(_state_dom != state_dom) {
         SizeVec joint_s;
-        std::set_union(_state_dom.begin(), _state_dom.end(), func._state_dom.begin(), func._state_dom.end(), joint_s.begin());
+        std::set_union(_state_dom.begin(), _state_dom.end(), state_dom.begin(), state_dom.end(), joint_s.begin());
         _state_dom = joint_s;
     }
-    if(_action_dom != func._action_dom) {
+    if(_action_dom != action_dom) {
         SizeVec joint_a;
-        std::set_union(_action_dom.begin(), _action_dom.end(), func._action_dom.begin(), func._action_dom.end(), joint_a.begin());
+        std::set_union(_action_dom.begin(), _action_dom.end(), action_dom.begin(), action_dom.end(), joint_a.begin());
         _action_dom = joint_a;
     }
+  }
+  /// \brief Join state and action factor scopes of this function with those of another one
+  virtual void join(const _DiscreteFunction<T>& func) {
+    join(func._state_dom, func._action_dom);
   }
 
   /// \brief True iff state factor i is included in the domain of this function
@@ -168,11 +172,11 @@ typedef boost::shared_ptr<_FactoredV> FactoredV;
 #endif
 
 template<class T>
-using FlatTable = boost::shared_ptr<_FlatTable<T>>;
+using StateActionTable =  boost::shared_ptr<_StateActionTable<T>>;
 
 /**
  * \brief Backprojection of a function through a DBN
- * The back-projected function (the input) is defined over state factors only.
+ * The input function is defined over state factors only.
  * The back-projection (the output) is defined over both state and action factors.
  * Internally implemented with tabular storage.
  * \note Different input (I) and output (O) types are supported.
@@ -188,30 +192,22 @@ protected:
   Domain _parents;
   /// \brief The \a DiscreteFunction to backproject
   DiscreteFunction<I> _func;
-  /// \brief The internal tabular storage for this function
-  FlatTable<O> _values;
+  /// \brief The internal tabular storage for this backprojection
+  StateActionTable<O> _values;
   /// \brief True iff function has been computed over entire domain.
   bool _cached;
 public:
-  _Backprojection(const DBN& dbn, const DiscreteFunction<I>& func, std::string name = "")
-  : _dbn(dbn), _func(func, name), _cached(false) {
-    assert(func._action_dom.empty());
+  _Backprojection(const DBN& dbn, const DiscreteFunction<I>& other, std::string name = "")
+  : _dbn(dbn), _func(other, name), _cached(false) {
+    assert(other._action_dom.empty());
     if(_dbn->hasConcurrentDependency()) {
       throw cpputil::InvalidException("Backprojection does currently not support concurrent dependencies in DBN.");
     }
     // determine parent scope via DBN
-    for(Size t : func._state_dom) {
-#if 0
-      const _Domain& subdt = *(_dbn->factor(t)->getSubdomain());
-
-      if(*_parents!= subdt) {
-          SizeVec joint_s;
-          std::set_union(_state_dom.begin(), _state_dom.end(), func._state_dom.begin(), func._state_dom.end(), joint_s.begin());
-          _state_dom = joint_s;
-      }
-
-      _parents.
-#endif
+    for(Size t : other._state_dom) {
+        const SizeVec& delayed_dep = _dbn->factor(t)->getDelayedDependencies();
+        const SizeVec& action_dep = _dbn->factor(t)->getActionDependencies();
+        join(delayed_dep, action_dep);
     }
   }
   virtual ~_Backprojection() { }
@@ -219,20 +215,38 @@ public:
   /// \brief Compute backprojection for every variable setting in the domain
   virtual void cache() {
     // allocate memory
-    //_values = boost::make_shared<_FlatTable<O>>();
+    _parents = boost::make_shared<_Domain>();
+    const RangeVec& state_ranges = _DiscreteFunction<O>::_domain->getStateRanges();
+    const RangeVec& action_ranges = _DiscreteFunction<O>::_domain->getActionRanges();
+    const StrVec& state_names = _DiscreteFunction<O>::_domain->getStateNames();
+    const StrVec& action_names = _DiscreteFunction<O>::_domain->getActionNames();
+    for (Size i=0; i<_DiscreteFunction<O>::_state_dom.size(); i++) {
+        Size j = _DiscreteFunction<O>::_state_dom[i];
+        _parents->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax(), state_names[j]);
+    }
+    for (Size i=0; i<_DiscreteFunction<O>::_action_dom.size(); i++) {
+        Size j = _DiscreteFunction<O>::_action_dom[i];
+        _parents->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax(), action_names[j]);
+    }
+    _values = boost::make_shared<_FStateActionTable<O>>(_parents);
+
+    // TODO: compute values
+    //_StateIncrementIterator sitr(_parents);
+    //_ActionIncrementIterator aitr(_parents);
+    //while(sitr->)
+
     _cached = true;
   }
 
-  /// \brief Join state and action factor scopes of this function with those of another one
-  virtual void join(const _DiscreteFunction<O>& func) {
+  virtual void join(const SizeVec& state_dom, const SizeVec& action_dom) override {
+    _DiscreteFunction<O>::join(state_dom, action_dom);
+    _cached = false;
+  }
+  virtual void join(const _DiscreteFunction<O>& func) override {
     _DiscreteFunction<O>::join(func);
     _cached = false;
   }
 
-  ///
-  /// \brief evaluate the function at \a State s and \a Action a.
-  /// \note The number of state and action factor values in s must match the scope of this function
-  ///
   virtual O eval(const State& s, const Action& a) const override {
     assert(_cached);
     // todo: compute values for all instantiations of parent scope

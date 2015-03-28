@@ -81,11 +81,13 @@ public:
   _DBNFactor(const Domain& domain, Size target);
   virtual ~_DBNFactor() { }
   virtual void addDelayedDependency(Size index);
+  virtual const SizeVec& getDelayedDependencies() const { return _delayed_dep; }
   virtual void addConcurrentDependency(Size index);
+  virtual const SizeVec& getConcurrentDependencies() const { return _concurrent_dep; }
   virtual void addActionDependency(Size index);
-  virtual bool hasConcurrentDependency() const {
-    return !_concurrent_dep.empty();
-  }
+  virtual const SizeVec& getActionDependencies() const { return _action_dep; }
+  virtual bool hasConcurrentDependency() const { return !_concurrent_dep.empty(); }
+
   ///
   /// \brief Assemble the table corresponding to the CPT estimates for this factor
   /// \note Called after all dependencies have been added
