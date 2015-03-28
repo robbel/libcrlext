@@ -51,8 +51,10 @@ public:
   /// \brief dtor
   virtual ~_DiscreteFunction() { }
 
-  virtual const SizeVec& getStateDependencies() const { return _state_dom; }
-  virtual const SizeVec& getActionDependencies() const { return _action_dom; }
+  /// \brief The state factor indices (w.r.t. global \a Domain) relevant for this function
+  virtual const SizeVec& getStateFactors() const { return _state_dom; }
+  /// \brief The action factor indices (w.r.t. global \a Domain) relevant for this function
+  virtual const SizeVec& getActionFactors() const { return _action_dom; }
 
   //
   // Implementation of the interface that maintains the domain (state and action factors) of this function
@@ -229,12 +231,12 @@ protected:
 public:
   _Backprojection(const Domain& domain, const _DBN& dbn, const _DiscreteFunction<T>& other, std::string name = "")
   : _DiscreteFunction<T>(domain, name), _dbn(dbn), _func(other), _cached(false) {
-    assert(other.getActionDependencies().empty());
+    assert(other.getActionFactors().empty());
     if(_dbn.hasConcurrentDependency()) {
       throw cpputil::InvalidException("Backprojection does currently not support concurrent dependencies in DBN.");
     }
     // determine parent scope via DBN
-    for(Size t : other.getStateDependencies()) {
+    for(Size t : other.getStateFactors()) {
         const SizeVec& delayed_dep = _dbn.factor(t)->getDelayedDependencies();
         const SizeVec& action_dep = _dbn.factor(t)->getActionDependencies();
         join(delayed_dep, action_dep);
