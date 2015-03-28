@@ -87,9 +87,11 @@ template <class T>
 class _HStateTable : public _HashTable<T>, public _StateTable<T> {
 	_StateSet _states;
 public:
+	using _HashTable<T>::getValue;
 	virtual T& getValue(const State& s) {
 		return _HashTable<T>::getValue(s);
 	}
+	using _HashTable<T>::setValue;
 	virtual void setValue(const State& s, T t) {
 		_HashTable<T>::setValue(s, t);
 	}

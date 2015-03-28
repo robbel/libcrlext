@@ -108,10 +108,12 @@ public:
 	: _FlatTable<T>(domain->getNumStates(), initial), _set_states(new _StateSet()) { }
 
 	// StateTable interface
+	using _FlatTable<T>::setValue;
 	virtual void setValue(const State& s, T t) override {
 		_set_states->insert(s);
 		_FlatTable<T>::setValue(s, t);
 	}
+	using _FlatTable<T>::getValue;
 	virtual T& getValue(const State& s) override {
 		return _FlatTable<T>::getValue(s);
 	}

@@ -15,7 +15,7 @@ ld_library_path = os.environ.get('LD_LIBRARY_PATH', "")
 cpp_paths = [cp for cp in cpath.split(':')]+[inc, prefix_inc]
 lib_paths = [lp for lp in ld_library_path.split(':')]+[lib, prefix_lib]
 
-ccflags = ['-Wall', '-Werror', '-Wno-deprecated', '-std=c++11']
+ccflags = ['-Wall', '-Werror', '-Wno-deprecated', '-Wno-c++1y-extensions', '-std=c++11']
 
 if 'debug' in COMMAND_LINE_TARGETS:
 	ccflags += ['-g', '-O0']
@@ -54,14 +54,13 @@ if os.uname()[0] == "Darwin":
 config = Configure(env)
 config.CheckCXXHeader('cpputil.hpp')
 config.CheckCXXHeader('boost/shared_ptr.hpp')
-has_dai = config.CheckLibWithHeader('dai', 'dai/alldai.h', 'cpp')
 has_lpsolve = config.CheckLibWithHeader('lpsolve55', 'lpsolve/lp_lib.h', 'cpp')
 env = config.Finish()
 
 lib_targets = []
 bin_targets = []
 
-if has_dai and has_lpsolve:
+if has_lpsolve:
         libcrl = env.SharedLibrary(lib.File('libcrl'+shared_lib_suffix), build_sources)
         lib_targets += [libcrl]
 
