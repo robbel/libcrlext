@@ -219,7 +219,9 @@ class State : public RLType {
 public:
 	State()
 	: RLType() { }
-	State(const Domain& domain)
+	State(const RLType& t)
+	: RLType(t) { } // only base class needs copying
+	explicit State(const Domain& domain)
 	: RLType(&(domain->getStateRanges()),
 		 &(domain->getStateIndexComponents())) { }
 	State(const Domain& domain, Size index)
@@ -236,7 +238,9 @@ class Action : public RLType {
 public:
 	Action()
 	: RLType() { }
-	Action(const Domain& domain)
+	Action(const RLType& t)
+	: RLType(t) { } // only base class needs copying
+	explicit Action(const Domain& domain)
 	: RLType(&(domain->getActionRanges()),
 		 &(domain->getActionIndexComponents())) { }
 	Action(const Domain& domain, Size index)

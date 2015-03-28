@@ -28,8 +28,6 @@ namespace crl {
 template<class T>
 class _DiscreteFunction {
 protected:
-  /// \brief Unique name of this function
-  std::string _name;
   /// \brief The (global) domain which includes all state and action factors
   /// \note This is not necessarily equivalent to the (local) function scope
   const Domain _domain;
@@ -37,6 +35,8 @@ protected:
   SizeVec _state_dom;
   /// \brief The (subset of) action factors relevant for this function
   SizeVec _action_dom;
+  /// \brief Unique name of this function
+  std::string _name;
 public:
   /// \brief ctor
   _DiscreteFunction(const Domain& domain, std::string name = "")
@@ -50,6 +50,10 @@ public:
   }
   /// \brief dtor
   virtual ~_DiscreteFunction() { }
+
+  //
+  // Implementation of the interface that maintains the domain (state and action factors) of this function
+  //
 
   /// \brief Add state factor `i' to the domain of this function.
   virtual void addStateFactor(Size i) {
@@ -113,44 +117,66 @@ public:
     return std::binary_search(_action_dom.begin(), _action_dom.end(), i); // sorted assumption
   }
 
+  //
+  // Abstract interface for actual function computations
+  //
+
   ///
-  /// \brief evaluate the function at \a State s and \a Action a.
+  /// \brief Evaluate the function at \a State s and \a Action a.
   /// \note The number of state and action factor values in s must match the scope of this function
   ///
   virtual T eval(const State& s, const Action& a) const = 0;
-  /// \brief convenience function for evaluating this basis function
+  /// \brief Convenience function for evaluating this basis function
   virtual T operator()(const State& s, const Action& a) const {
     return eval(std::move(s), std::move(a));
   }
-  /// \brief convenience function for functions that do not depend on action variables
+  /// \brief Convenience function for functions that do not depend on action variables
   virtual T operator()(const State& s) const {
     return eval(std::move(s), Action());
   }
+  /// \brief Multiplication with a scalar
+  //virtual _DiscreteFunction<T> operator*(T s) const = 0;
+  virtual _DiscreteFunction<T>& operator*=(T s) = 0;
+  /// \brief Addition of a function with the same domain
+  //virtual _DiscreteFunction<T> operator+(const _DiscreteFunction<T>& f) const = 0;
+  virtual _DiscreteFunction<T>& operator+=(const _DiscreteFunction<T>& f) = 0;
 };
 // instead of typedef (which needs full type)
 template<class T>
 using DiscreteFunction = boost::shared_ptr<_DiscreteFunction<T>>;
-#if 0
+
 /**
  * \brief Indicator basis centered on a specific state
  */
-class Indicator : public Basis<int> {
+class Indicator : public _DiscreteFunction<int> {
 protected:
   /// \brief The state on which this indicator function is centered
   State _s; // FIXME: don't copy, only store index perhaps
 public:
   Indicator(const Domain& domain, const State& s)
-  : Basis(domain) {
-    assert(s && s.size() == _state_dep.size());
+  : _DiscreteFunction(domain) {
+    assert(s && s.size() == _state_dom.size());
     _s = s;
   }
   virtual ~Indicator() { }
 
-  virtual int eval(const State& s) const override {
+  virtual int eval(const State& s, const Action& a) const override {
     return static_cast<int>(_s == s); // note: internally also compares the ranges
   }
+//  virtual _DiscreteFunction<int> operator*(int s) const override {
+//    return *this;
+//  }
+  virtual _DiscreteFunction<int>& operator*=(int s) override {
+    return *this;
+  }
+//  virtual _DiscreteFunction<int> operator+(const _DiscreteFunction<int>& f) const override {
+//    return *this;
+//  }
+  virtual _DiscreteFunction<int>& operator+=(const _DiscreteFunction<int>& f) override {
+    return *this;
+  }
 };
-
+#if 0
 /**
  * \brief A factored value function
  */
@@ -173,11 +199,13 @@ typedef boost::shared_ptr<_FactoredV> FactoredV;
 
 template<class T>
 using StateActionTable =  boost::shared_ptr<_StateActionTable<T>>;
+template<class T>
+using StateTable =  boost::shared_ptr<_StateTable<T>>;
 
 /**
  * \brief Backprojection of a function through a DBN
  * The input function is defined over state factors only.
- * The back-projection (the output) is defined over both state and action factors.
+ * The back-projection (the output) is defined over (state,action) or state factors alone.
  * Internally implemented with tabular storage.
  * \note Different input (I) and output (O) types are supported.
  * \note DBNs with concurrent dependencies are currently not supported (should be minor change, though)
@@ -186,19 +214,25 @@ template<class I, class O = double>
 class _Backprojection : public _DiscreteFunction<O> {
 protected:
   /// \brief The \a DBN used for backprojections
-  DBN _dbn;
-  /// \brief The parent scope relevant for this state factor
-  /// \note Consists of state and action factors
+  const DBN& _dbn;
+  /// \brief The parent scope relevant for this state factor (consisting of both state and action variables)
+  /// \note Only available after a call to \a cache()
   Domain _parents;
   /// \brief The \a DiscreteFunction to backproject
-  DiscreteFunction<I> _func;
-  /// \brief The internal tabular storage for this backprojection
-  StateActionTable<O> _values;
+  const _DiscreteFunction<I>& _func;
+  /// \brief The internal storage for this backprojection
+  union {
+    StateTable<O> _state_table;
+    StateActionTable<O> _state_action_table;
+  };
+  /// \brief Obtain element from internal storage
+  /// \note This is a common interface independent of the storage type (StateTable, StateActionTable)
+  std::function<O(std::initializer_list<RLType>)> getValue;
   /// \brief True iff function has been computed over entire domain.
   bool _cached;
 public:
-  _Backprojection(const DBN& dbn, const DiscreteFunction<I>& other, std::string name = "")
-  : _dbn(dbn), _func(other, name), _cached(false) {
+  _Backprojection(const _DBN& dbn, const _DiscreteFunction<I>& other, std::string name = "")
+    : _DiscreteFunction<O>(_dbn(dbn), _func(other), _name(name), _cached(false) {
     assert(other._action_dom.empty());
     if(_dbn->hasConcurrentDependency()) {
       throw cpputil::InvalidException("Backprojection does currently not support concurrent dependencies in DBN.");
@@ -228,7 +262,23 @@ public:
         Size j = _DiscreteFunction<O>::_action_dom[i];
         _parents->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax(), action_names[j]);
     }
-    _values = boost::make_shared<_FStateActionTable<O>>(_parents);
+    // define accessor function to internal memory
+    if(_parents->getNumActionFactors() == 0) { // flat table in case of no action dependencies
+      _state_table = boost::make_shared<_FStateTable<O>>(_parents);
+      getValue = [&](std::initializer_list<RLType> params)->O {
+        State s = *params.begin();
+        return _state_table->getValue(std::move(s));
+      };
+    }
+    else { // two-dimensional table in case of action dependencies
+      _state_action_table = boost::make_shared<_FStateActionTable<O>>(_parents);
+      getValue = [&](std::initializer_list<RLType> params)->O {
+        auto it = params.begin();
+        State s = *it++; // increment after dereference
+        Action a = *it;
+        return _state_action_table->getValue(std::move(s), std::move(a));
+      };
+    }
 
     // TODO: compute values
     //_StateIncrementIterator sitr(_parents);
@@ -247,10 +297,31 @@ public:
     _cached = false;
   }
 
+  //
+  // Function computations
+  //
+
   virtual O eval(const State& s, const Action& a) const override {
     assert(_cached);
-    // todo: compute values for all instantiations of parent scope
+    return getValue({s,a});
   }
+
+//  virtual _DiscreteFunction<O> operator*(O s) const override {
+//    assert(_cached);
+//  }
+
+  virtual _DiscreteFunction<O>& operator*=(O s) override {
+    assert(_cached);
+  }
+
+//  virtual _DiscreteFunction<O> operator+(const _DiscreteFunction<O>& f) const override {
+//    assert(_cached);
+//  }
+
+  virtual _DiscreteFunction<O>& operator+=(const _DiscreteFunction<O>& f) override {
+    assert(_cached);
+  }
+
 };
 // instead of typedef (which needs full type)
 template<class I, class O = double>
