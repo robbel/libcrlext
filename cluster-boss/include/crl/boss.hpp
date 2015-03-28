@@ -38,6 +38,7 @@ public:
 	virtual Reward evaluateStateAction(const State& s, const Action& a);
 	virtual void setMDPs(std::vector<MDP> mdps);
 	virtual std::vector<MDP> getMDPs() {return _mdps;}
+	using _VIPlanner::plan;
 	virtual void plan();
 };
 typedef boost::shared_ptr<_BOSSPlanner> BOSSPlanner;

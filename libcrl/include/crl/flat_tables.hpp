@@ -75,10 +75,12 @@ public:
 	: _FlatTable<T>(domain->getNumActions(), initial), _set_actions(new _ActionSet()) { }
 
 	// ActionTable interface
+	using _FlatTable<T>::setValue;
 	virtual void setValue(const Action& a, T t) override {
 		_set_actions->insert(a);
 		_FlatTable<T>::setValue(a, t);
 	}
+	using _FlatTable<T>::getValue;
 	virtual T& getValue(const Action& a) override {
 		return _FlatTable<T>::getValue(a);
 	}

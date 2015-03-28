@@ -52,6 +52,7 @@ random_agent_sources = [build.File(source) for source in random_agent_sources]
 walk_env_sources = [build.File(source) for source in walk_env_sources]
 
 env = Environment(tools = ["default", "tools"], toolpath = '.',
+                  CXX='clang++-3.5',
                   CPPPATH=cpp_paths, CCFLAGS=ccflags, LIBPATH=lib_paths)
 
 shared_lib_suffix = ".so"
@@ -61,7 +62,7 @@ if os.uname()[0] == "Darwin":
 
 config = Configure(env)
 has_crl = config.CheckLibWithHeader('crl', 'crl/crl.hpp', 'cpp')
-has_glue = config.CheckLibWithHeader('rlglue', 'rlglue/Agent_common.h', 'cpp')
+has_glue = config.CheckCXXHeader('rlglue/Agent_common.h')
 
 has_glue_nm = sum([
 	config.CheckLib('rlgnmagent'),

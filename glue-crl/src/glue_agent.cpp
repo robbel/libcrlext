@@ -132,8 +132,8 @@ extern "C" const action_t* agent_step(double reward, const observation_t* this_o
 
 	State n = _state_mapper->getState(_domain_agent, this_observation);
 	Observation o(new _Observation(n, reward));
-	if (_agent);
-	_agent->observe(o);
+	if (_agent)
+		_agent->observe(o);
 
 	Action a;
 	if (_agent)

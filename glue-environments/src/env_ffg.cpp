@@ -381,11 +381,11 @@ FireFightingGraph readFFG(std::istream& is) {
     // construct domain
     Domain domain = boost::make_shared<_Domain>();
     for(int i = 0; i < num_houses; i++) {
-        domain->addStateFactor(0, num_fls-1, "house_"+i);
+        domain->addStateFactor(0, num_fls-1, "house_"+to_string(i));
     }
     // two types of actions: '0' for left, '1' for right
     for(int i = 0; i < num_agents; i++) {
-        domain->addActionFactor(0, 1, "agent_"+i);
+        domain->addActionFactor(0, 1, "agent_"+to_string(i));
     }
     domain->setRewardRange(-num_fls+1, 0.);
 

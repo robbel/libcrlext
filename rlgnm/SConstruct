@@ -33,6 +33,7 @@ env_codec.c
 """.split()]
 
 env = Environment(tools = ["default", "tools"], toolpath = '.',
+                  CC='clang-3.5',
                   CPPPATH=cpp_paths, CCFLAGS=ccflags, LIBPATH=lib_paths)
 
 shared_lib_suffix = ".so"

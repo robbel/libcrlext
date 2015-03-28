@@ -43,6 +43,7 @@ test_sources = [build.File('test.cpp')]
 test_spudd_sources = [build.File('test_spudd.cpp')]
 
 env = Environment(tools = ["default", "tools"], toolpath = '.',
+                  CXX='clang++-3.5',
                   CPPPATH=cpp_paths, CCFLAGS=ccflags, LIBPATH=lib_paths)
 
 

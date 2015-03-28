@@ -32,6 +32,7 @@ dia_sources = [build.File('dia.cpp')]
 headers = [inc.File('crl/mazes.hpp')]
 
 env = Environment(tools = ["default", "tools"], toolpath = '.',
+                  CXX='clang++-3.5',
                   CPPPATH=cpp_paths, CCFLAGS=ccflags, LIBPATH=lib_paths)
 
 shared_lib_suffix = ".so"
@@ -48,7 +49,7 @@ config.CheckLibWithHeader('strxml', 'strxml.hpp', 'cpp')
 config.CheckLibWithHeader('crl', 'crl/crl.hpp', 'cpp')
 
 has_diastream = config.CheckLibWithHeader('diastream', 'diastream.hpp', 'cpp')
-has_glue = config.CheckLibWithHeader('rlglue', 'rlglue/Agent_common.h', 'cpp')
+has_glue = config.CheckCXXHeader('rlglue/Agent_common.h')
 
 config.CheckLibWithHeader('rlcrlenv', 'crl/glue_env.hpp', 'cpp')
 env = config.Finish()
