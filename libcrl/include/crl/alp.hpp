@@ -30,6 +30,9 @@ class _DiscreteFunction {
 protected:
   /// \brief The (global) domain which includes all state and action factors
   const Domain _domain;
+  /// \brief The subdomain relevant for this function
+  /// \note Consists of state and action factors from the global domain
+  Domain _subdomain;
   /// \brief The state factors relevant for this function, indicated by their absolution position in the global domain
   SizeVec _state_dom;
   /// \brief The action factors relevant for this function, indicated by their absolute position in the global domain
@@ -51,6 +54,11 @@ public:
 #endif
   /// \brief dtor
   virtual ~_DiscreteFunction() { }
+
+  /// \brief Return subdomain associated with this function
+  virtual Domain getSubdomain() const {
+    return _subdomain;
+  }
 
   //
   // Implementation of the interface that maintains the scope (state and action factors) of this function
@@ -158,11 +166,6 @@ using StateActionTable =  boost::shared_ptr<_StateActionTable<T>>;
 template<class T>
 class _FDiscreteFunction : public _DiscreteFunction<T> {
 protected:
-    ///
-    /// \brief The subdomain relevant for this function
-    /// \note Consists of state and action factors from the global domain
-    ///
-    Domain _subdomain;
     /// \brief The internal storage for this function
     boost::shared_ptr<_FStateActionTable<T>> _sa_table;
     /// \brief True iff \a pack() has been called (required for some function calls)
@@ -179,35 +182,29 @@ public:
     /// \note Called after all state and action dependencies have been added
     ///
     virtual void pack() {
-        _subdomain = boost::make_shared<_Domain>();
+        this->_subdomain = boost::make_shared<_Domain>();
         const RangeVec& state_ranges = _DiscreteFunction<T>::_domain->getStateRanges();
         const RangeVec& action_ranges = _DiscreteFunction<T>::_domain->getActionRanges();
         const StrVec& state_names = _DiscreteFunction<T>::_domain->getStateNames();
         const StrVec& action_names = _DiscreteFunction<T>::_domain->getActionNames();
         for (Size i=0; i<_DiscreteFunction<T>::_state_dom.size(); i++) {
             Size j = _DiscreteFunction<T>::_state_dom[i];
-            _subdomain->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax(), state_names[j]);
+            this->_subdomain->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax(), state_names[j]);
         }
         for (Size i=0; i<_DiscreteFunction<T>::_action_dom.size(); i++) {
             Size j = _DiscreteFunction<T>::_action_dom[i];
-            _subdomain->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax(), action_names[j]);
+            this->_subdomain->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax(), action_names[j]);
         }
         // allocate memory
-        _sa_table = boost::make_shared<_FStateActionTable<T>>(_subdomain);
+        _sa_table = boost::make_shared<_FStateActionTable<T>>(this->_subdomain);
         _packed = true;
     }
-    ///
-    /// \brief Return subdomain associated with this factor
-    /// \note Only available after call to \a pack()
-    ///
-    virtual Domain getSubdomain() const {
-      assert(_packed);
-      return _subdomain;
-    }
 
-    virtual T eval(const State& s, const Action& a) const override {
+    /// \brief Return subdomain associated with this function
+    /// \note Only available after call to \a pack()
+    virtual Domain getSubdomain() const override {
       assert(_packed);
-      return _sa_table->getValue(s,a);
+      return _DiscreteFunction<T>::getSubdomain();
     }
 
     ///
@@ -217,6 +214,10 @@ public:
     void define(const State& s, const Action& a, const T& val) {
       assert(_packed);
       _sa_table->setValue(s,a, val);
+    }
+    virtual T eval(const State& s, const Action& a) const override {
+      assert(_packed);
+      return _sa_table->getValue(s,a);
     }
 
     //
@@ -255,14 +256,32 @@ public:
 class _Indicator : public _DiscreteFunction<double> {
 protected:
   /// \brief The state on which this indicator function is centered
-  Size _s_index; // FIXME: don't copy, only store index!
+  Size _s_index;
 public:
-  _Indicator(const Domain& domain, const State& s, std::string name = "")
+  /// \brief ctor
+  _Indicator(const Domain& domain, std::string name = "")
+  : _DiscreteFunction(domain, name) { }
+  /// \brief Initialize an indicator on \a State s from the subdomain
+  _Indicator(const Domain& domain, const Domain& subdomain, const State& s, std::string name = "")
   : _DiscreteFunction(domain, name) {
     assert(s);
-    _s_index = s; // copy index only--no other comparison (identical domain, etc.) done here
+    this->_subdomain = subdomain;
+    _s_index = s;
   }
   virtual ~_Indicator() { }
+
+  /// \brief Define the State for which this Indicator is set
+  void set(const State& s) {
+    assert(s);
+    _subdomain = boost::make_shared<_Domain>();
+    const RangeVec& state_ranges = this->_domain->getStateRanges();
+    const StrVec& state_names = this->_domain->getStateNames();
+    for (Size i=0; i<this->_state_dom.size(); i++) {
+        Size j = this->_state_dom[i];
+        _subdomain->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax(), state_names[j]);
+    }
+    _s_index = s; // copy index only-no other comparison (for identical domain, etc.) done
+  }
 
   virtual double eval(const State& s, const Action& a) const override {
     return static_cast<double>(_s_index == (Size)s); // note: only compares indices
@@ -329,6 +348,8 @@ public:
       if(!this->_packed) {
         _FDiscreteFunction<T>::pack();
       }
+
+      // compute basis function values over its entire domain
 
       // TODO: compute values
       //_StateIncrementIterator sitr(_parents);

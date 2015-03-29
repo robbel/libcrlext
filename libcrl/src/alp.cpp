@@ -30,7 +30,7 @@ int main() {
   State s(domain, 1);
   State s2(domain,2);
 
-  Indicator I = boost::make_shared<_Indicator>(domain, s);
+  Indicator I = boost::make_shared<_Indicator>(domain, domain, s);
   assert((*I)(s) && !(*I)(s2));
 
   DBN dbn;
