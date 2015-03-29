@@ -361,10 +361,11 @@ public:
 ///
 template <class T, class C>
 class ContainerIterator : public Iterator<T> {
-private:
+protected:
 	C& _container;
 	typename C::iterator _itr;
 	typename C::iterator _end;
+	typedef typename C::size_type size_type;
 public:
 	ContainerIterator(C& _container)
 	: _container(_container) {
@@ -397,10 +398,11 @@ public:
 ///
 template <class T, class C>
 class SharedContainerIterator : public Iterator<T> {
-private:
+protected:
 	boost::shared_ptr<C> _container;
 	typename C::iterator _itr;
 	typename C::iterator _end;
+	typedef typename C::size_type size_type;
 public:
 	SharedContainerIterator(boost::shared_ptr<C> _container)
 	: _container(_container) {
@@ -430,6 +432,13 @@ public:
 	: ContainerIterator<T,std::vector<T> >(_vec) { }
 	VectorIterator(boost::shared_ptr<std::vector<T> > shared_vec)
 	: ContainerIterator<T,std::vector<T> >(*shared_vec) { }
+	// direct iterator access (for optimizations)
+	typename std::vector<T>::iterator& get() {
+	    return this->_itr;
+	}
+	const typename std::vector<T>::iterator& end() {
+	    return this->_end;
+	}
 };
 
 ///

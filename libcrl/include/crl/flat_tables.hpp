@@ -136,6 +136,45 @@ template <class T>
 class _FStateActionTable : public _StateActionTable<T> {
 protected:
 	const Domain _domain;
+	/// \brief Implemented as flat, linear storage
+	std::vector<T> _sa_values;
+	Size _num_actions;
+public:
+	_FStateActionTable(const Domain& domain)
+	: _domain(domain), _sa_values(domain->getNumStates() * domain->getNumActions()), _num_actions(domain->getNumActions()) {
+	  static_assert(sizeof(decltype(_sa_values.size())) >= 8, "vector size_t must be at least 64-bits");
+	}
+	_FStateActionTable(const Domain& domain, T initial)
+	: _domain(domain), _sa_values(domain->getNumStates() * domain->getNumActions(), initial), _num_actions(domain->getNumActions()) {
+	  static_assert(sizeof(decltype(_sa_values.size())) >= 8, "vector size_t must be at least 64-bits");
+	}
+	virtual void clear() {
+	  _sa_values = std::vector<T>(_domain->getNumStates() * _domain->getNumActions());
+	}
+
+	virtual T& getValue(const State& s, const Action& a) override {
+	  return _sa_values[s.getIndex()*_num_actions+a.getIndex()];
+	}
+	virtual void setValue(const State& s, const Action& a, T t) override {
+	  _sa_values[s.getIndex()*_num_actions+a.getIndex()] = t;
+	}
+	/**
+	 * \brief Returns all values in this table
+	 * (s,a) pairs are stored in row-major order, i.e., (s0,a0),(s0,a1),...,(s1,a0),(s1,a1), etc.
+	 * \note Optimization when all elements have to be accessed in series
+	 */
+	virtual std::vector<T>& values() {
+	  return _sa_values;
+	}
+//	virtual cpputil::VectorIterator<T> valueIterator(const State& s) {
+//	}
+};
+#if 0
+// previous, non-flat implementation
+template <class T>
+class _FStateActionTable : public _StateActionTable<T> {
+protected:
+	const Domain _domain;
 	std::vector<std::vector<T> > _sa_values;
 public:
 	_FStateActionTable(const Domain& domain)
@@ -155,7 +194,7 @@ public:
 		_sa_values[s.getIndex()][a.getIndex()] = t;
 	}
 };
-
+#endif
 /**
  * \brief A Q-table using vector tables.
  * Keeps track of the best action and q-value for each state.

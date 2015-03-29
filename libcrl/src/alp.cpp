@@ -29,16 +29,13 @@ int main() {
 
   State s(domain, 1);
   State s2(domain,2);
-  _Indicator I(domain, s); // an indicator function for that state
-  cout << "indicator.eval: " << I(s) << " and " << I(s2) << endl;
 
-  _DBN dbn;
+  Indicator I = boost::make_shared<_Indicator>(domain, s);
+  assert((*I)(s) && !(*I)(s2));
+
+  DBN dbn;
 
   _Backprojection<double> b(domain, dbn, I);
 
 //  Backprojection<int> b = boost::make_shared<_Backprojection<int>>(dbn,I);
-
-
-
-  std::cout << "hello" << std::endl;
 }
