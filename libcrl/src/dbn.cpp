@@ -36,6 +36,7 @@ State _DBNFactor::mapState(const State& s, const State& n) const {
 	return ms;
 }
 
+// FIXME test/fix for empty action -- just returning `a' may be sufficient!
 Action _DBNFactor::mapAction(const Action& a) const {
 	assert(_packed);
 	if(a.size() == _action_dep.size()) // under this condition no reduction to local scope performed
@@ -124,6 +125,12 @@ const ProbabilityVec& _DBNFactor::T(const State& s, const State& n, const Action
    Action ma = mapAction(a);
    ProbabilityVec& pv = _prob_table->getValue(ms, ma);
    return pv;
+}
+
+Probability _DBNFactor::T(const State& s, const State& n, const Action& a, Factor t) {
+  const ProbabilityVec& pv = T(s,n,a);
+  Factor offset = t - _target_range.getMin();
+  return pv[offset];
 }
 
 void _DBNFactor::setT(const State& s, const State& n, const Action& a, Factor t, Probability p) {

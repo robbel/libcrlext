@@ -332,7 +332,7 @@ public:
       throw cpputil::InvalidException("Backprojection does currently not support concurrent dependencies in DBN.");
     }
     if(!other->getActionFactors().empty()) {
-      std::cout << "[DEBUG]: action factors will be ignored during backprojection." << std::endl;
+      throw cpputil::InvalidException("Backprojection does not support function with action factors.");
     }
     // determine parent scope via DBN
     for(Size t : other->getStateFactors()) {
@@ -348,14 +348,28 @@ public:
       if(!this->_packed) {
         _FDiscreteFunction<T>::pack();
       }
-
       // compute basis function values over its entire domain
+      Domain otherdom = _func->getSubdomain();
+      _StateIncrementIterator sitr(otherdom);
+      std::vector<T> h(otherdom->getNumStates()); // the basis function cache over its domain
+      Size i = 0;
+      const Action empty_a;
+      while (sitr.hasNext()) {
+          h[i++] = _func->eval(sitr.next(), empty_a);
+      }
+#if 0
+      // compute backprojection
+      Domain thisdom = this->_subdomain;
+      auto& vals = this->_sa_table->values();
 
-      // TODO: compute values
-      //_StateIncrementIterator sitr(_parents);
-      //_ActionIncrementIterator aitr(_parents);
-      //while(sitr->)
-
+      for((s,a) in thisdom) {
+        vals[(s,a)] = 0.;
+        sitr.reset();
+        while(sitr.hasNext()) {
+            vals[(s,a)] += h(sitr) * dbn->T(sitr|(s,a))
+        }
+      }
+#endif
       _cached = true;
   }
 
@@ -371,7 +385,7 @@ public:
   /// \brief Multiply all values with a scalar
   virtual _Backprojection<T>& operator*=(T s) {
     assert(_cached);
-    auto vals = this->_sa_table->values();
+    auto& vals = this->_sa_table->values();
     std::transform(vals.begin(), vals.end(), vals.begin(), [s](T v) { return v*s; });
     return *this;
   }

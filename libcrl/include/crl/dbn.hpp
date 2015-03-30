@@ -116,6 +116,8 @@ public:
 
   /// \brief The vector of probabilities for successor values associated with the tuple (s,n,a)
   virtual const ProbabilityVec& T(const State& s, const State& n, const Action& a);
+  /// \brief The probability of transitioning to a particular state value t from (s,n,a)
+  virtual Probability T(const State& s, const State& n, const Action& a, Factor t);
   /// \brief Convenience function for the case that no concurrent dependencies exist in 2DBN
   /// \note This particular function supports either joint state/action as parameters or state/action that are already at factor scope
   virtual const ProbabilityVec& T(const State& s, const Action& a) {
@@ -216,7 +218,11 @@ public:
   }
   /// \brief Compute the probability of transitioning from (joint) s -> n under (joint) \a Action a
   virtual Probability T(const State& js, const Action& ja, const State& jn);
-
+  /// \brief Compute the probability of transitioning from (sub_s,sub_a) -> n
+#if 0
+  /// \note
+  virtual Probability T(const Domain& subdomain, const State& sub_s, const Action& sub_a, const State& n);
+#endif
   /// \brief True iff there are any concurrent dependencies in the DBN (at time slice t)
   virtual bool hasConcurrentDependency() const {
     return _has_concurrency;
