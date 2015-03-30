@@ -161,7 +161,7 @@ using StateActionTable =  boost::shared_ptr<_StateActionTable<T>>;
 
 /**
  * \brief A \a DiscreteFunction implemented with tabular storage.
- * \todo Move into different header (function.hpp) and have DBNFactor/LRF inherit from this
+ * \todo Move into different header (function.hpp/common.hpp) and have DBNFactor/LRF inherit from this too
  */
 template<class T>
 class _FDiscreteFunction : public _DiscreteFunction<T> {
@@ -224,19 +224,19 @@ public:
     // invalidate tabular storage when function scope changes occur
     //
 
-    virtual void addStateFactor(Size i) {
+    virtual void addStateFactor(Size i) override {
         _DiscreteFunction<T>::addStateFactor(i);
         _packed = false;
     }
-    virtual void addActionFactor(Size i) {
+    virtual void addActionFactor(Size i) override {
         _DiscreteFunction<T>::addActionFactor(i);
         _packed = false;
     }
-    virtual void eraseStateFactor(Size i) {
+    virtual void eraseStateFactor(Size i) override {
         _DiscreteFunction<T>::eraseStateFactor(i);
         _packed = false;
     }
-    virtual void eraseActionFactor(Size i) {
+    virtual void eraseActionFactor(Size i) override {
         _DiscreteFunction<T>::eraseActionFactor(i);
         _packed = false;
     }
@@ -271,7 +271,7 @@ public:
   virtual ~_Indicator() { }
 
   /// \brief Define the State for which this Indicator is set
-  void set(const State& s) {
+  void setState(const State& s) {
     assert(s);
     _subdomain = boost::make_shared<_Domain>();
     const RangeVec& state_ranges = this->_domain->getStateRanges();
@@ -281,6 +281,10 @@ public:
         _subdomain->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax(), state_names[j]);
     }
     _s_index = s; // copy index only-no other comparison (for identical domain, etc.) done
+  }
+  /// \brief Get the state (index) for which this Indicator is set
+  Size getState() const {
+      return _s_index;
   }
 
   virtual double eval(const State& s, const Action& a) const override {
@@ -346,30 +350,41 @@ public:
   /// \brief Compute backprojection for every variable setting in the domain
   virtual void cache() {
       if(!this->_packed) {
-        _FDiscreteFunction<T>::pack();
+        _FDiscreteFunction<T>::pack(); // allocate memory
       }
       // compute basis function values over its entire domain
       Domain otherdom = _func->getSubdomain();
       _StateIncrementIterator sitr(otherdom);
-      std::vector<T> h(otherdom->getNumStates()); // the basis function cache over its domain
-      Size i = 0;
-      const Action empty_a;
-      while (sitr.hasNext()) {
-          h[i++] = _func->eval(sitr.next(), empty_a);
+      std::vector<T> h(otherdom->getNumStates(), 0); // the basis function cache over its domain
+      // specialization for indicator functions
+      Indicator I = boost::dynamic_pointer_cast<_Indicator>(_func);
+      if(I) {
+          h[I->getState()] = 1.;
+          // TODO simplify the entire computation below as well for this special case
+          // TODO maintain special functions for sparse domains (ala these StateSetIterators !)
       }
-#if 0
+      else {
+        Size i = 0;
+        const Action empty_a;
+        while (sitr.hasNext()) {
+            h[i++] = _func->eval(sitr.next(), empty_a);
+        }
+      }
       // compute backprojection
       Domain thisdom = this->_subdomain;
       auto& vals = this->_sa_table->values();
-
-      for((s,a) in thisdom) {
-        vals[(s,a)] = 0.;
-        sitr.reset();
-        while(sitr.hasNext()) {
-            vals[(s,a)] += h(sitr) * dbn->T(sitr|(s,a))
-        }
-      }
+      // efficient loop over all (s,a) pairs in domain
+      _StateActionIncrementIterator saitr(thisdom);
+      for(T& v : vals) {
+          //const std::tuple<State,Action>& sa = saitr.next();
+          v = 0.;
+          sitr.reset();
+          while(sitr.hasNext()) {
+#if 0
+              vals[(s,a)] += h(sitr) * dbn->T(sitr|(s,a))
 #endif
+          }
+      }
       _cached = true;
   }
 
@@ -396,6 +411,35 @@ public:
         throw cpputil::InvalidException("Backprojection does currently not support concurrent dependencies in DBN.");
     }
     return *this;
+  }
+
+  //
+  // invalidate cached values when function scope changes occur
+  //
+
+  virtual void addStateFactor(Size i) override {
+      _FDiscreteFunction<T>::addStateFactor(i);
+      _cached = false;
+  }
+  virtual void addActionFactor(Size i) override {
+      _FDiscreteFunction<T>::addActionFactor(i);
+      _cached = false;
+  }
+  virtual void eraseStateFactor(Size i) override {
+      _FDiscreteFunction<T>::eraseStateFactor(i);
+      _cached = false;
+  }
+  virtual void eraseActionFactor(Size i) override {
+      _FDiscreteFunction<T>::eraseActionFactor(i);
+      _cached = false;
+  }
+  virtual void join(const SizeVec& state_dom, const SizeVec& action_dom) override {
+    _FDiscreteFunction<T>::join(state_dom, action_dom);
+    _cached = false;
+  }
+  virtual void join(const _DiscreteFunction<T>& func) override {
+    _FDiscreteFunction<T>::join(func);
+    _cached = false;
   }
 #endif
 };
