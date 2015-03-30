@@ -340,7 +340,7 @@ public:
     }
 
     const std::tuple<State,Action>& next() override {
-        std::get<0>(_last_sa).setIndex(_index/_num_actions);
+        std::get<0>(_last_sa).setIndex(_index/_num_actions); // TODO optimize and just increment (linear access)
         std::get<1>(_last_sa).setIndex(_index%_num_actions);
         _index++;
         return _last_sa;

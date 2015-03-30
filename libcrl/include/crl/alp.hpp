@@ -283,7 +283,7 @@ public:
     _s_index = s; // copy index only-no other comparison (for identical domain, etc.) done
   }
   /// \brief Get the state (index) for which this Indicator is set
-  Size getState() const {
+  Size getStateIndex() const {
       return _s_index;
   }
 
@@ -359,17 +359,18 @@ public:
       // specialization for indicator functions
       Indicator I = boost::dynamic_pointer_cast<_Indicator>(_func);
       if(I) {
-          h[I->getState()] = 1.;
+          h[I->getStateIndex()] = 1.;
           // TODO simplify the entire computation below as well for this special case
           // TODO maintain special functions for sparse domains (ala these StateSetIterators !)
       }
       else {
-        Size i = 0;
         const Action empty_a;
         while (sitr.hasNext()) {
-            h[i++] = _func->eval(sitr.next(), empty_a);
+            const State& s = sitr.next();
+            h[(Size)s] = _func->eval(s, empty_a);
         }
       }
+
       // compute backprojection
       Domain thisdom = this->_subdomain;
       auto& vals = this->_sa_table->values();
@@ -380,9 +381,8 @@ public:
           v = 0.;
           sitr.reset();
           while(sitr.hasNext()) {
-#if 0
-              vals[(s,a)] += h(sitr) * dbn->T(sitr|(s,a))
-#endif
+              const State& s = sitr.next();
+              v += h[(Size)s]; /* * dbn->T(sitr|(s,a)) */
           }
       }
       _cached = true;
