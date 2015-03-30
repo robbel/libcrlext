@@ -281,17 +281,16 @@ protected:
 public:
 	_StateIncrementIterator(const Domain& domain)
 	: _domain(domain), _last(domain), _index(0) {
-
 	}
-	const State& next() {
-		_last = State(_domain, _index);
+	const State& next() override {
+		_last.setIndex(_index);
 		_index++;
 		return _last;
 	}
-	bool hasNext() {
+	bool hasNext() override {
 		return _index < _domain->getNumStates();
 	}
-	void reset() {
+	void reset() override {
 		_index = 0;
 	}
 };
@@ -308,21 +307,54 @@ protected:
 public:
 	_ActionIncrementIterator(const Domain& domain)
 	: _domain(domain), _last(domain), _index(0) {
-
 	}
-	const Action& next() {
-		_last = Action(_domain, _index);
+	const Action& next() override {
+		_last.setIndex(_index);
 		_index++;
 		return _last;
 	}
-	bool hasNext() {
+	bool hasNext() override {
 		return _index < _domain->getNumActions();
 	}
-	void reset() {
+	void reset() override {
 		_index = 0;
 	}
 };
 typedef boost::shared_ptr<_ActionIncrementIterator> ActionIncrementIterator;
+
+/**
+ * An (s,a) iterator for (s,a) pairs stored in row-major order, i.e., (s0,a0),(s0,a1),...,(s1,a0),(s1,a1), etc.
+ * \see _FStateActionTable
+ */
+class _StateActionIncrementIterator : public _StateActionIterator {
+protected:
+    const Domain _domain;
+    const Size _num_actions;
+    const Size _num_elements;
+    std::tuple<State,Action> _last_sa;
+    Size _index;
+public:
+    _StateActionIncrementIterator(const Domain& domain)
+    : _domain(domain), _num_actions(domain->getNumActions()), _num_elements(domain->getNumActions()*domain->getNumStates()),
+      _last_sa(domain,domain), _index(0) {
+    }
+
+    const std::tuple<State,Action>& next() override {
+        std::get<0>(_last_sa).setIndex(_index/_num_actions);
+        std::get<1>(_last_sa).setIndex(_index%_num_actions);
+        _index++;
+        return _last_sa;
+    }
+
+    bool hasNext() override {
+        return _index < _num_elements;
+    }
+
+    void reset() override {
+        _index = 0;
+    }
+};
+typedef boost::shared_ptr<_StateActionIncrementIterator> StateActionIncrementIterator;
 
 class _StateRandomIterator : public _StateIterator {
 protected:
@@ -331,17 +363,15 @@ protected:
 public:
 	_StateRandomIterator(const Domain& domain)
 	: _domain(domain), _last(domain) {
-
 	}
-	const State& next() {
-		_last = State(_domain, random()%_domain->getNumStates());
+	const State& next() override {
+		_last.setIndex(random()%_domain->getNumStates());
 		return _last;
 	}
-	bool hasNext() {
+	bool hasNext() override {
 		return true;
 	}
-	void reset() {
-
+	void reset() override {
 	}
 };
 typedef boost::shared_ptr<_StateRandomIterator> StateRandomIterator;
@@ -353,17 +383,15 @@ protected:
 public:
 	_ActionRandomIterator(const Domain& domain)
 	: _domain(domain), _last(domain) {
-
 	}
-	const Action& next() {
-		_last = Action(_domain, random()%_domain->getNumActions());
+	const Action& next() override {
+		_last.setIndex(random()%_domain->getNumActions());
 		return _last;
 	}
-	bool hasNext() {
+	bool hasNext() override {
 		return true;
 	}
-	void reset() {
-
+	void reset() override {
 	}
 };
 typedef boost::shared_ptr<_ActionRandomIterator> ActionRandomIterator;

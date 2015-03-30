@@ -60,6 +60,7 @@ typedef boost::shared_ptr<_EmptyActionIterator> EmptyActionIterator;
 
 typedef cpputil::Iterator<State> _StateIterator;
 typedef cpputil::Iterator<Action> _ActionIterator;
+typedef cpputil::Iterator<std::tuple<State,Action>> _StateActionIterator;
 typedef cpputil::ContainerIterator<State,_StateSet> _StateSetIterator;
 typedef cpputil::ContainerIterator<Action,_ActionSet> _ActionSetIterator;
 typedef cpputil::SharedContainerIterator<State,_StateSet> _SharedStateSetIterator;
