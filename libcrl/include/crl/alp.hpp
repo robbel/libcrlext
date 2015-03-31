@@ -353,9 +353,9 @@ public:
         _FDiscreteFunction<T>::pack(); // allocate memory
       }
       // compute basis function values over its entire domain
-      Domain otherdom = _func->getSubdomain();
-      _StateIncrementIterator sitr(otherdom);
-      std::vector<T> h(otherdom->getNumStates(), 0); // the basis function cache over its domain
+      Domain hdom = _func->getSubdomain();
+      _StateIncrementIterator sitr(hdom);
+      std::vector<T> h(hdom->getNumStates(), 0); // the basis function cache over its domain
       // specialization for indicator functions
       Indicator I = boost::dynamic_pointer_cast<_Indicator>(_func);
       if(I) {
@@ -371,11 +371,10 @@ public:
         }
       }
 
-      // compute backprojection
-      Domain thisdom = this->_subdomain;
+      // compute backprojection, i.e., expectation of basis function through DBN
+      _StateActionIncrementIterator saitr(this->_subdomain);
+      // efficient loop over all (s,a) pairs in backprojection domain
       auto& vals = this->_sa_table->values();
-      // efficient loop over all (s,a) pairs in domain
-      _StateActionIncrementIterator saitr(thisdom);
       for(T& v : vals) {
           //const std::tuple<State,Action>& sa = saitr.next();
           v = 0.;
@@ -386,6 +385,10 @@ public:
           }
       }
       _cached = true;
+
+
+      //const SizeVec& c = _func->getStateFactors(); // ordered set of state variables in basis fn
+
   }
 
   //

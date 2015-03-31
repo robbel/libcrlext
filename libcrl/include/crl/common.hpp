@@ -271,7 +271,7 @@ inline std::ostream& operator<<(std::ostream& os, const Action& a) {
 }
 
 /**
- * A state iterator that increments an index to get the next state.
+ * A forward state iterator that increments an index to get the next state.
  */
 class _StateIncrementIterator : public _StateIterator {
 protected:
@@ -297,7 +297,7 @@ public:
 typedef boost::shared_ptr<_StateIncrementIterator> StateIncrementIterator;
 
 /**
- * An action iterator that increments an index to get the next action.
+ * A forward action iterator that increments an index to get the next action.
  */
 class _ActionIncrementIterator : public _ActionIterator {
 protected:
@@ -323,7 +323,7 @@ public:
 typedef boost::shared_ptr<_ActionIncrementIterator> ActionIncrementIterator;
 
 /**
- * An (s,a) iterator for (s,a) pairs stored in row-major order, i.e., (s0,a0),(s0,a1),...,(s1,a0),(s1,a1), etc.
+ * A forward iterator for (s,a) pairs stored in row-major order, i.e., (s0,a0),(s0,a1),...,(s1,a0),(s1,a1), etc.
  * \see _FStateActionTable
  */
 class _StateActionIncrementIterator : public _StateActionIterator {
@@ -332,26 +332,35 @@ protected:
     const Size _num_actions;
     const Size _num_elements;
     std::tuple<State,Action> _last_sa;
-    Size _index;
+    Size _flat_index;
+    Size _s_index;
+    Size _a_index;
 public:
     _StateActionIncrementIterator(const Domain& domain)
     : _domain(domain), _num_actions(domain->getNumActions()), _num_elements(domain->getNumActions()*domain->getNumStates()),
-      _last_sa(domain,domain), _index(0) {
+      _last_sa(State(domain),Action(domain)), _flat_index(0), _s_index(0), _a_index(0) {
     }
 
     const std::tuple<State,Action>& next() override {
-        std::get<0>(_last_sa).setIndex(_index/_num_actions); // TODO optimize and just increment (linear access)
-        std::get<1>(_last_sa).setIndex(_index%_num_actions);
-        _index++;
+        std::get<0>(_last_sa).setIndex(_s_index);
+        std::get<1>(_last_sa).setIndex(_a_index);
+        _a_index++;
+        if(_a_index == _num_actions) {
+          _a_index = 0;
+          _s_index++;
+        }
+        _flat_index++;
         return _last_sa;
     }
 
     bool hasNext() override {
-        return _index < _num_elements;
+        return _flat_index < _num_elements;
     }
 
     void reset() override {
-        _index = 0;
+        _flat_index = 0;
+        _s_index = 0;
+        _a_index = 0;
     }
 };
 typedef boost::shared_ptr<_StateActionIncrementIterator> StateActionIncrementIterator;

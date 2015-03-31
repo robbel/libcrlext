@@ -36,6 +36,7 @@
 #include <sstream>
 #include <vector>
 #include <string>
+#include <unordered_map>
 #include <sys/time.h>
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
@@ -520,6 +521,26 @@ std::vector<T> ordered_vec(typename std::vector<T>::size_type size, T start = 0)
   std::iota(order.begin(), order.end(), start);
   return order;
 }
+
+///
+/// \brief Inverse mapping
+/// For example, {1,5,9} -> [1->0, 5->1, 9->2]
+///
+template<class T>
+class inverse_map {
+private:
+  std::unordered_map<T,typename std::vector<T>::size_type> _uo;
+public:
+  inverse_map(const std::vector<T>& dom)
+  : _uo(dom.size()) {
+    for(typename std::vector<T>::size_type i = 0; i < dom.size(); i++) {
+      _uo.insert({dom[i],i});
+    }
+  }
+  typename std::vector<T>::size_type operator()(T i) {
+    return _uo.at(i);
+  }
+};
 
 }
 
