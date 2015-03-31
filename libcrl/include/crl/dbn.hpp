@@ -74,7 +74,7 @@ public:
   /// \note When the size of state s does not correspond to size of local state space, the provided \a domain_map is used for resolution.
   ///
   template <class T>
-  State mapState(const State& s, const State& n, T domain_map_s, T domain_map_n) const {
+  State mapState(const State& s, const State& n, T&& domain_map_s, T&& domain_map_n) const {
       assert(_packed);
       if(s.size() == _delayed_dep.size() && !n) // under these conditions no reduction to local scope performed
           return s;
@@ -103,7 +103,7 @@ public:
   /// \note When the size of action a does not correspond to size of local state space, the provided \a domain_map is used for resolution.
   /// FIXME test/fix for empty action -- just returning `a' may be sufficient!
   template <class T>
-  Action mapAction(const Action& a, T domain_map) const {
+  Action mapAction(const Action& a, T&& domain_map) const {
       assert(_packed);
       if(a.size() == _action_dep.size()) // under this condition no reduction to local scope performed
           return a;
@@ -160,9 +160,9 @@ public:
   /// \brief The vector of probabilities for successor values associated with the tuple (s,n,a)
   /// FIXME may be costly to always convert from (s,n,a) to index (!)
   template<class C>
-  const ProbabilityVec& T(const State& s, const State& n, const Action& a, C state_map_s, C state_map_n, C action_map) {
-      State ms = mapState(s, n, std::move(state_map_s), std::move(state_map_n));
-      Action ma = mapAction(a, std::move(action_map));
+  const ProbabilityVec& T(const State& s, const State& n, const Action& a, C&& state_map_s, C&& state_map_n, C&& action_map) {
+      State ms = mapState(s, n, std::forward<C>(state_map_s), std::forward<C>(state_map_n));
+      Action ma = mapAction(a, std::forward<C>(action_map));
       ProbabilityVec& pv = _prob_table->getValue(ms, ma);
       return pv;
   }
@@ -171,8 +171,8 @@ public:
   }
   /// \brief The probability of transitioning to a particular state value t from (s,n,a)
   template<class C>
-  Probability T(const State& s, const State& n, const Action& a, Factor t, C state_map_s, C state_map_n, C action_map) {
-      const ProbabilityVec& pv = T(s, n, a, std::move(state_map_s), std::move(state_map_n), std::move(action_map));
+  Probability T(const State& s, const State& n, const Action& a, Factor t, C&& state_map_s, C&& state_map_n, C&& action_map) {
+      const ProbabilityVec& pv = T(s, n, a, std::forward<C>(state_map_s), std::forward<C>(state_map_n), std::forward<C>(action_map));
       Factor offset = t - _target_range.getMin();
       return pv[offset];
   }
@@ -183,11 +183,11 @@ public:
   /// \brief Convenience function for the case that no concurrent dependencies exist in 2DBN
   /// \note This particular function supports either joint state/action as parameters or state/action that are already at factor scope
   template<class C>
-  const ProbabilityVec& T(const State& s, const Action& a, C state_map, C action_map) {
+  const ProbabilityVec& T(const State& s, const Action& a, C&& state_map, C&& action_map) {
     if(!_concurrent_dep.empty()) {
         throw cpputil::InvalidException("Transition function is missing state(t) to compute concurrent dependencies.");
     }
-    return T(s, _empty_s, a, std::move(state_map), identity_map, std::move(action_map));
+    return T(s, _empty_s, a, std::forward<C>(state_map), identity_map, std::forward<C>(action_map));
   }
   const ProbabilityVec& T(const State& s, const Action& a) {
       return T(s, a, identity_map, identity_map);

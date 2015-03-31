@@ -354,7 +354,7 @@ public:
       }
       // compute basis function values over its entire domain
       Domain hdom = _func->getSubdomain();
-      _StateIncrementIterator sitr(hdom);
+      _StateIncrementIterator hitr(hdom);
       std::vector<T> h(hdom->getNumStates(), 0); // the basis function cache over its domain
       // specialization for indicator functions
       Indicator I = boost::dynamic_pointer_cast<_Indicator>(_func);
@@ -365,25 +365,26 @@ public:
       }
       else {
         const Action empty_a;
-        while (sitr.hasNext()) {
-            const State& s = sitr.next();
+        while (hitr.hasNext()) {
+            const State& s = hitr.next();
             h[(Size)s] = _func->eval(s, empty_a);
         }
       }
 
       // compute backprojection, i.e., expectation of basis function through DBN
       _StateActionIncrementIterator saitr(this->_subdomain);
+      const subdom_map h_dom(_func->getStateFactors());
+      const subdom_map s_dom(this->getStateFactors());
+      const subdom_map a_dom(this->getActionFactors());
       // efficient loop over all (s,a) pairs in backprojection domain
       auto& vals = this->_sa_table->values();
       for(T& v : vals) {
           const std::tuple<State,Action>& sa = saitr.next();
           v = 0.;
-          sitr.reset();
-          while(sitr.hasNext()) {
-              const State& s = sitr.next();
-              v += h[(Size)s] * _dbn->T(std::get<0>(sa), std::get<1>(sa), s,
-                                        subdom_map(this->getStateFactors()), subdom_map(_func->getStateFactors()),
-                                        subdom_map(this->getActionFactors())); // FIXME: move up
+          hitr.reset();
+          while(hitr.hasNext()) {
+              const State& s = hitr.next();
+              v += h[(Size)s] * _dbn->T(std::get<0>(sa), std::get<1>(sa), s, s_dom, h_dom, a_dom);
           }
       }
       _cached = true;
