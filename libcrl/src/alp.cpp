@@ -29,11 +29,13 @@ int main() {
 
   State s(domain, 1);
   State s2(domain,2);
+  Action a(domain,0);
 
   Indicator I = boost::make_shared<_Indicator>(domain, domain, s);
   assert((*I)(s) && !(*I)(s2));
 
   DBN dbn;
+  dbn->T(s,a,s,identity_map,identity_map,identity_map);
 
   _Backprojection<double> b(domain, dbn, I);
 

@@ -531,14 +531,17 @@ class inverse_map {
 private:
   std::unordered_map<T,typename std::vector<T>::size_type> _uo;
 public:
-  inverse_map(const std::vector<T>& dom)
+  explicit inverse_map(const std::vector<T>& dom)
   : _uo(dom.size()) {
     for(typename std::vector<T>::size_type i = 0; i < dom.size(); i++) {
       _uo.insert({dom[i],i});
     }
   }
-  typename std::vector<T>::size_type operator()(T i) {
+  typename std::vector<T>::size_type operator()(T i) const {
     return _uo.at(i);
+  }
+  const std::unordered_map<T,typename std::vector<T>::size_type>& map() const {
+      return _uo;
   }
 };
 

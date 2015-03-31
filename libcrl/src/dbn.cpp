@@ -19,36 +19,6 @@ using namespace crl;
 // DBNFactor implementation
 //
 
-State _DBNFactor::mapState(const State& s, const State& n) const {
-	assert(_packed);
-	if(s.size() == _delayed_dep.size() && !n) // under these conditions no reduction to local scope performed
-	  return s;
-	State ms(_subdomain);
-	for (Size i=0; i<_delayed_dep.size(); i++) {
-		Size j = _delayed_dep[i];
-		ms.setFactor(i, s.getFactor(j));
-	}
-	// append those factors corresponding to concurrent dependencies
-	for (Size i=0; i<_concurrent_dep.size(); i++) {
-		Size j = _concurrent_dep[i];
-		ms.setFactor(i+_delayed_dep.size(), n.getFactor(j));
-	}
-	return ms;
-}
-
-// FIXME test/fix for empty action -- just returning `a' may be sufficient!
-Action _DBNFactor::mapAction(const Action& a) const {
-	assert(_packed);
-	if(a.size() == _action_dep.size()) // under this condition no reduction to local scope performed
-	  return a;
-	Action ma(_subdomain);
-	for (Size i=0; i<_action_dep.size(); i++) {
-		Size j = _action_dep[i];
-		ma.setFactor(i, a.getFactor(j));
-	}
-	return ma;
-}
-
 _DBNFactor::_DBNFactor(const Domain& domain, Size target)
 : _domain(domain), _target(target), _packed(false) {
   _target_range = _domain->getStateRanges()[_target];
@@ -119,20 +89,6 @@ void _DBNFactor::pack() {
   }
 }
 
-// FIXME may be costly to always convert from (s,n,a) to index (!)
-const ProbabilityVec& _DBNFactor::T(const State& s, const State& n, const Action& a) {
-   State ms = mapState(s, n);
-   Action ma = mapAction(a);
-   ProbabilityVec& pv = _prob_table->getValue(ms, ma);
-   return pv;
-}
-
-Probability _DBNFactor::T(const State& s, const State& n, const Action& a, Factor t) {
-  const ProbabilityVec& pv = T(s,n,a);
-  Factor offset = t - _target_range.getMin();
-  return pv[offset];
-}
-
 void _DBNFactor::setT(const State& s, const State& n, const Action& a, Factor t, Probability p) {
   State ms = mapState(s, n);
   Action ma = mapAction(a);
@@ -196,22 +152,19 @@ void _DBN::addDBNFactor(DBNFactor dbn_factor) {
   // insert preserving order
   std::vector<DBNFactor>::iterator it = std::lower_bound(_dbn_factors.begin(), _dbn_factors.end(), dbn_factor);
   if(it == _dbn_factors.end()) {
-    _dbn_factors.insert(it, dbn_factor); // overwrite and de-allocate previous if it exists
+    _dbn_factors.insert(it, std::move(dbn_factor)); // overwrite and de-allocate previous if it exists
   }
 }
 
 Probability _DBN::T(const State& js, const Action& ja, const State& jn) {
-  Probability p = 1.;
+    Probability p = 1.;
 
-  _FactorVecIterator fitr(_dbn_factors);
-  Size fidx = 0;
-  while(fitr.hasNext()) {
-      const DBNFactor& f = fitr.next();
-      Factor t = jn.getFactor(fidx++); // the target value of that factor in jn
-      Factor offset = t - f->getTargetRange().getMin();
-      const ProbabilityVec& pv = f->T(js, jn, ja);
-      p *= pv[offset];
-  }
-
-  return p;
+    _FactorVecIterator fitr(_dbn_factors);
+    Size fidx = 0;
+    while(fitr.hasNext()) {
+        const DBNFactor& f = fitr.next();
+        Factor t = jn.getFactor(fidx++); // the target value of that factor in jn
+        p *= f->T(js, jn, ja, t);
+    }
+    return p;
 }

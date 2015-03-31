@@ -219,7 +219,7 @@ class State : public RLType {
 public:
 	State()
 	: RLType() { }
-	State(const RLType& t)
+	explicit State(const RLType& t)
 	: RLType(t) { } // only base class needs copying
 	explicit State(const Domain& domain)
 	: RLType(&(domain->getStateRanges()),
@@ -238,7 +238,7 @@ class Action : public RLType {
 public:
 	Action()
 	: RLType() { }
-	Action(const RLType& t)
+	explicit Action(const RLType& t)
 	: RLType(t) { } // only base class needs copying
 	explicit Action(const Domain& domain)
 	: RLType(&(domain->getActionRanges()),
