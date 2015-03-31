@@ -161,8 +161,8 @@ public:
   /// FIXME may be costly to always convert from (s,n,a) to index (!)
   template<class C>
   const ProbabilityVec& T(const State& s, const State& n, const Action& a, C state_map_s, C state_map_n, C action_map) {
-      State ms = mapState(s, n, state_map_s, state_map_n);
-      Action ma = mapAction(a, action_map);
+      State ms = mapState(s, n, std::move(state_map_s), std::move(state_map_n));
+      Action ma = mapAction(a, std::move(action_map));
       ProbabilityVec& pv = _prob_table->getValue(ms, ma);
       return pv;
   }
@@ -172,7 +172,7 @@ public:
   /// \brief The probability of transitioning to a particular state value t from (s,n,a)
   template<class C>
   Probability T(const State& s, const State& n, const Action& a, Factor t, C state_map_s, C state_map_n, C action_map) {
-      const ProbabilityVec& pv = T(s, n, a, state_map_s, state_map_n, action_map);
+      const ProbabilityVec& pv = T(s, n, a, std::move(state_map_s), std::move(state_map_n), std::move(action_map));
       Factor offset = t - _target_range.getMin();
       return pv[offset];
   }
@@ -187,7 +187,7 @@ public:
     if(!_concurrent_dep.empty()) {
         throw cpputil::InvalidException("Transition function is missing state(t) to compute concurrent dependencies.");
     }
-    return T(s, _empty_s, a, state_map, identity_map, action_map);
+    return T(s, _empty_s, a, std::move(state_map), identity_map, std::move(action_map));
   }
   const ProbabilityVec& T(const State& s, const Action& a) {
       return T(s, a, identity_map, identity_map);
