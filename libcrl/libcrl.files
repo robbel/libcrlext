@@ -6,6 +6,7 @@ include/crl/dbn.hpp
 include/crl/environment.hpp
 include/crl/factor_learner.hpp
 include/crl/flat_tables.hpp
+include/crl/function.hpp
 include/crl/hash_tables.hpp
 include/crl/ps.hpp
 include/crl/ram.hpp

@@ -19,7 +19,7 @@ using namespace crl;
 using namespace cpputil;
 
 ///
-/// \brief Create a rather random DBN
+/// \brief Create a rather random simple DBN
 ///
 DBN makeSimpleDBN(Domain domain) {
   DBN dbn = boost::make_shared<_DBN>();
@@ -111,7 +111,7 @@ TEST(DBNTest, BasicTest) {
 
   // alternative invokation 2 (with mapping)
   total = 0.;
-  const inverse_map<Size> mapping(cpputil::ordered_vec<Size>(domain->getNumStateFactors()));
+  const subdom_map mapping(cpputil::ordered_vec<Size>(domain->getNumStateFactors()));
   si.reset();
   while(si.hasNext()) {
       total += dbn->T(s,a,si.next(),mapping,mapping,mapping);
@@ -155,6 +155,7 @@ TEST(DBNTest, BasicTest) {
   I->addStateFactor(0); // exercise some other code paths
   I->addStateFactor(1);
   I->setState(s2);
+  ASSERT_TRUE(I->getSubdomain()->getNumStateFactors() == domain->getNumStateFactors()); // over complete domain
   EXPECT_TRUE(!(*I)(s) && (*I)(s2));
 
   B = _Backprojection<double>(domain, dbn, I, "backproject_thru_dbn_2");
@@ -172,7 +173,7 @@ TEST(DBNTest, BasicTest) {
                   double v_dbn = dbn->T(s, a, s2);
                   EXPECT_DOUBLE_EQ(v_dbn, B(s,a));
                   // alternative means of computing the same thing
-                  v_dbn = dbn->T(s, a, s2, mapping, mapping, inverse_map<Size>(cpputil::ordered_vec<Size>(domain->getNumActionFactors())));
+                  v_dbn = dbn->T(s, a, s2, mapping, mapping, subdom_map(cpputil::ordered_vec<Size>(domain->getNumActionFactors())));
                   EXPECT_DOUBLE_EQ(v_dbn, B(s,a));
           }
   }

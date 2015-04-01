@@ -35,7 +35,7 @@ crl/crl.hpp         crl/flat_tables.hpp  	crl/uct.hpp				crl/uctdata.hpp
 crl/rmax.hpp 		crl/environment.hpp		crl/sparse_sampling.hpp	crl/vi.hpp
 crl/ps.hpp          crl/common.hpp			crl/util.hpp			crl/rtdp.hpp
 crl/types.hpp	 	crl/factor_learner.hpp	crl/hash_tables.hpp		crl/ram.hpp
-crl/tables.hpp      crl/conversions.hpp         crl/dbn.hpp          crl/alp.hpp
+crl/tables.hpp      crl/conversions.hpp         crl/dbn.hpp          crl/alp.hpp          crl/function.hpp
 """.split()
 
 build_sources = [build.File(source) for source in sources]
