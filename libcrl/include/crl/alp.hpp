@@ -29,7 +29,7 @@ template<class T>
 class _DiscreteFunction {
 protected:
   /// \brief The (global) domain which includes all state and action factors
-  const Domain _domain;
+  Domain _domain;
   /// \brief The subdomain relevant for this function
   /// \note Consists of state and action factors from the global domain
   Domain _subdomain;
@@ -52,8 +52,6 @@ public:
     }
   }
 #endif
-  /// \brief dtor
-  virtual ~_DiscreteFunction() { }
 
   /// \brief Return subdomain associated with this function
   virtual Domain getSubdomain() const {

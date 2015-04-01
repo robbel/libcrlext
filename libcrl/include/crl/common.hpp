@@ -62,7 +62,6 @@ protected:
 	Size _num_actions;
 public:
 	_Domain();
-	virtual ~_Domain() { }
 
 	RewardRange getRewardRange() const {
 		return _reward_range;

@@ -21,7 +21,7 @@ using namespace cpputil;
 ///
 /// \brief Create a rather random DBN
 ///
-DBN makeDBN(Domain domain) {
+DBN makeSimpleDBN(Domain domain) {
   DBN dbn = boost::make_shared<_DBN>();
 
   const RangeVec& ranges = domain->getStateRanges();
@@ -91,7 +91,7 @@ TEST(DBNTest, BasicTest) {
   // Basic DBN checks
   //
 
-  DBN dbn = makeDBN(domain);
+  DBN dbn = makeSimpleDBN(domain);
 
   // normalized?
   Probability total = 0.;
@@ -123,7 +123,6 @@ TEST(DBNTest, BasicTest) {
   //
 
   // TODO test with invalid functions too (and expect exception)
-  // TODO test with indicator of increased state factor scope
   // TODO increase complexity of another DBN2 (perhaps even randomize parent dependencies in (s,a))
 
   _Backprojection<double> B(domain, dbn, I, "backproject_thru_dbn");
@@ -144,6 +143,36 @@ TEST(DBNTest, BasicTest) {
           for (Size action_index=0; action_index<subdomain->getNumActions(); action_index++) {
                   Action a(subdomain, action_index);
                   double v_dbn = fa->T(s, empty_s, a, indicated_state);
+                  EXPECT_DOUBLE_EQ(v_dbn, B(s,a));
+          }
+  }
+
+  //
+  // Test with indicator over complete state factor scope (2 state factors)
+  //
+
+  I = boost::make_shared<_Indicator>(domain);
+  I->addStateFactor(0); // exercise some other code paths
+  I->addStateFactor(1);
+  I->setState(s2);
+  EXPECT_TRUE(!(*I)(s) && (*I)(s2));
+
+  B = _Backprojection<double>(domain, dbn, I, "backproject_thru_dbn_2");
+  EXPECT_TRUE(B.getStateFactors().size() == 2 && B.getActionFactors().size() == 1); // based on DBN structure above
+  EXPECT_TRUE(B.getStateFactors()[0] == 0 && B.getStateFactors()[1] == 1);
+
+  B.cache();
+  EXPECT_TRUE(B.getSubdomain()->getNumStateFactors() == 2 && B.getSubdomain()->getNumActionFactors() == 1); // based on DBN structure above
+
+  // Backprojection is now the complete dbn
+  for (Size state_index=0; state_index<domain->getNumStates(); state_index++) {
+          State s(domain, state_index);
+          for (Size action_index=0; action_index<domain->getNumActions(); action_index++) {
+                  Action a(domain, action_index);
+                  double v_dbn = dbn->T(s, a, s2);
+                  EXPECT_DOUBLE_EQ(v_dbn, B(s,a));
+                  // alternative means of computing the same thing
+                  v_dbn = dbn->T(s, a, s2, mapping, mapping, inverse_map<Size>(cpputil::ordered_vec<Size>(domain->getNumActionFactors())));
                   EXPECT_DOUBLE_EQ(v_dbn, B(s,a));
           }
   }
