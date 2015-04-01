@@ -103,12 +103,12 @@ public:
   virtual void join(const SizeVec& state_dom, const SizeVec& action_dom) {
     if(_state_dom != state_dom) {
         SizeVec joint_s;
-        std::set_union(_state_dom.begin(), _state_dom.end(), state_dom.begin(), state_dom.end(), joint_s.begin());
+        std::set_union(_state_dom.begin(), _state_dom.end(), state_dom.begin(), state_dom.end(), std::inserter(joint_s, joint_s.begin()));
         _state_dom = joint_s;
     }
     if(_action_dom != action_dom) {
         SizeVec joint_a;
-        std::set_union(_action_dom.begin(), _action_dom.end(), action_dom.begin(), action_dom.end(), joint_a.begin());
+        std::set_union(_action_dom.begin(), _action_dom.end(), action_dom.begin(), action_dom.end(), std::inserter(joint_a, joint_a.begin()));
         _action_dom = joint_a;
     }
   }
@@ -262,13 +262,13 @@ public:
   _Indicator(const Domain& domain, std::string name = "")
   : _DiscreteFunction(domain, name) { }
   /// \brief Initialize an indicator on \a State s from the subdomain
-  _Indicator(const Domain& domain, const Domain& subdomain, const State& s, std::string name = "")
+  _Indicator(const Domain& domain, SizeVec factors, const State& s, std::string name = "")
   : _DiscreteFunction(domain, name) {
     assert(s);
-    this->_subdomain = subdomain;
-    _s_index = s;
+    std::sort(factors.begin(),factors.end());
+    join(factors, getActionFactors());
+    setState(s);
   }
-  virtual ~_Indicator() { }
 
   /// \brief Define the State for which this Indicator is set
   void setState(const State& s) {
@@ -388,10 +388,6 @@ public:
           }
       }
       _cached = true;
-
-
-      //const SizeVec& c = _func->getStateFactors(); // ordered set of state variables in basis fn
-
   }
 
   //
