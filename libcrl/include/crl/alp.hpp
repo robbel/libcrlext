@@ -361,7 +361,7 @@ public:
       if(I) {
           h[I->getStateIndex()] = 1.;
           // TODO simplify the entire computation below as well for this special case
-          // TODO maintain special functions for sparse domains (ala these StateSetIterators !)
+          // FIXME maintain special functions for sparse domains (ala these StateSetIterators !)
       }
       else {
         const Action empty_a;
@@ -414,7 +414,7 @@ public:
     }
     return *this;
   }
-
+#endif
   //
   // invalidate cached values when function scope changes occur
   //
@@ -443,7 +443,6 @@ public:
     _FDiscreteFunction<T>::join(func);
     _cached = false;
   }
-#endif
 };
 // instead of typedef (which needs full type)
 template<class T>
