@@ -37,5 +37,6 @@ src/test.cpp
 src/uct.cpp
 src/uctdata.cpp
 src/vi.cpp
+test/test_dbn.cpp
 README
 SConstruct
