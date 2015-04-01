@@ -33,7 +33,7 @@ DBN makeDBN(Domain domain) {
       fa->pack();
       // fill with random values for transition fn
 
-//    time_t start_time = time_in_milli();
+      time_t start_time = time_in_milli();
       Domain subdomain = fa->getSubdomain();
       for (Size state_index=0; state_index<subdomain->getNumStates(); state_index++) {
               State s(subdomain, state_index);
@@ -53,8 +53,8 @@ DBN makeDBN(Domain domain) {
                       }
               }
       }
-//    time_t end_time = time_in_milli();
-//    cout << "created DBNFactor in " << end_time - start_time << "ms" << endl;
+      time_t end_time = time_in_milli();
+      cout << "created DBNFactor " << y << " in " << end_time - start_time << "ms" << endl;
 
       // add random factor to dbn
       dbn->addDBNFactor(fa);
