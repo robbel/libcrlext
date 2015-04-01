@@ -41,11 +41,11 @@ crl/tables.hpp      crl/conversions.hpp         crl/dbn.hpp          crl/alp.hpp
 build_sources = [build.File(source) for source in sources]
 test_sources = [build.File('test.cpp')]
 test_spudd_sources = [build.File('test_spudd.cpp')]
+gtest_sources = [build.File(test) for test in ['test_dbn.cpp']]
 
 env = Environment(tools = ["default", "tools"], toolpath = '.',
                   CXX='clang++-3.5',
                   CPPPATH=cpp_paths, CCFLAGS=ccflags, LIBPATH=lib_paths)
-
 
 shared_lib_suffix = ".so"
 if os.uname()[0] == "Darwin":
@@ -70,6 +70,10 @@ if has_lpsolve:
 
         test_spudd = env.Program(bin.Entry('test_spudd'), test_spudd_sources, LIBS=['crl'])
         bin_targets += [test_spudd]
+
+	# gtests are not added to bin_targets
+	gtest = env.Program(bin.Entry('gtests'), Glob('test/*.cpp'), LIBS=[libcrl,'pthread','gtest','gtest_main'])
+
 else:
         print "Cannot build libcrl: libdai or liblpsolve55 not found."
 
@@ -83,6 +87,9 @@ if prefix != Dir('.'):
 for target in lib_targets+bin_targets:
 	Default(target)
 	env.Alias('debug', target)
+
+gtest_alias = env.Alias('test', gtest, gtest[0].abspath)
+env.AlwaysBuild(gtest_alias)
 
 dist_files = [File(x) for x in """
 COPYING COPYING.LESSER SConstruct tools.py
