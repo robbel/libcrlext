@@ -184,17 +184,19 @@ using DiscreteFunction = boost::shared_ptr<_DiscreteFunction<T>>;
 /**
  * \brief A many-to-many mapping from a function scope to a particular function
  * Used to retrieve functions with a particular scope during variable elimination.
+ * \todo compare with performance of unordered_multimap
  */
 template<class T>
 class FunctionSet : private std::multimap<Size, DiscreteFunction<T>> {
 private:
-  typedef std::pair<typename std::multimap<Size,DiscreteFunction<T>>::iterator,
-                    typename std::multimap<Size,DiscreteFunction<T>>::iterator> FunctionRange;
   /// The domain which includes all state and action factors
   const Domain _domain;
   /// The index of the last state factor (where actions are inserted from)
   const Size _a_offset;
 public:
+  /// \brief type for iterator over functions in the set
+  typedef std::pair<typename std::multimap<Size,DiscreteFunction<T>>::iterator,
+                    typename std::multimap<Size,DiscreteFunction<T>>::iterator> range;
   /// \brief ctor
   FunctionSet(const Domain& domain)
     : _domain(domain), _a_offset(_domain->getNumStateFactors()) { }
@@ -220,12 +222,31 @@ public:
     this->erase(i+_a_offset);
   }
   /// \brief Get all functions that depend on state factor `i'
-  FunctionRange getStateFactor(Size i) {
+  range getStateFactor(Size i) {
     return this->equal_range(i);
   }
   /// \brief Get all functions that depend on action factor `i'
-  FunctionRange getActionFactor(Size i) {
+  range getActionFactor(Size i) {
     return this->equal_range(i+_a_offset);
+  }
+
+  /// \brief Number of elements in this std::multiset
+  /// \note This is not equivalent to the number of functions contained in this set
+  /// \see std::multiset<T>::size()
+  typename std::multimap<Size, DiscreteFunction<T>>::size_type size() const {
+    return std::multimap<Size, DiscreteFunction<T>>::size();
+  }
+  /// \brief Compute unique (both state and action) factors contained in this set
+  typename std::multimap<Size, DiscreteFunction<T>>::size_type getNumFactors() const {
+    typename std::multimap<Size, DiscreteFunction<T>>::size_type count = 0;
+    for(auto it = this->begin(), end = this->end(); it != end; it = this->upper_bound(it->first)) {
+        count++;
+    }
+    return count;
+  }
+  /// \brief Remove all elements from this std::multiset
+  void clear() {
+    return std::multimap<Size, DiscreteFunction<T>>::clear();
   }
 
 };
