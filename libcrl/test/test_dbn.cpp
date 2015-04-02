@@ -178,4 +178,21 @@ TEST(DBNTest, BasicTest) {
           }
   }
 
+  //
+  // Some "logic" tests
+  //
+
+  _Domain orig = *(I->getSubdomain());
+  I->addStateFactor(1); // insert an existing one again
+  _Domain mod = *(I->getSubdomain());
+  EXPECT_EQ(orig.getStateIndexComponents(), mod.getStateIndexComponents());
+
+  I->eraseStateFactor(0);
+  I->computeSubdomain(); // compute new subdomain
+  mod = *(I->getSubdomain());
+  EXPECT_NE(orig.getStateIndexComponents(), mod.getStateIndexComponents()); // subdomain changed
+  const RangeVec& domReg = domain->getStateRanges();
+  EXPECT_EQ(mod.getNumStates(), domReg[1].getSpan()+1); // number of states in new subdomain is correct
+
+
 }

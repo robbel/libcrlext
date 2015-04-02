@@ -90,8 +90,8 @@ public:
     SizeVec::iterator it = std::lower_bound(_state_dom.begin(), _state_dom.end(), i);
     if(it == _state_dom.end() || *it != i) {
       _state_dom.insert(it, i);
+      _computed = false;
     }
-    _computed = false;
   }
   /// \brief Add action factor `i' to the scope of this function
   virtual void addActionFactor(Size i) {
@@ -100,8 +100,8 @@ public:
     SizeVec::iterator it = std::lower_bound(_action_dom.begin(), _action_dom.end(), i);
     if(it == _action_dom.end() || *it != i) {
       _action_dom.insert(it, i);
+      _computed = false;
     }
-    _computed = false;
   }
   /// \brief Erase state factor `i' from the scope of this function
   virtual void eraseStateFactor(Size i) {
@@ -109,8 +109,8 @@ public:
     SizeVec::iterator it = std::lower_bound(_state_dom.begin(), _state_dom.end(), i);
     if(it != _state_dom.end()) {
       _state_dom.erase(it);
+      _computed = false;
     }
-    _computed = false;
   }
   /// \brief Erase action factor `i' from the scope of this function
   virtual void eraseActionFactor(Size i) {
@@ -118,8 +118,8 @@ public:
     SizeVec::iterator it = std::lower_bound(_action_dom.begin(), _action_dom.end(), i);
     if(it != _action_dom.end()) {
       _action_dom.erase(it);
+      _computed = false;
     }
-    _computed = false;
   }
 
   /// \brief Join state and action factor scopes of this function with the supplied ones
@@ -251,27 +251,27 @@ public:
 
     virtual void addStateFactor(Size i) override {
         _DiscreteFunction<T>::addStateFactor(i);
-        _packed = false;
+        _packed = _DiscreteFunction<T>::_computed;
     }
     virtual void addActionFactor(Size i) override {
         _DiscreteFunction<T>::addActionFactor(i);
-        _packed = false;
+        _packed = _DiscreteFunction<T>::_computed;
     }
     virtual void eraseStateFactor(Size i) override {
         _DiscreteFunction<T>::eraseStateFactor(i);
-        _packed = false;
+        _packed = _DiscreteFunction<T>::_computed;
     }
     virtual void eraseActionFactor(Size i) override {
         _DiscreteFunction<T>::eraseActionFactor(i);
-        _packed = false;
+        _packed = _DiscreteFunction<T>::_computed;
     }
     virtual void join(const SizeVec& state_dom, const SizeVec& action_dom) override {
       _DiscreteFunction<T>::join(state_dom, action_dom);
-      _packed = false;
+      _packed = _DiscreteFunction<T>::_computed;
     }
     virtual void join(const _DiscreteFunction<T>& func) override {
       _DiscreteFunction<T>::join(func);
-      _packed = false;
+      _packed = _DiscreteFunction<T>::_computed;
     }
 };
 
