@@ -26,6 +26,7 @@ _DBNFactor::_DBNFactor(const Domain& domain, Size target)
   // create a validation function for this DBNFactor that
   // checks correct variable ordering if local DBN factor scope equals global scope (either states or actions)
   // Note: not strictly required anymore since ascending ordering is now enforced internally
+#if 0
   validator = [&, s_order = cpputil::ordered_vec<Size>(_domain->getNumStateFactors()),
                   a_order = cpputil::ordered_vec<Size>(_domain->getNumActionFactors())] {
       if(getSubdomain()->getNumStateFactors() == s_order.size() && !hasConcurrentDependency()) {
@@ -38,6 +39,7 @@ _DBNFactor::_DBNFactor(const Domain& domain, Size target)
       }
       return true;
   };
+#endif
 }
 
 void _DBNFactor::addDelayedDependency(Size index) {
@@ -84,9 +86,11 @@ void _DBNFactor::pack() {
   }
   _prob_table = boost::make_shared<_FStateActionTable<ProbabilityVec>>(_subdomain);
   _packed = true;
+#if 0
   if(!validator()) {
       throw cpputil::InvalidException("DBN factor has global state or action scope and requires variable ordering to match global ordering.");
   }
+#endif
 }
 
 void _DBNFactor::setT(const State& s, const State& n, const Action& a, Factor t, Probability p) {
@@ -121,9 +125,11 @@ void _LRF::pack() {
   }
   _R_map = boost::make_shared<_FStateActionTable<Reward>>(_subdomain);
   _packed = true;
+#if 0
   if(!validator()) {
       throw cpputil::InvalidException("LRF has global state or action scope and requires variable ordering to match global ordering.");
   }
+#endif
 }
 
 Reward _LRF::R(const State &s, const Action &a) const {

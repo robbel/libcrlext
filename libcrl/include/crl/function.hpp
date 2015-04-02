@@ -185,8 +185,8 @@ template<class T>
 using FunctionSetIterator = cpputil::MapValueRangeIterator<std::multimap<Size, DiscreteFunction<T>>, DiscreteFunction<T>>;
 
 /**
- * \brief A many-to-many mapping from a function scope to a particular function
- * Used to retrieve functions with a particular scope during variable elimination.
+ * \brief A many-to-many mapping from function scopes to particular functions
+ * Used to retrieve functions with particular variables during variable elimination.
  * \todo compare with performance of unordered_multimap
  * FIXME check whether shared_ptr is needed to maintain elements in set (vs. raw pointers..)
  */
@@ -400,7 +400,6 @@ protected:
   const Domain _domain;
 public:
   _FactoredV() { }
-  virtual ~_FactoredV() { }
 
   /// \todo
   void addBasisFunction(const Basis<Reward>& h);

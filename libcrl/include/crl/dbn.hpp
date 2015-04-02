@@ -61,8 +61,10 @@ protected:
   State _empty_s;
   /// \brief True iff \a pack() has been called on this factor (required for some function calls)
   bool _packed;
+#if 0
   /// \brief sanity check for this DBNFactor
   std::function<bool()> validator;
+#endif
 public:
   ///
   /// \brief Extract the relevant state information for this factor (i.e., those corresponding to this \a _subdomain)
@@ -122,7 +124,7 @@ public:
    * \brief Initialize this \a DBNFactor for a specific factor in the domain.
    */
   _DBNFactor(const Domain& domain, Size target);
-  virtual ~_DBNFactor() { }
+
   void addDelayedDependency(Size index);
   const SizeVec& getDelayedDependencies() const { return _delayed_dep; }
   void addConcurrentDependency(Size index);
@@ -236,7 +238,7 @@ protected:
 public:
   _LRF(const Domain& domain)
   : _DBNFactor(domain, 0) { } // target in parent ctor is initialized arbitrarily, irrelevant for LRF
-  virtual ~_LRF() { }
+
   ///
   /// \brief Assemble the table corresponding to the rewards
   /// \note Called after all dependencies have been added
@@ -265,7 +267,7 @@ protected:
 public:
   _DBN()
   : _has_concurrency(false) { }
-  virtual ~_DBN() { }
+
   /// \brief Return the number of \a DBNFactors in this DBN
   Size size() const {
     return _dbn_factors.size();
