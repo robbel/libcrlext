@@ -182,6 +182,55 @@ template<class T>
 using DiscreteFunction = boost::shared_ptr<_DiscreteFunction<T>>;
 
 /**
+ * \brief A many-to-many mapping from a function scope to a particular function
+ * Used to retrieve functions with a particular scope during variable elimination.
+ */
+template<class T>
+class FunctionSet : private std::multimap<Size, DiscreteFunction<T>> {
+private:
+  typedef std::pair<typename std::multimap<Size,DiscreteFunction<T>>::iterator,
+                    typename std::multimap<Size,DiscreteFunction<T>>::iterator> FunctionRange;
+  /// The domain which includes all state and action factors
+  const Domain _domain;
+  /// The index of the last state factor (where actions are inserted from)
+  const Size _a_offset;
+public:
+  /// \brief ctor
+  FunctionSet(const Domain& domain)
+    : _domain(domain), _a_offset(_domain->getNumStateFactors()) { }
+
+  /// \brief Add a function to this \a FunctionSet
+  void insert(DiscreteFunction<T> f) {
+    const SizeVec& s_scope = f->getStateFactors();
+    const SizeVec& a_scope(f->getActionFactors());
+    for(Size i : s_scope) {
+        this->emplace(i,f);
+    }
+    for(Size i : a_scope) {
+        this->emplace(i+_a_offset,f);
+    }
+  }
+
+  /// \brief Erase all functions that depend on state factor `i'
+  void eraseStateFactor(Size i) {
+    this->erase(i);
+  }
+  /// \brief Erase all functions that depend on action factor `i'
+  void eraseActionFactor(Size i) {
+    this->erase(i+_a_offset);
+  }
+  /// \brief Get all functions that depend on state factor `i'
+  FunctionRange getStateFactor(Size i) {
+    return this->equal_range(i);
+  }
+  /// \brief Get all functions that depend on action factor `i'
+  FunctionRange getActionFactor(Size i) {
+    return this->equal_range(i+_a_offset);
+  }
+
+};
+
+/**
  * \brief This function is merely used for scope computations (e.g., variable elimination)
  */
 template<class T>
