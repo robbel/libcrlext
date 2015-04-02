@@ -39,23 +39,44 @@ protected:
   SizeVec _action_dom;
   /// \brief Unique name of this function
   std::string _name;
+  /// \brief True iff \a computeSubdomain() has been called
+  bool _computed;
 public:
   /// \brief ctor
   _DiscreteFunction(const Domain& domain, std::string name = "")
-  : _domain(domain), _name(name) { }
-#if 0
-  /// \brief Construct function from
+  : _domain(domain), _name(name), _computed(false) { }
+  /// \brief Initialize this function's scope with the union of scopes of the ones in \a funcs
   _DiscreteFunction(std::initializer_list<_DiscreteFunction<T>> funcs, std::string name = "")
-  : _name(name) {
+  : _name(name), _computed(false) {
+    assert(funcs.size() != 0);
+    _domain = funcs.begin()->_domain; // same domain
     for(const auto& func : funcs) {
       join(func);
     }
   }
-#endif
 
   /// \brief Return subdomain associated with this function
-  virtual Domain getSubdomain() const {
+  /// \note Only available after call to \a computeSubdomain()
+  Domain getSubdomain() const {
+    assert(_computed);
     return _subdomain;
+  }
+  /// \brief Computes the subdomain associated with this function
+  void computeSubdomain() {
+    _subdomain = boost::make_shared<_Domain>();
+    const RangeVec& state_ranges = _domain->getStateRanges();
+    const RangeVec& action_ranges = _domain->getActionRanges();
+    const StrVec& state_names = _domain->getStateNames();
+    const StrVec& action_names = _domain->getActionNames();
+    for (Size i=0; i<_state_dom.size(); i++) {
+        Size j = _state_dom[i];
+        this->_subdomain->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax(), state_names[j]);
+    }
+    for (Size i=0; i<_action_dom.size(); i++) {
+        Size j = _action_dom[i];
+        this->_subdomain->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax(), action_names[j]);
+    }
+    _computed = true;
   }
 
   //
@@ -70,6 +91,7 @@ public:
     if(it == _state_dom.end() || *it != i) {
       _state_dom.insert(it, i);
     }
+    _computed = false;
   }
   /// \brief Add action factor `i' to the scope of this function
   virtual void addActionFactor(Size i) {
@@ -79,6 +101,7 @@ public:
     if(it == _action_dom.end() || *it != i) {
       _action_dom.insert(it, i);
     }
+    _computed = false;
   }
   /// \brief Erase state factor `i' from the scope of this function
   virtual void eraseStateFactor(Size i) {
@@ -87,6 +110,7 @@ public:
     if(it != _state_dom.end()) {
       _state_dom.erase(it);
     }
+    _computed = false;
   }
   /// \brief Erase action factor `i' from the scope of this function
   virtual void eraseActionFactor(Size i) {
@@ -95,6 +119,7 @@ public:
     if(it != _action_dom.end()) {
       _action_dom.erase(it);
     }
+    _computed = false;
   }
 
   /// \brief Join state and action factor scopes of this function with the supplied ones
@@ -103,11 +128,13 @@ public:
         SizeVec joint_s;
         std::set_union(_state_dom.begin(), _state_dom.end(), state_dom.begin(), state_dom.end(), std::inserter(joint_s, joint_s.begin()));
         _state_dom = joint_s;
+        _computed = false;
     }
     if(_action_dom != action_dom) {
         SizeVec joint_a;
         std::set_union(_action_dom.begin(), _action_dom.end(), action_dom.begin(), action_dom.end(), std::inserter(joint_a, joint_a.begin()));
         _action_dom = joint_a;
+        _computed = false;
     }
   }
   /// \brief Join state and action factor scopes of this function with those of another one
@@ -116,19 +143,19 @@ public:
   }
 
   /// \brief True iff state factor i is included in the scope of this function
-  virtual bool containsStateFactor(Size i) const {
+  bool containsStateFactor(Size i) const {
     return std::binary_search(_state_dom.begin(), _state_dom.end(), i); // sorted assumption
   }
   /// \brief True iff action factor i is included in the scope of this function
-  virtual bool containsActionFactor(Size i) const {
+  bool containsActionFactor(Size i) const {
     return std::binary_search(_action_dom.begin(), _action_dom.end(), i); // sorted assumption
   }
   /// \brief The state factor indices (w.r.t. global \a Domain) relevant for this function
-  virtual const SizeVec& getStateFactors() const {
+  const SizeVec& getStateFactors() const {
       return _state_dom;
   }
   /// \brief The action factor indices (w.r.t. global \a Domain) relevant for this function
-  virtual const SizeVec& getActionFactors() const {
+  const SizeVec& getActionFactors() const {
       return _action_dom;
   }
 
@@ -143,19 +170,38 @@ public:
   virtual T eval(const State& s, const Action& a) const = 0;
   /// \brief Convenience function for evaluating this basis function
   virtual T operator()(const State& s, const Action& a) const {
-    return eval(std::move(s), std::move(a));
+    return eval(s, a);
   }
   /// \brief Convenience function for functions that do not depend on action variables
   virtual T operator()(const State& s) const {
-    return eval(std::move(s), Action());
+    return eval(s, Action());
   }
 };
 // instead of typedef (which needs full type)
 template<class T>
 using DiscreteFunction = boost::shared_ptr<_DiscreteFunction<T>>;
 
+/**
+ * \brief This function is merely used for scope computations (e.g., variable elimination)
+ */
 template<class T>
-using StateActionTable =  boost::shared_ptr<_StateActionTable<T>>;
+class _EmptyFunction : public _DiscreteFunction<T> {
+public:
+  /// \brief ctor
+  _EmptyFunction(const Domain& domain, std::string name = "")
+  : _DiscreteFunction<T>(domain, name) { }
+  _EmptyFunction(std::initializer_list<_DiscreteFunction<T>> funcs, std::string name = "")
+  : _DiscreteFunction<T>(std::move(funcs), name) { }
+
+  virtual T eval(const State& s, const Action& a) const override {
+      throw cpputil::InvalidException("calling eval on an empty function");
+  }
+};
+template<class T>
+using EmptyFunction = boost::shared_ptr<_EmptyFunction<T>>;
+
+//template<class T>
+//using StateActionTable = boost::shared_ptr<_StateActionTable<T>>;
 
 /**
  * \brief A \a DiscreteFunction implemented with tabular storage.
@@ -172,37 +218,18 @@ public:
     /// \brief ctor
     _FDiscreteFunction(const Domain& domain, std::string name = "")
     : _DiscreteFunction<T>(domain, name), _packed(false) { }
-    /// \brief dtor
-    virtual ~_FDiscreteFunction() { }
 
     ///
     /// \brief Assemble the flat table corresponding to this function
     /// \note Called after all state and action dependencies have been added
     ///
     virtual void pack() {
-        this->_subdomain = boost::make_shared<_Domain>();
-        const RangeVec& state_ranges = _DiscreteFunction<T>::_domain->getStateRanges();
-        const RangeVec& action_ranges = _DiscreteFunction<T>::_domain->getActionRanges();
-        const StrVec& state_names = _DiscreteFunction<T>::_domain->getStateNames();
-        const StrVec& action_names = _DiscreteFunction<T>::_domain->getActionNames();
-        for (Size i=0; i<_DiscreteFunction<T>::_state_dom.size(); i++) {
-            Size j = _DiscreteFunction<T>::_state_dom[i];
-            this->_subdomain->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax(), state_names[j]);
-        }
-        for (Size i=0; i<_DiscreteFunction<T>::_action_dom.size(); i++) {
-            Size j = _DiscreteFunction<T>::_action_dom[i];
-            this->_subdomain->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax(), action_names[j]);
-        }
-        // allocate memory
-        _sa_table = boost::make_shared<_FStateActionTable<T>>(this->_subdomain);
-        _packed = true;
-    }
-
-    /// \brief Return subdomain associated with this function
-    /// \note Only available after call to \a pack()
-    virtual Domain getSubdomain() const override {
-      assert(_packed);
-      return _DiscreteFunction<T>::getSubdomain();
+      if(!_DiscreteFunction<T>::_computed) {
+          _DiscreteFunction<T>::computeSubdomain();
+      }
+      // allocate memory
+      _sa_table = boost::make_shared<_FStateActionTable<T>>(this->_subdomain);
+      _packed = true;
     }
 
     ///
@@ -259,24 +286,20 @@ public:
   /// \brief ctor
   _Indicator(const Domain& domain, std::string name = "")
   : _DiscreteFunction(domain, name) { }
-  /// \brief Initialize an indicator on \a State s from the subdomain
+  /// \brief Initialize an indicator on \a State s in a subdomain
+  /// \param factors Denotes a (sub-)set of state factors from the supplied \a Domain
   _Indicator(const Domain& domain, SizeVec factors, const State& s, std::string name = "")
   : _DiscreteFunction(domain, name) {
     assert(s);
     std::sort(factors.begin(),factors.end());
-    join(factors, getActionFactors());
+    join(factors, this->getActionFactors());
     setState(s);
   }
 
   /// \brief Define the State for which this Indicator is set
   void setState(const State& s) {
-    assert(s);
-    _subdomain = boost::make_shared<_Domain>();
-    const RangeVec& state_ranges = this->_domain->getStateRanges();
-    const StrVec& state_names = this->_domain->getStateNames();
-    for (Size i=0; i<this->_state_dom.size(); i++) {
-        Size j = this->_state_dom[i];
-        _subdomain->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax(), state_names[j]);
+    if(!_DiscreteFunction::_computed) {
+      _DiscreteFunction::computeSubdomain();
     }
     _s_index = s; // copy index only-no other comparison (for identical domain, etc.) done
   }
@@ -343,11 +366,10 @@ public:
         _FDiscreteFunction<T>::join(delayed_dep, action_dep);
     }
   }
-  virtual ~_Backprojection() { }
 
   /// \brief Compute backprojection for every variable setting in the domain
-  virtual void cache() {
-      if(!this->_packed) {
+  void cache() {
+      if(!_FDiscreteFunction<T>::_packed) {
         _FDiscreteFunction<T>::pack(); // allocate memory
       }
       // compute basis function values over its entire domain
@@ -393,54 +415,27 @@ public:
   //
 
   virtual T eval(const State& s, const Action& a) const override {
-    assert(_cached);
+    assert(_packed && _cached);
     return _FDiscreteFunction<T>::eval(s,a);
   }
 
   /// \brief Multiply all values with a scalar
-  virtual _Backprojection<T>& operator*=(T s) {
-    assert(_cached);
+  _Backprojection<T>& operator*=(T s) {
+    assert(_packed && _cached);
     auto& vals = this->_sa_table->values();
     std::transform(vals.begin(), vals.end(), vals.begin(), [s](T v) { return v*s; });
     return *this;
   }
 #if 0
-  virtual _Backprojection<T>& operator+=(const _DiscreteFunction<T>& other) {
-    assert(_cached);
+  _Backprojection<T>& operator+=(const _FDiscreteFunction<T>& other) {
+    assert(_packed && _cached);
     if(_DiscreteFunction<T>::getActionFactors() != other.getActionFactors() || DiscreteFunction<T>::_state_dom != other.getStateFactors()) {
-        throw cpputil::InvalidException("Backprojection does currently not support concurrent dependencies in DBN.");
+        throw cpputil::InvalidException("");
     }
     return *this;
   }
 #endif
-  //
-  // invalidate cached values when function scope changes occur
-  //
 
-  virtual void addStateFactor(Size i) override {
-      _FDiscreteFunction<T>::addStateFactor(i);
-      _cached = false;
-  }
-  virtual void addActionFactor(Size i) override {
-      _FDiscreteFunction<T>::addActionFactor(i);
-      _cached = false;
-  }
-  virtual void eraseStateFactor(Size i) override {
-      _FDiscreteFunction<T>::eraseStateFactor(i);
-      _cached = false;
-  }
-  virtual void eraseActionFactor(Size i) override {
-      _FDiscreteFunction<T>::eraseActionFactor(i);
-      _cached = false;
-  }
-  virtual void join(const SizeVec& state_dom, const SizeVec& action_dom) override {
-    _FDiscreteFunction<T>::join(state_dom, action_dom);
-    _cached = false;
-  }
-  virtual void join(const _DiscreteFunction<T>& func) override {
-    _FDiscreteFunction<T>::join(func);
-    _cached = false;
-  }
 };
 // instead of typedef (which needs full type)
 template<class T>
