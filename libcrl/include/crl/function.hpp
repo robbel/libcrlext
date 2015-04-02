@@ -181,22 +181,28 @@ public:
 template<class T>
 using DiscreteFunction = boost::shared_ptr<_DiscreteFunction<T>>;
 
+template<class T>
+using FunctionSetIterator = cpputil::MapValueRangeIterator<std::multimap<Size, DiscreteFunction<T>>, DiscreteFunction<T>>;
+
 /**
  * \brief A many-to-many mapping from a function scope to a particular function
  * Used to retrieve functions with a particular scope during variable elimination.
  * \todo compare with performance of unordered_multimap
+ * FIXME check whether shared_ptr is needed to maintain elements in set (vs. raw pointers..)
  */
 template<class T>
 class FunctionSet : private std::multimap<Size, DiscreteFunction<T>> {
 private:
+  /// \brief type for iterator over multimap range
+  typedef std::pair<typename std::multimap<Size,DiscreteFunction<T>>::iterator,
+                    typename std::multimap<Size,DiscreteFunction<T>>::iterator> multimap_range;
   /// The domain which includes all state and action factors
   const Domain _domain;
   /// The index of the last state factor (where actions are inserted from)
   const Size _a_offset;
 public:
-  /// \brief type for iterator over functions in the set
-  typedef std::pair<typename std::multimap<Size,DiscreteFunction<T>>::iterator,
-                    typename std::multimap<Size,DiscreteFunction<T>>::iterator> range;
+  /// \brief type for iterator over functions in this \a FunctionSet
+  typedef FunctionSetIterator<T> range;
   /// \brief ctor
   FunctionSet(const Domain& domain)
     : _domain(domain), _a_offset(_domain->getNumStateFactors()) { }
@@ -223,11 +229,11 @@ public:
   }
   /// \brief Get all functions that depend on state factor `i'
   range getStateFactor(Size i) {
-    return this->equal_range(i);
+    return range(this->equal_range(i));
   }
   /// \brief Get all functions that depend on action factor `i'
   range getActionFactor(Size i) {
-    return this->equal_range(i+_a_offset);
+    return range(this->equal_range(i+_a_offset));
   }
 
   /// \brief Number of elements in this std::multiset

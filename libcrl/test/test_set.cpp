@@ -69,27 +69,27 @@ TEST(FunctionSetTest, BasicTest) {
 
   using range = FunctionSet<double>::range;
   range r = f_set.getStateFactor(0);
-  ASSERT_NE(r.first,r.second); // found sth
-  ++r.first;
-  EXPECT_EQ(r.first,r.second); // exactly one element
+  ASSERT_TRUE(r.hasNext()); // found sth
+  r.next();
+  EXPECT_TRUE(!r.hasNext()); // exactly one element
 
   r = f_set.getStateFactor(1);
-  ASSERT_NE(r.first,r.second); // found sth
-  ++r.first;
-  EXPECT_NE(r.first,r.second);
-  ++r.first;
-  EXPECT_EQ(r.first,r.second); // exactly two elements
+  ASSERT_TRUE(r.hasNext()); // found sth
+  r.next();
+  EXPECT_TRUE(r.hasNext());
+  r.next();
+  EXPECT_TRUE(!r.hasNext()); // exactly two elements
 
   r = f_set.getActionFactor(0);
-  ASSERT_NE(r.first,r.second); // found sth
-  ++r.first;
-  EXPECT_EQ(r.first,r.second); // exactly one element
+  ASSERT_TRUE(r.hasNext()); // found sth
+  const DiscreteFunction<double>& f = r.next();
+  EXPECT_THROW(f->eval(s,a), cpputil::InvalidException); // should have returned EmptyFunction
+  EXPECT_TRUE(!r.hasNext()); // exactly one element
 
   r = f_set.getActionFactor(1);
-  EXPECT_EQ(r.first,r.second); // found nothing
+  EXPECT_TRUE(!r.hasNext()); // found nothing
 
   f_set.eraseActionFactor(0);
   r = f_set.getActionFactor(0);
-  EXPECT_EQ(r.first,r.second); // found nothing
-
+  EXPECT_TRUE(!r.hasNext()); // found nothing
 }
