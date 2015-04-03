@@ -20,53 +20,33 @@ using namespace crl;
 //
 
 _DBNFactor::_DBNFactor(const Domain& domain, Size target)
-: _domain(domain), _target(target), _packed(false) {
+: _FDiscreteFunction(domain), _target(target) {
   _target_range = _domain->getStateRanges()[_target];
-
-  // create a validation function for this DBNFactor that
-  // checks correct variable ordering if local DBN factor scope equals global scope (either states or actions)
-  // Note: not strictly required anymore since ascending ordering is now enforced internally
-#if 0
-  validator = [&, s_order = cpputil::ordered_vec<Size>(_domain->getNumStateFactors()),
-                  a_order = cpputil::ordered_vec<Size>(_domain->getNumActionFactors())] {
-      if(getSubdomain()->getNumStateFactors() == s_order.size() && !hasConcurrentDependency()) {
-          if(_delayed_dep != s_order)
-            return false;
-      }
-      if(getSubdomain()->getNumActionFactors() == a_order.size()) {
-          if(_action_dep != a_order)
-            return false;
-      }
-      return true;
-  };
-#endif
 }
 
 void _DBNFactor::addDelayedDependency(Size index) {
+  assert(i < _domain->getNumStateFactors());
   SizeVec::iterator it = std::lower_bound(_delayed_dep.begin(), _delayed_dep.end(), index);
   if(it == _delayed_dep.end() || *it != index) {
     _delayed_dep.insert(it, index);
+    _computed = false; // invalidate subdomain
   }
-  _packed = false;
 }
 
 void _DBNFactor::addConcurrentDependency(Size index) {
+  assert(i < _domain->getNumStateFactors());
   SizeVec::iterator it = std::lower_bound(_concurrent_dep.begin(), _concurrent_dep.end(), index);
   if(it == _concurrent_dep.end() || *it != index) {
     _concurrent_dep.insert(it, index);
+    _computed = false; // invalidate subdomain
   }
-  _packed = false;
 }
 
 void _DBNFactor::addActionDependency(Size index) {
-  SizeVec::iterator it = std::lower_bound(_action_dep.begin(), _action_dep.end(), index);
-  if(it == _action_dep.end() || *it != index) {
-    _action_dep.insert(it, index);
-  }
-  _packed = false;
+  _FDiscreteFunction::addActionFactor(index);
 }
 
-void _DBNFactor::pack() {
+void _DBNFactor::computeSubdomain() {
   _subdomain = boost::make_shared<_Domain>();
   const RangeVec& state_ranges = _domain->getStateRanges();
   const RangeVec& action_ranges = _domain->getActionRanges();
@@ -80,23 +60,17 @@ void _DBNFactor::pack() {
       Size j = _concurrent_dep[i];
       _subdomain->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax(), state_names[j]);
   }
-  for (Size i=0; i<_action_dep.size(); i++) {
-      Size j = _action_dep[i];
-      _subdomain->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax(), action_names[j]);
+  for (Size i=0; i<_action_dom.size(); i++) {
+      Size j = _action_dom[i];
+      this->_subdomain->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax(), action_names[j]);
   }
-  _prob_table = boost::make_shared<_FStateActionTable<ProbabilityVec>>(_subdomain);
-  _packed = true;
-#if 0
-  if(!validator()) {
-      throw cpputil::InvalidException("DBN factor has global state or action scope and requires variable ordering to match global ordering.");
-  }
-#endif
+  _computed = true;
 }
 
 void _DBNFactor::setT(const State& s, const State& n, const Action& a, Factor t, Probability p) {
   State ms = mapState(s, n);
   Action ma = mapAction(a);
-  ProbabilityVec& pv = _prob_table->getValue(ms, ma);
+  ProbabilityVec& pv = _sa_table->getValue(ms, ma);
   if (pv.size() == 0)
           pv.resize(_target_range.getSpan()+1, 0);
 
@@ -108,43 +82,19 @@ void _DBNFactor::setT(const State& s, const State& n, const Action& a, Factor t,
 // LRF implementation
 //
 
-void _LRF::pack() {
-  assert(!hasConcurrentDependency());
-  _subdomain = boost::make_shared<_Domain>();
-  const RangeVec& state_ranges = _domain->getStateRanges();
-  const RangeVec& action_ranges = _domain->getActionRanges();
-  const StrVec& state_names = _domain->getStateNames();
-  const StrVec& action_names = _domain->getActionNames();
-  for (Size i=0; i<_delayed_dep.size(); i++) {
-          Size j = _delayed_dep[i];
-          _subdomain->addStateFactor(state_ranges[j].getMin(), state_ranges[j].getMax(), state_names[j]);
-  }
-  for (Size i=0; i<_action_dep.size(); i++) {
-          Size j = _action_dep[i];
-          _subdomain->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax(), action_names[j]);
-  }
-  _R_map = boost::make_shared<_FStateActionTable<Reward>>(_subdomain);
-  _packed = true;
-#if 0
-  if(!validator()) {
-      throw cpputil::InvalidException("LRF has global state or action scope and requires variable ordering to match global ordering.");
-  }
-#endif
-}
-
 Reward _LRF::R(const State &s, const Action &a) const {
-  State ms = mapState(s, _empty_s);
+  State ms = mapState(s);
   Action ma = mapAction(a);
-  return _R_map->getValue(ms, ma);
+  return _sa_table->getValue(ms, ma);
 }
 
 void _LRF::setR(const State& s, const Action& a, Reward r) {
-   State ms = mapState(s, _empty_s);
+   State ms = mapState(s);
    Action ma = mapAction(a);
    // check if value in valid reward range
    _domain->getRewardRange().checkThrow(r);
    // FIXME: currently no maintaining of _known_states, _known_actions (as in _FMDP)
-   _R_map->setValue(ms, ma, r);
+   _sa_table->setValue(ms, ma, r);
 }
 
 //

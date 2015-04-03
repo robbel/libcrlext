@@ -15,34 +15,31 @@
 #include <cassert>
 #include "crl/crl.hpp"
 #include "crl/flat_tables.hpp"
-
+#include "crl/function.hpp"
 
 namespace crl {
 
-typedef _StateActionTable<ProbabilityVec> _SAFProbTable;
-typedef boost::shared_ptr<_SAFProbTable> SAFProbTable;
-typedef _StateActionTable<Reward> _SAFRewardTable;
-typedef boost::shared_ptr<_SAFRewardTable> SAFRewardTable;
-/// \brief A mapping from global factor indices to those in a subdomain
-/// \see mapState(), mapAction()
-typedef cpputil::inverse_map<Size> subdom_map;
-/// \brief The identity mapping
-static auto identity_map = [](Size i) { return i; };
+//typedef _StateActionTable<ProbabilityVec> _SAFProbTable;
+//typedef boost::shared_ptr<_SAFProbTable> SAFProbTable;
+//typedef _StateActionTable<Reward> _SAFRewardTable;
+//typedef boost::shared_ptr<_SAFRewardTable> SAFRewardTable;
 
 /**
  * \brief The definition of a single DBN factor across 2 time slices (t-1 -> t), that can have its dynamics set explicitly.
- *  Includes the transition probabilities encoded with tabular storage.
+ *  Includes the transition probabilities encoded with tabular storage, i.e. (s,a) -> Pr(t)
  * \note All dependencies (delayed, concurrent, action) are sorted internally in ascending order.
  */
-class _DBNFactor {
+class _DBNFactor : public _FDiscreteFunction<ProbabilityVec> {
+private:
+  // trick to change visibility to private -- for DBN factors we need to be explicit about delayed (t-1) and concurrent (t) dependencies
+  using _FDiscreteFunction::addStateFactor;
+  using _FDiscreteFunction::eraseStateFactor;
+  using _FDiscreteFunction::join;
+  using _DiscreteFunction::containsStateFactor;
+  using _DiscreteFunction::getStateFactors;
+  using _DiscreteFunction::_state_dom;
+  //using _DiscreteFunction::mapState;
 protected:
-  /// The domain which includes all state and action factors
-  Domain _domain;
-  ///
-  /// \brief The subdomain relevant for this state factor
-  /// \note Consists of delayed and concurrent state factors, as well as action factors
-  ///
-  Domain _subdomain;
   /// Denoting the (single) factor in the domain considered by this DBNFactor
   Size _target;
   /// The range of the (single) factor in the domain considered by this DBNFactor
@@ -51,20 +48,8 @@ protected:
   SizeVec _delayed_dep;
   /// Denoting concurrent dependencies of this factor, i.e., an edge from t+1 to t+1 in the DBN.
   SizeVec _concurrent_dep;
-  /// Denoting an action dependency of this factor, i.e., an edge from t to t+1 in the DBN.
-  SizeVec _action_dep;
-
-  /// \brief A mapping from (s,a) of the subdomain -> Pr(t), the target value of this factor
-  SAFProbTable _prob_table;
-
   /// \brief A dummy, empty state
   State _empty_s;
-  /// \brief True iff \a pack() has been called on this factor (required for some function calls)
-  bool _packed;
-#if 0
-  /// \brief sanity check for this DBNFactor
-  std::function<bool()> validator;
-#endif
 public:
   ///
   /// \brief Extract the relevant state information for this factor (i.e., those corresponding to this \a _subdomain)
@@ -93,36 +78,12 @@ public:
       return ms;
   }
   State mapState(const State& s, const State& n) const {
-      return mapState(s, n, identity_map, identity_map);
+    return mapState(s, n, identity_map, identity_map);
   }
 
   ///
-  /// \brief Extract the relevant action information for this factor (i.e., those corresponding to this \a _subdomain)
-  /// \param a The (e.g., joint) action
-  /// \param domain_map An (optional) function mapping action factor Ids in the global _domain to those in the supplied \a Action a.
-  /// \note Only available after call to \a pack()
-  /// \note When the size of action a corresponds to size of local action space, a is directly returned (optimization)
-  /// \note When the size of action a does not correspond to size of local state space, the provided \a domain_map is used for resolution.
-  /// FIXME test/fix for empty action -- just returning `a' may be sufficient!
-  template <class T>
-  Action mapAction(const Action& a, T&& domain_map) const {
-      assert(_packed);
-      if(a.size() == _action_dep.size()) // under this condition no reduction to local scope performed
-          return a;
-      Action ma(_subdomain);
-      for (Size i=0; i<_action_dep.size(); i++) {
-          Size j = _action_dep[i];
-          ma.setFactor(i, a.getFactor(domain_map(j)));
-      }
-      return ma;
-  }
-  Action mapAction(const Action& a) const {
-      return mapAction(a, identity_map);
-  }
-
-  /**
-   * \brief Initialize this \a DBNFactor for a specific factor in the domain.
-   */
+  /// \brief Initialize this \a DBNFactor for a specific factor in the domain.
+  ///
   _DBNFactor(const Domain& domain, Size target);
 
   void addDelayedDependency(Size index);
@@ -130,22 +91,13 @@ public:
   void addConcurrentDependency(Size index);
   const SizeVec& getConcurrentDependencies() const { return _concurrent_dep; }
   void addActionDependency(Size index);
-  const SizeVec& getActionDependencies() const { return _action_dep; }
+  const SizeVec& getActionDependencies() const { return _action_dom; }
   bool hasConcurrentDependency() const { return !_concurrent_dep.empty(); }
 
-  ///
-  /// \brief Assemble the table corresponding to the CPT estimates for this factor
-  /// \note Called after all dependencies have been added
-  ///
-  virtual void pack();
-  ///
-  /// \brief Return subdomain associated with this factor
-  /// \note Only available after call to \a pack()
-  ///
-  Domain getSubdomain() const {
-    assert(_packed);
-    return _subdomain;
-  }
+  /// \brief Compute the domain of this DBNFactor
+  /// \note This is overloaded from _DiscreteFunction to support both delayed and concurrent dependencies
+  virtual void computeSubdomain() override;
+
   /// \brief Return the (number referring to the) factor in the domain that this DBNFactor represents
   Size getTarget() const {
     return _target;
@@ -162,36 +114,36 @@ public:
   /// \brief The vector of probabilities for successor values associated with the tuple (s,n,a)
   /// FIXME may be costly to always convert from (s,n,a) to index (!)
   template<class C>
-  const ProbabilityVec& T(const State& s, const State& n, const Action& a, C&& state_map_s, C&& state_map_n, C&& action_map) {
+  const ProbabilityVec& T(const State& s, const State& n, const Action& a, C&& state_map_s, C&& state_map_n, C&& action_map) const {
       State ms = mapState(s, n, std::forward<C>(state_map_s), std::forward<C>(state_map_n));
       Action ma = mapAction(a, std::forward<C>(action_map));
-      ProbabilityVec& pv = _prob_table->getValue(ms, ma);
+      ProbabilityVec& pv = _sa_table->getValue(ms, ma);
       return pv;
   }
-  const ProbabilityVec& T(const State& s, const State& n, const Action& a) {
+  const ProbabilityVec& T(const State& s, const State& n, const Action& a) const {
       return T(s, n, a, identity_map, identity_map, identity_map);
   }
   /// \brief The probability of transitioning to a particular state value t from (s,n,a)
   template<class C>
-  Probability T(const State& s, const State& n, const Action& a, Factor t, C&& state_map_s, C&& state_map_n, C&& action_map) {
+  Probability T(const State& s, const State& n, const Action& a, Factor t, C&& state_map_s, C&& state_map_n, C&& action_map) const {
       const ProbabilityVec& pv = T(s, n, a, std::forward<C>(state_map_s), std::forward<C>(state_map_n), std::forward<C>(action_map));
       Factor offset = t - _target_range.getMin();
       return pv[offset];
   }
-  Probability T(const State& s, const State& n, const Action& a, Factor t) {
+  Probability T(const State& s, const State& n, const Action& a, Factor t) const {
       return T(s, n, a, t, identity_map, identity_map, identity_map);
   }
 
   /// \brief Convenience function for the case that no concurrent dependencies exist in 2DBN
   /// \note This particular function supports either joint state/action as parameters or state/action that are already at factor scope
   template<class C>
-  const ProbabilityVec& T(const State& s, const Action& a, C&& state_map, C&& action_map) {
+  const ProbabilityVec& T(const State& s, const Action& a, C&& state_map, C&& action_map) const {
     if(!_concurrent_dep.empty()) {
         throw cpputil::InvalidException("Transition function is missing state(t) to compute concurrent dependencies.");
     }
     return T(s, _empty_s, a, std::forward<C>(state_map), identity_map, std::forward<C>(action_map));
   }
-  const ProbabilityVec& T(const State& s, const Action& a) {
+  const ProbabilityVec& T(const State& s, const Action& a) const {
       return T(s, a, identity_map, identity_map);
   }
 
@@ -215,6 +167,7 @@ public:
     setT(s,_empty_s,a,t,p);
   }
 };
+
 typedef boost::shared_ptr<_DBNFactor> DBNFactor;
 // iterators
 typedef cpputil::Iterator<DBNFactor> _FactorIterator;
@@ -223,27 +176,14 @@ typedef cpputil::VectorIterator<DBNFactor> _FactorVecIterator;
 typedef boost::shared_ptr<_FactorIterator> FactorVecIterator;
 
 /**
- * \brief A Local Reward Function (LRF) is just a DBN factor with reward storage.
+ * \brief A Local Reward Function (LRF) is just a function that returns rewards
  * Rewards are defined as the mapping (s,a) -> r where (s,a) denotes the current state and action.
  * \note Concurrent dependencies (i.e., rewards depending on successor state n) are not supported.
- * \note In the case that local LRF scope equals joint state or action scope, variable ordering (for those) needs to be equivalent.
  */
-class _LRF : public _DBNFactor {
-private:
-  // trick to change visibility to private -- we don't currently support reward functions with (t+1) dependencies
-  using _DBNFactor::addConcurrentDependency;
-protected:
-  /// \brief A mapping from (s,a) in the subdomain -> r
-  SAFRewardTable _R_map;
+class _LRF : public _FDiscreteFunction<Reward> {
 public:
   _LRF(const Domain& domain)
-  : _DBNFactor(domain, 0) { } // target in parent ctor is initialized arbitrarily, irrelevant for LRF
-
-  ///
-  /// \brief Assemble the table corresponding to the rewards
-  /// \note Called after all dependencies have been added
-  ///
-  virtual void pack() override;
+  : _FDiscreteFunction(domain) { }
 
   /// \brief The reward associated with the tuple (s,a)
   /// \note This particular function supports either joint state/action as parameters or state/action that are already at factor scope
@@ -315,6 +255,112 @@ typedef boost::shared_ptr<_DBN> DBN;
 template<> Probability _DBN::T(const State& s, const Action& a, const State& n, decltype(identity_map), decltype(identity_map), decltype(identity_map)) {
     return _DBN::T(s,a,n);
 }
+
+/**
+ * \brief Backprojection of a function through a DBN
+ * The back-projection (the output) is defined over (state,action) or state factors alone.
+ * \note Action factors in the input function are ignored.
+ * \note DBNs with concurrent dependencies are currently not supported (should be minor change, though)
+ */
+template<class T>
+class _Backprojection : public _FDiscreteFunction<T> {
+protected:
+  /// \brief The \a DBN used for backprojections
+  DBN _dbn;
+  /// \brief The \a DiscreteFunction to backproject
+  DiscreteFunction<T> _func;
+  /// \brief True iff function has been computed over entire domain.
+  bool _cached;
+public:
+  _Backprojection(const Domain& domain, const DBN& dbn, const DiscreteFunction<T>& other, std::string name = "")
+  : _FDiscreteFunction<T>(domain, name), _dbn(dbn), _func(other), _cached(false) {
+    if(_dbn->hasConcurrentDependency()) {
+      throw cpputil::InvalidException("Backprojection does currently not support concurrent dependencies in DBN.");
+    }
+    if(!other->getActionFactors().empty()) {
+      throw cpputil::InvalidException("Backprojection does not support function with action factors.");
+    }
+    // determine parent scope via DBN
+    for(Size t : other->getStateFactors()) {
+        const SizeVec& delayed_dep = _dbn->factor(t)->getDelayedDependencies();
+        const SizeVec& action_dep = _dbn->factor(t)->getActionDependencies();
+        _FDiscreteFunction<T>::join(delayed_dep, action_dep);
+    }
+  }
+
+  /// \brief Compute backprojection for every variable setting in the domain
+  void cache() {
+      if(!_FDiscreteFunction<T>::_packed) {
+        _FDiscreteFunction<T>::pack(); // allocate memory
+      }
+      // compute basis function values over its entire domain
+      Domain hdom = _func->getSubdomain();
+      _StateIncrementIterator hitr(hdom);
+      std::vector<T> h(hdom->getNumStates(), 0); // the basis function cache over its domain
+      // specialization for indicator functions
+      Indicator I = boost::dynamic_pointer_cast<_Indicator>(_func);
+      if(I) {
+          h[I->getStateIndex()] = 1.;
+          // TODO simplify the entire computation below as well for this special case
+          // FIXME maintain special functions for sparse domains (ala these StateSetIterators !)
+      }
+      else {
+        const Action empty_a;
+        while (hitr.hasNext()) {
+            const State& s = hitr.next();
+            h[(Size)s] = _func->eval(s, empty_a);
+        }
+      }
+
+      // compute backprojection, i.e., expectation of basis function through DBN
+      _StateActionIncrementIterator saitr(this->_subdomain);
+      const subdom_map h_dom(_func->getStateFactors());
+      const subdom_map s_dom(this->getStateFactors());
+      const subdom_map a_dom(this->getActionFactors());
+      // efficient loop over all (s,a) pairs in backprojection domain
+      auto& vals = this->_sa_table->values();
+      for(T& v : vals) {
+          const std::tuple<State,Action>& sa = saitr.next();
+          v = 0.;
+          hitr.reset();
+          while(hitr.hasNext()) {
+              const State& s = hitr.next();
+              v += h[(Size)s] * _dbn->T(std::get<0>(sa), std::get<1>(sa), s, s_dom, h_dom, a_dom);
+          }
+      }
+      _cached = true;
+  }
+
+  //
+  // Function computations
+  //
+
+  virtual T eval(const State& s, const Action& a) const override {
+    assert(_FDiscreteFunction<T>::_packed && _cached);
+    return _FDiscreteFunction<T>::eval(s,a);
+  }
+
+  /// \brief Multiply all values with a scalar
+  _Backprojection<T>& operator*=(T s) {
+    assert(_FDiscreteFunction<T>::_packed && _cached);
+    auto& vals = this->_sa_table->values();
+    std::transform(vals.begin(), vals.end(), vals.begin(), [s](T v) { return v*s; });
+    return *this;
+  }
+#if 0
+  _Backprojection<T>& operator+=(const _FDiscreteFunction<T>& other) {
+    assert(_packed && _cached);
+    if(_DiscreteFunction<T>::getActionFactors() != other.getActionFactors() || DiscreteFunction<T>::_state_dom != other.getStateFactors()) {
+        throw cpputil::InvalidException("");
+    }
+    return *this;
+  }
+#endif
+
+};
+// instead of typedef (which needs full type)
+template<class T>
+using Backprojection = boost::shared_ptr<_Backprojection<T>>;
 
 }
 

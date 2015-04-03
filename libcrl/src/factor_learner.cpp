@@ -49,7 +49,7 @@ bool _FactorLearner::observe(const State& s, const Action& a, const Observation&
 		fv.resize(_target_range.getSpan()+1, 0);
 	fv[offset] += 1;
 	
-	ProbabilityVec& pv = _prob_table->getValue(ms, ma);
+	ProbabilityVec& pv = _sa_table->getValue(ms, ma);
 	if (pv.size() == 0)
 		pv.resize(_target_range.getSpan()+1, 0);
 		
@@ -71,7 +71,7 @@ StateDistribution _FactorLearner::augmentDistribution(StateDistribution sd, cons
 		State ms = mapState(s, n);
 		Action ma = mapAction(a);
 		
-		ProbabilityVec& pv = _prob_table->getValue(ms, ma);
+		ProbabilityVec& pv = _sa_table->getValue(ms, ma);
 
 		for (Size i=0; i<pv.size(); i++) {
 			Factor f = i+_target_range.getMin();

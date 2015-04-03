@@ -98,17 +98,21 @@ FactoredMDP _FireFightingGraph::getFactoredMDP() const {
       Size h_local = 0;
       if(h > 0) {
         fa->addDelayedDependency(h-1);
+        lrf->addStateFactor(h-1);
         h_local++;
       }
       fa->addDelayedDependency(h); // dependence on self
-      if(h < _num_houses-1)
+      lrf->addStateFactor(h);
+      if(h < _num_houses-1) {
         fa->addDelayedDependency(h+1);
-      for(Size i = 0; i < _num_agents; i++) {
-          if(_agent_locs[i] == h-1 || _agent_locs[i] == h)
-            fa->addActionDependency(i);
+        lrf->addStateFactor(h+1);
       }
-      // copy scopes over into local reward function
-      *static_cast<_DBNFactor*>(lrf.get()) = *fa;
+      for(Size i = 0; i < _num_agents; i++) {
+          if(_agent_locs[i] == h-1 || _agent_locs[i] == h) {
+            fa->addActionDependency(i);
+            lrf->addActionFactor(i);
+          }
+      }
       fa->pack();
       lrf->pack();
 

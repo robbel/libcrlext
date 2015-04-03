@@ -13,16 +13,21 @@
 #define FUNCTION_HPP_
 
 #include <iostream>
+#include "crl/flat_tables.hpp"
 #include "crl/common.hpp"
-#include "crl/dbn.hpp"
 
 namespace crl {
+
+/// \brief The identity mapping
+static auto identity_map = [](Size i) { return i; };
+/// \brief A mapping from global factor indices to those in a subdomain
+/// \see mapState(), mapAction()
+typedef cpputil::inverse_map<Size> subdom_map;
 
 /**
  * \brief An abstract interface for a discrete function defined over a subset of (either state or action) variables.
  * Maps tuples {x_1,...,x_N,a_1,...,a_K} -> val<T>, where X_1,...,X_N are state variables and A_1,...,A_K action variables
  * that have been added to this function
- * \note Unlike (e.g.) the \a LRF or \a DBNFactor functions in dbn.hpp, this class supports modification of the scopes, e.g., for marginalization of variables.
  * \note Variables are sorted internally in ascending order
  */
 template<class T>
@@ -33,7 +38,7 @@ protected:
   /// \brief The subdomain relevant for this function
   /// \note Consists of state and action factors from the global domain
   Domain _subdomain;
-  /// \brief The state factors relevant for this function, indicated by their absolution position in the global domain
+  /// \brief The state factors relevant for this function, indicated by their absolute position in the global domain
   SizeVec _state_dom;
   /// \brief The action factors relevant for this function, indicated by their absolute position in the global domain
   SizeVec _action_dom;
@@ -62,7 +67,7 @@ public:
     return _subdomain;
   }
   /// \brief Computes the subdomain associated with this function
-  void computeSubdomain() {
+  virtual void computeSubdomain() {
     _subdomain = boost::make_shared<_Domain>();
     const RangeVec& state_ranges = _domain->getStateRanges();
     const RangeVec& action_ranges = _domain->getActionRanges();
@@ -77,6 +82,55 @@ public:
         this->_subdomain->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax(), action_names[j]);
     }
     _computed = true;
+  }
+
+  ///
+  /// \brief Extract the relevant state information for this function (i.e., those corresponding to this \a _subdomain)
+  /// \param s The current (e.g., joint) state
+  /// \param domain_map An (optional) function mapping state factor Ids in the global _domain to those in the supplied \a States s, n.
+  /// \note Only available after call to \a computeSubdomain()
+  /// \note When the size of state s corresponds to size of local state space, s is directly returned (optimization)
+  /// \note When the size of state s does not correspond to size of local state space, the provided \a domain_map is used for resolution.
+  ///
+  template <class C>
+  State mapState(const State& s, C&& domain_map_s) const {
+      assert(_computed);
+      if(s.size() == _state_dom.size()) // under this condition no reduction to local scope performed
+          return s;
+      State ms(_subdomain);
+      for (Size i=0; i<_state_dom.size(); i++) {
+          Size j = _state_dom[i];
+          ms.setFactor(i, s.getFactor(domain_map_s(j)));
+      }
+      return ms;
+  }
+  State mapState(const State& s) const {
+      return mapState(s, identity_map);
+  }
+
+  ///
+  /// \brief Extract the relevant action information for this function (i.e., those corresponding to this \a _subdomain)
+  /// \param a The (e.g., joint) action
+  /// \param domain_map An (optional) function mapping action factor Ids in the global _domain to those in the supplied \a Action a.
+  /// \note Only available after call to \a computeSubdomain()
+  /// \note When the size of action a corresponds to size of local action space, a is directly returned (optimization)
+  /// \note When the size of action a does not correspond to size of local state space, the provided \a domain_map is used for resolution.
+  /// FIXME test/fix for empty action -- just returning `a' may be sufficient!
+  ///
+  template <class C>
+  Action mapAction(const Action& a, C&& domain_map) const {
+      assert(_computed);
+      if(a.size() == _action_dom.size()) // under this condition no reduction to local scope performed
+          return a;
+      Action ma(_subdomain);
+      for (Size i=0; i<_action_dom.size(); i++) {
+          Size j = _action_dom[i];
+          ma.setFactor(i, a.getFactor(domain_map(j)));
+      }
+      return ma;
+  }
+  Action mapAction(const Action& a) const {
+      return mapAction(a, identity_map);
   }
 
   //
@@ -281,7 +335,6 @@ using EmptyFunction = boost::shared_ptr<_EmptyFunction<T>>;
 
 /**
  * \brief A \a DiscreteFunction implemented with tabular storage.
- * \todo Move into different header (function.hpp/common.hpp) and have DBNFactor/LRF inherit from this too
  */
 template<class T>
 class _FDiscreteFunction : public _DiscreteFunction<T> {
@@ -300,8 +353,8 @@ public:
     /// \note Called after all state and action dependencies have been added
     ///
     virtual void pack() {
-      if(!_DiscreteFunction<T>::_computed) {
-          _DiscreteFunction<T>::computeSubdomain();
+      if(!this->_computed) {
+          this->computeSubdomain();
       }
       // allocate memory
       _sa_table = boost::make_shared<_FStateActionTable<T>>(this->_subdomain);
@@ -409,112 +462,6 @@ public:
 };
 typedef boost::shared_ptr<_FactoredV> FactoredV;
 #endif
-
-/**
- * \brief Backprojection of a function through a DBN
- * The back-projection (the output) is defined over (state,action) or state factors alone.
- * \note Action factors in the input function are ignored.
- * \note DBNs with concurrent dependencies are currently not supported (should be minor change, though)
- */
-template<class T>
-class _Backprojection : public _FDiscreteFunction<T> {
-protected:
-  /// \brief The \a DBN used for backprojections
-  DBN _dbn;
-  /// \brief The \a DiscreteFunction to backproject
-  DiscreteFunction<T> _func;
-  /// \brief True iff function has been computed over entire domain.
-  bool _cached;
-public:
-  _Backprojection(const Domain& domain, const DBN& dbn, const DiscreteFunction<T>& other, std::string name = "")
-  : _FDiscreteFunction<T>(domain, name), _dbn(dbn), _func(other), _cached(false) {
-    if(_dbn->hasConcurrentDependency()) {
-      throw cpputil::InvalidException("Backprojection does currently not support concurrent dependencies in DBN.");
-    }
-    if(!other->getActionFactors().empty()) {
-      throw cpputil::InvalidException("Backprojection does not support function with action factors.");
-    }
-    // determine parent scope via DBN
-    for(Size t : other->getStateFactors()) {
-        const SizeVec& delayed_dep = _dbn->factor(t)->getDelayedDependencies();
-        const SizeVec& action_dep = _dbn->factor(t)->getActionDependencies();
-        _FDiscreteFunction<T>::join(delayed_dep, action_dep);
-    }
-  }
-
-  /// \brief Compute backprojection for every variable setting in the domain
-  void cache() {
-      if(!_FDiscreteFunction<T>::_packed) {
-        _FDiscreteFunction<T>::pack(); // allocate memory
-      }
-      // compute basis function values over its entire domain
-      Domain hdom = _func->getSubdomain();
-      _StateIncrementIterator hitr(hdom);
-      std::vector<T> h(hdom->getNumStates(), 0); // the basis function cache over its domain
-      // specialization for indicator functions
-      Indicator I = boost::dynamic_pointer_cast<_Indicator>(_func);
-      if(I) {
-          h[I->getStateIndex()] = 1.;
-          // TODO simplify the entire computation below as well for this special case
-          // FIXME maintain special functions for sparse domains (ala these StateSetIterators !)
-      }
-      else {
-        const Action empty_a;
-        while (hitr.hasNext()) {
-            const State& s = hitr.next();
-            h[(Size)s] = _func->eval(s, empty_a);
-        }
-      }
-
-      // compute backprojection, i.e., expectation of basis function through DBN
-      _StateActionIncrementIterator saitr(this->_subdomain);
-      const subdom_map h_dom(_func->getStateFactors());
-      const subdom_map s_dom(this->getStateFactors());
-      const subdom_map a_dom(this->getActionFactors());
-      // efficient loop over all (s,a) pairs in backprojection domain
-      auto& vals = this->_sa_table->values();
-      for(T& v : vals) {
-          const std::tuple<State,Action>& sa = saitr.next();
-          v = 0.;
-          hitr.reset();
-          while(hitr.hasNext()) {
-              const State& s = hitr.next();
-              v += h[(Size)s] * _dbn->T(std::get<0>(sa), std::get<1>(sa), s, s_dom, h_dom, a_dom);
-          }
-      }
-      _cached = true;
-  }
-
-  //
-  // Function computations
-  //
-
-  virtual T eval(const State& s, const Action& a) const override {
-    assert(_packed && _cached);
-    return _FDiscreteFunction<T>::eval(s,a);
-  }
-
-  /// \brief Multiply all values with a scalar
-  _Backprojection<T>& operator*=(T s) {
-    assert(_packed && _cached);
-    auto& vals = this->_sa_table->values();
-    std::transform(vals.begin(), vals.end(), vals.begin(), [s](T v) { return v*s; });
-    return *this;
-  }
-#if 0
-  _Backprojection<T>& operator+=(const _FDiscreteFunction<T>& other) {
-    assert(_packed && _cached);
-    if(_DiscreteFunction<T>::getActionFactors() != other.getActionFactors() || DiscreteFunction<T>::_state_dom != other.getStateFactors()) {
-        throw cpputil::InvalidException("");
-    }
-    return *this;
-  }
-#endif
-
-};
-// instead of typedef (which needs full type)
-template<class T>
-using Backprojection = boost::shared_ptr<_Backprojection<T>>;
 
 } // namespace crl
 

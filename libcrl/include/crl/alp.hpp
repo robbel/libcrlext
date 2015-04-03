@@ -13,7 +13,7 @@
 #define ALP_HPP_
 
 #include <iostream>
-#include "crl/function.hpp"
+#include "crl/dbn.hpp"
 #include "crl/factor_learner.hpp"
 
 namespace crl {
