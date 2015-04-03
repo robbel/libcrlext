@@ -10,10 +10,21 @@
  */
 
 #include "crl/alp.hpp"
+#include <lpsolve/lp_lib.h>
 
 using namespace std;
 
 namespace crl {
+
+void lp_demo() {
+    lprec *lp;
+
+    lp = make_lp(0,4);
+
+        /* ... */
+
+    delete_lp(lp);
+}
 
 void _ALPPlanner::plan() {
 

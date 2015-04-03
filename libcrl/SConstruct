@@ -56,14 +56,15 @@ if os.uname()[0] == "Darwin":
 config = Configure(env)
 config.CheckCXXHeader('cpputil.hpp')
 config.CheckCXXHeader('boost/shared_ptr.hpp')
-has_lpsolve = config.CheckLibWithHeader('lpsolve55', 'lpsolve/lp_lib.h', 'cpp')
+has_lpsolve = config.CheckCXXHeader('lpsolve/lp_lib.h')
 env = config.Finish()
 
 lib_targets = []
 bin_targets = []
 
 if has_lpsolve:
-        libcrl = env.SharedLibrary(lib.File('libcrl'+shared_lib_suffix), build_sources)
+        libcrl = env.SharedLibrary(lib.File('libcrl'+shared_lib_suffix), build_sources,
+				   LIBS=['dl', 'lpsolve55', 'colamd'])
         lib_targets += [libcrl]
 
         test = env.Program(bin.Entry('test'), test_sources, LIBS=['crl'])
