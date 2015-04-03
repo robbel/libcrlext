@@ -93,3 +93,48 @@ TEST(FunctionSetTest, BasicTest) {
   r = f_set.getActionFactor(0);
   EXPECT_TRUE(!r.hasNext()); // found nothing
 }
+
+///
+/// \brief Some basic operations on functions
+///
+TEST(FunctionSetTest, FunctionAdditionTest) {
+  Domain domain = boost::make_shared<_Domain>();
+  domain->addStateFactor(0, 3, "sf0"); // 4 states
+  domain->addStateFactor(0, 2, "sf1"); // 3 states
+  domain->addActionFactor(0, 1, "agent1");  // 2 actions
+  domain->setRewardRange(-1, 0);
+
+  const State s(domain, 1);
+  const State s2(domain,2);
+  const Action a(domain, 0);
+
+  _FDiscreteFunction<double> f(domain, "test_name");
+  f.addStateFactor(0);
+  f.addStateFactor(1);
+  f.addActionFactor(0);
+  _FDiscreteFunction<double> f2(domain, "test_name");
+  f2.addStateFactor(0);
+  f2.addStateFactor(1);
+  f2.addActionFactor(0);
+
+  f.pack();
+  f2.pack();
+
+  f.define(s,a, 3);
+  EXPECT_EQ(f.eval(s,a), 3);
+  f2.define(s2,a,4);
+  EXPECT_EQ(f2.eval(s2,a), 4);
+
+  f += f2;
+  EXPECT_EQ(f.eval(s,a), 3);
+  EXPECT_EQ(f.eval(s2,a), 4);
+
+  f *= 2;
+  EXPECT_EQ(f.eval(s,a), 6);
+  EXPECT_EQ(f.eval(s2,a), 8);
+
+  f2.eraseActionFactor(0);
+  f2.pack();
+  EXPECT_THROW(f += f2, cpputil::InvalidException); // incompatible scopes
+
+}

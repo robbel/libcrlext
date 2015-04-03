@@ -427,7 +427,7 @@ public:
       if(vals.size() != other._sa_table->values().size()) {
           throw cpputil::InvalidException("Function scopes do not match");
       }
-      std::transform(vals.begin(), vals.end(), other._sa_table.begin(), std::plus<T>());
+      std::transform(vals.begin(), vals.end(), other._sa_table->values().begin(), vals.begin(), std::plus<T>());
       return *this;
     }
 };
