@@ -24,13 +24,22 @@ namespace crl {
  */
 class _ALPPlanner : public _Planner {
 protected:
+  Domain _domain;
   /// \brief The factored dynamics model
   FactoredMDP _mdp;
 public:
-  _ALPPlanner() { }
+  _ALPPlanner(const Domain& domain)
+  : _domain(domain) { }
 
+  virtual Action getAction(const State& s) override {
+
+    // todo...
+
+    return Action();
+  }
 
 };
+typedef boost::shared_ptr<_ALPPlanner> ALPPlanner;
 
 } // namespace crl
 
