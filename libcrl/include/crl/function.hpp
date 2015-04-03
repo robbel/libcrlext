@@ -92,7 +92,7 @@ public:
   ///
   /// \brief Extract the relevant state information for this function (i.e., those corresponding to this \a _subdomain)
   /// \param s The current (e.g., joint) state
-  /// \param domain_map An (optional) function mapping state factor Ids in the global _domain to those in the supplied \a States s, n.
+  /// \param domain_map An (optional) function mapping state factor Ids in the global _domain to those in the supplied \a State s
   /// \note Only available after call to \a computeSubdomain()
   /// \note When the size of state s corresponds to size of local state space, s is directly returned (optimization)
   /// \note When the size of state s does not correspond to size of local state space, the provided \a domain_map is used for resolution.
@@ -116,7 +116,7 @@ public:
   ///
   /// \brief Extract the relevant action information for this function (i.e., those corresponding to this \a _subdomain)
   /// \param a The (e.g., joint) action
-  /// \param domain_map An (optional) function mapping action factor Ids in the global _domain to those in the supplied \a Action a.
+  /// \param domain_map An (optional) function mapping action factor Ids in the global _domain to those in the supplied \a Action a
   /// \note Only available after call to \a computeSubdomain()
   /// \note When the size of action a corresponds to size of local action space, a is directly returned (optimization)
   /// \note When the size of action a does not correspond to size of local state space, the provided \a domain_map is used for resolution.

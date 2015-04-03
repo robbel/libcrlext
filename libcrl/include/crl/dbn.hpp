@@ -55,7 +55,8 @@ public:
   /// \brief Extract the relevant state information for this factor (i.e., those corresponding to this \a _subdomain)
   /// \param s The current (e.g., joint) state
   /// \param n The (e.g., joint) successor state (for example, from an \a Observation)
-  /// \param domain_map An (optional) function mapping state factor Ids in the global _domain to those in the supplied \a States s, n.
+  /// \param domain_map_s An (optional) function mapping state factor Ids in the global _domain to those in the supplied \a States s
+  /// \param domain_map_n An (optional) function mapping state factor Ids in the global _domain to those in the supplied \a States n
   /// \note Only available after call to \a pack()
   /// \note When the size of state s corresponds to size of local state space, s is directly returned (optimization)
   /// \note When the size of state s does not correspond to size of local state space, the provided \a domain_map is used for resolution.
@@ -112,7 +113,9 @@ public:
   }
 
   /// \brief The vector of probabilities for successor values associated with the tuple (s,n,a)
-  /// FIXME may be costly to always convert from (s,n,a) to index (!)
+  /// \param state_map_s An (optional) function mapping state factor Ids in the global _domain to those in the supplied \a States s
+  /// \param state_map_n An (optional) function mapping state factor Ids in the global _domain to those in the supplied \a States n
+  /// \param action_map An (optional) function mapping action factor Ids in the global _domain to those in the supplied \a Action a
   template<class C>
   const ProbabilityVec& T(const State& s, const State& n, const Action& a, C&& state_map_s, C&& state_map_n, C&& action_map) const {
       State ms = mapState(s, n, std::forward<C>(state_map_s), std::forward<C>(state_map_n));
@@ -120,22 +123,28 @@ public:
       ProbabilityVec& pv = _sa_table->getValue(ms, ma);
       return pv;
   }
+  /// \note This particular function supports either joint state/action as parameters or state/action that are already at factor scope
   const ProbabilityVec& T(const State& s, const State& n, const Action& a) const {
       return T(s, n, a, identity_map, identity_map, identity_map);
   }
   /// \brief The probability of transitioning to a particular state value t from (s,n,a)
+  /// \param state_map_s An (optional) function mapping state factor Ids in the global _domain to those in the supplied \a States s
+  /// \param state_map_n An (optional) function mapping state factor Ids in the global _domain to those in the supplied \a States n
+  /// \param action_map An (optional) function mapping action factor Ids in the global _domain to those in the supplied \a Action a
   template<class C>
   Probability T(const State& s, const State& n, const Action& a, Factor t, C&& state_map_s, C&& state_map_n, C&& action_map) const {
       const ProbabilityVec& pv = T(s, n, a, std::forward<C>(state_map_s), std::forward<C>(state_map_n), std::forward<C>(action_map));
       Factor offset = t - _target_range.getMin();
       return pv[offset];
   }
+  /// \note This particular function supports either joint state/action as parameters or state/action that are already at factor scope
   Probability T(const State& s, const State& n, const Action& a, Factor t) const {
       return T(s, n, a, t, identity_map, identity_map, identity_map);
   }
 
   /// \brief Convenience function for the case that no concurrent dependencies exist in 2DBN
-  /// \note This particular function supports either joint state/action as parameters or state/action that are already at factor scope
+  /// \param state_map An (optional) function mapping state factor Ids in the global _domain to those in the supplied \a States s
+  /// \param action_map An (optional) function mapping action factor Ids in the global _domain to those in the supplied \a Action a
   template<class C>
   const ProbabilityVec& T(const State& s, const Action& a, C&& state_map, C&& action_map) const {
     if(!_concurrent_dep.empty()) {
@@ -143,6 +152,7 @@ public:
     }
     return T(s, _empty_s, a, std::forward<C>(state_map), identity_map, std::forward<C>(action_map));
   }
+  /// \note This particular function supports either joint state/action as parameters or state/action that are already at factor scope
   const ProbabilityVec& T(const State& s, const Action& a) const {
       return T(s, a, identity_map, identity_map);
   }
@@ -178,7 +188,7 @@ typedef boost::shared_ptr<_FactorIterator> FactorVecIterator;
 /**
  * \brief A Local Reward Function (LRF) is just a function that returns rewards
  * Rewards are defined as the mapping (s,a) -> r where (s,a) denotes the current state and action.
- * \note Concurrent dependencies (i.e., rewards depending on successor state n) are not supported.
+ * \note Concurrent dependencies (i.e., rewards depending on successor state n) are not (explicitly) supported
  */
 class _LRF : public _FDiscreteFunction<Reward> {
 public:
@@ -252,8 +262,8 @@ public:
 typedef boost::shared_ptr<_DBN> DBN;
 
 /// \brief Template specialization corresponding to total (joint) probability transitioning from s -> under (joint) \a Action a
-template<> Probability _DBN::T(const State& s, const Action& a, const State& n, decltype(identity_map), decltype(identity_map), decltype(identity_map)) {
-    return _DBN::T(s,a,n);
+template<> Probability _DBN::T(const State& js, const Action& ja, const State& jn, decltype(identity_map), decltype(identity_map), decltype(identity_map)) {
+    return _DBN::T(js,ja,jn);
 }
 
 /**
