@@ -40,5 +40,6 @@ src/uctdata.cpp
 src/vi.cpp
 test/test_dbn.cpp
 test/test_set.cpp
+test/test_alp.cpp
 README
 SConstruct

@@ -64,7 +64,7 @@ bin_targets = []
 
 if has_lpsolve:
         libcrl = env.SharedLibrary(lib.File('libcrl'+shared_lib_suffix), build_sources,
-				   LIBS=['dl', 'lpsolve55', 'colamd'])
+				   LIBS=['dl', 'lpsolve55_pic', 'colamd'])
         lib_targets += [libcrl]
 
         test = env.Program(bin.Entry('test'), test_sources, LIBS=['crl'])

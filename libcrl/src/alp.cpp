@@ -14,8 +14,6 @@
 
 using namespace std;
 
-namespace crl {
-
 void lp_demo() {
     lprec *lp;
 
@@ -42,8 +40,10 @@ void lp_demo() {
     delete_lp(lp);
 }
 
-void _ALPPlanner::plan() {
+namespace crl {
 
+void _ALPPlanner::plan() {
+  lp_demo();
 }
 
 } // namespace crl
