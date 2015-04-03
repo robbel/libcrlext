@@ -29,6 +29,7 @@ typedef cpputil::inverse_map<Size> subdom_map;
  * Maps tuples {x_1,...,x_N,a_1,...,a_K} -> val<T>, where X_1,...,X_N are state variables and A_1,...,A_K action variables
  * that have been added to this function
  * \note Variables are sorted internally in ascending order
+ * \note All methods in this class expect (s,a) tuples to be in the correct domain, now automatic conversions are applied.
  */
 template<class T>
 class _DiscreteFunction {
@@ -83,6 +84,10 @@ public:
     }
     _computed = true;
   }
+
+  //
+  // Helper functions for mapping between scopes
+  //
 
   ///
   /// \brief Extract the relevant state information for this function (i.e., those corresponding to this \a _subdomain)
