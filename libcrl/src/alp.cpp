@@ -16,9 +16,10 @@ using namespace std;
 
 namespace crl {
 
-void _ALPPlanner::plan() {
-  lpsolve::lp_demo_1();
+int _ALPPlanner::plan() {
   lpsolve::lp_demo_2();
+  int res = lpsolve::lp_demo();
+  return res;
 }
 
 } // namespace crl

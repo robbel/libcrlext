@@ -19,10 +19,23 @@
 // LPSolve5.5 specific code to support the \a ALPPlanner
 //
 
+// Some notes on lpsolve (from the FAQ):
+//   If the model is build column by column, then it is strongly suggested to use add_columnex instead of add_column because
+//   add_columnex gives the possibility to only supply the non-zero elements and that speeds up building the model considerably,
+//   especially if the matrix is sparse (a lot of zero elements).
+// Version 5 has a new API call set_add_rowmode that makes add_constraint, str_add_constraint spectacular faster
+//   If the model is build row by row, then it is strongly suggested to use add_constraintex instead of add_constraint because add_constraintex
+//   gives the possibility to only supply the non-zero elements and that speeds up building the model considerably, especially if the matrix
+//   is sparse (a lot of zero elements).
+// Also see http://cgi.csc.liv.ac.uk/~anshul/BIMatrix/lpsolve/leader.c for another example
+
 namespace lpsolve {
 
-void lp_demo_1();
-int lp_demo_2();
+/// \brief A basic LP example that ships with lpsolve
+/// Source: http://lpsolve.sourceforge.net/5.5/formulate.htm
+int lp_demo();
+/// \brief Some random experiments with lpsolve
+void lp_demo_2();
 
 } // namespace lpsolve
 

@@ -63,7 +63,7 @@ public:
   ///
   /// \brief run the FactoredALP algorithm
   ///
-  void plan();
+  int plan();
 
 //  QFunction getQFunction() {
 //     return _qfunction;

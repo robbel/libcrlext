@@ -78,5 +78,5 @@ TEST(ALPTest, BasicLpSolveTest) {
   FactoredMDP fmdp = makeFactoredMDP(domain);
 
   _ALPPlanner planner(fmdp, 0.9);
-  EXPECT_NO_THROW(planner.plan());
+  EXPECT_EQ(planner.plan(), 0); // no error
 }
