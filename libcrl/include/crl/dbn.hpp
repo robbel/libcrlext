@@ -19,10 +19,10 @@
 
 namespace crl {
 
-//typedef _StateActionTable<ProbabilityVec> _SAFProbTable;
-//typedef boost::shared_ptr<_SAFProbTable> SAFProbTable;
-//typedef _StateActionTable<Reward> _SAFRewardTable;
-//typedef boost::shared_ptr<_SAFRewardTable> SAFRewardTable;
+typedef _StateActionTable<ProbabilityVec> _SAFProbTable;
+typedef boost::shared_ptr<_SAFProbTable> SAFProbTable;
+typedef _StateActionTable<Reward> _SAFRewardTable;
+typedef boost::shared_ptr<_SAFRewardTable> SAFRewardTable;
 
 /**
  * \brief The definition of a single DBN factor across 2 time slices (t-1 -> t), that can have its dynamics set explicitly.
@@ -35,6 +35,8 @@ private:
   using _FDiscreteFunction::addStateFactor;
   using _FDiscreteFunction::eraseStateFactor;
   using _FDiscreteFunction::join;
+  using _FDiscreteFunction::eval;
+  using _FDiscreteFunction::define;
   using _DiscreteFunction::containsStateFactor;
   using _DiscreteFunction::getStateFactors;
   using _DiscreteFunction::_state_dom;
@@ -349,24 +351,6 @@ public:
     assert(_FDiscreteFunction<T>::_packed && _cached);
     return _FDiscreteFunction<T>::eval(s,a);
   }
-
-  /// \brief Multiply all values with a scalar
-  _Backprojection<T>& operator*=(T s) {
-    assert(_FDiscreteFunction<T>::_packed && _cached);
-    auto& vals = this->_sa_table->values();
-    std::transform(vals.begin(), vals.end(), vals.begin(), [s](T v) { return v*s; });
-    return *this;
-  }
-#if 0
-  _Backprojection<T>& operator+=(const _FDiscreteFunction<T>& other) {
-    assert(_packed && _cached);
-    if(_DiscreteFunction<T>::getActionFactors() != other.getActionFactors() || DiscreteFunction<T>::_state_dom != other.getStateFactors()) {
-        throw cpputil::InvalidException("");
-    }
-    return *this;
-  }
-#endif
-
 };
 // instead of typedef (which needs full type)
 template<class T>

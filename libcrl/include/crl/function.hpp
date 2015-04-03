@@ -407,6 +407,29 @@ public:
       _DiscreteFunction<T>::join(func);
       _packed = _DiscreteFunction<T>::_computed;
     }
+
+    //
+    // some other operations
+    //
+
+    /// \brief Multiply all values with a scalar
+    _FDiscreteFunction<T>& operator*=(T s) {
+      assert(_packed);
+      auto& vals = _sa_table->values();
+      std::transform(vals.begin(), vals.end(), vals.begin(), [s](T v) { return v*s; });
+      return *this;
+    }
+
+    /// \brief Add another \a DiscreteFunction to this one (element-wise)
+    _FDiscreteFunction<T>& operator+=(const _FDiscreteFunction<T>& other) {
+      assert(_packed);
+      auto& vals = _sa_table->values();
+      if(vals.size() != other._sa_table->values().size()) {
+          throw cpputil::InvalidException("Function scopes do not match");
+      }
+      std::transform(vals.begin(), vals.end(), vals.begin(), std::plus<T>());
+      return *this;
+    }
 };
 
 /**
