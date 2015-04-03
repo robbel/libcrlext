@@ -112,6 +112,10 @@ public:
   virtual void addLRF(LRF lrf) {
     _lrf_factors.push_back(std::move(lrf));
   }
+  /// \brief Obtain all local reward functions
+  const std::vector<LRF>& getLRFs() const {
+    return _lrf_factors;
+  }
 };
 typedef boost::shared_ptr<_FactoredMDP> FactoredMDP;
 

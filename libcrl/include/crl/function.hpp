@@ -471,26 +471,6 @@ public:
 };
 typedef boost::shared_ptr<_Indicator> Indicator;
 
-#if 0
-/**
- * \brief A factored value function
- */
-class _FactoredV {
-protected:
-  /// \brief The (global) domain which includes all state and action factors
-  const Domain _domain;
-public:
-  _FactoredV() { }
-
-  /// \todo
-  void addBasisFunction(const Basis<Reward>& h);
-
-  /// \brief Return value of (global) \a State s
-  virtual Reward eval(const State& s) const;
-};
-typedef boost::shared_ptr<_FactoredV> FactoredV;
-#endif
-
 } // namespace crl
 
 #endif

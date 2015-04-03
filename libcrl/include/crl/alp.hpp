@@ -36,21 +36,42 @@ Action testFALP(FactoredMDP fmdp, Domain domain) {
 namespace crl {
 
 /**
+ * \brief A factored value function
+ * Consists of locally-scoped basis functions along with their weights
+ */
+class _FactoredValueFunction {
+protected:
+  /// \brief The (global) domain of this value function
+  const Domain _domain;
+public:
+  _FactoredValueFunction() { }
+
+  /// \brief Add a basis function (with local state and action scope) to this V-fn
+  void addBasisFunction(const DiscreteFunction<Reward>& h);
+
+  /// \brief Return value of (global) \a State s
+  virtual Reward eval(const State& s) const;
+};
+typedef boost::shared_ptr<_FactoredValueFunction> FactoredValueFunction;
+
+/**
  * A planner that uses an approximate linear program (ALP) along with a factored value function
- * \see Guestrin, Koller, Parr, and Venkatarman 2003
+ * \see Guestrin, Koller, Parr, and Venkatarman, 2003
  */
 class _ALPPlanner : public _Planner {
 protected:
   Domain _domain;
-  /// \brief The factored dynamics model
+  /// \brief The factored dynamics and reward models
   FactoredMDP _fmdp;
   /// \brief The computed factored value function
   // todo...
   /// \brief Discount factor
   float _gamma;
+  /// \brief Whether all basis functions have been cached
+  bool _cached;
 public:
   _ALPPlanner(const FactoredMDP& fmdp, float gamma)
-  : _domain(fmdp->getDomain()), _fmdp(fmdp), _gamma(gamma) { }
+  : _domain(fmdp->getDomain()), _fmdp(fmdp), _gamma(gamma), _cached(false) { }
 
   virtual Action getAction(const State& s) override {
 

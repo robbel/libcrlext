@@ -16,6 +16,23 @@ using namespace std;
 
 namespace crl {
 
+//
+// FactoredValueFunction implementation
+//
+
+void _FactoredValueFunction::addBasisFunction(const DiscreteFunction<Reward>& h) {
+
+}
+
+
+Reward _FactoredValueFunction::eval(const State &s) const {
+  return 0.;
+}
+
+//
+// ALPPlanner implementation
+//
+
 int _ALPPlanner::plan() {
   lpsolve::lp_exp();
   int res = lpsolve::lp_demo();
