@@ -9,16 +9,21 @@
     GNU Lesser General Public License for more details.
  */
 
-#include "crl/alp.hpp"
-#include "crl/alp_lpsolve.hpp"
+#ifndef ALP_LPSOLVE_HPP_
+#define ALP_LPSOLVE_HPP_
 
-using namespace std;
+#include <iostream>
+#include <lpsolve/lp_lib.h>
 
-namespace crl {
+//
+// LPSolve5.5 specific code to support the \a ALPPlanner
+//
 
-void _ALPPlanner::plan() {
-  lpsolve::lp_demo_1();
-  lpsolve::lp_demo_2();
-}
+namespace lpsolve {
 
-} // namespace crl
+void lp_demo_1();
+int lp_demo_2();
+
+} // namespace lpsolve
+
+#endif /*ALP_LPSOLVE_HPP_*/
