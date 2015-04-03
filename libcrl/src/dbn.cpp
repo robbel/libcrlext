@@ -25,7 +25,7 @@ _DBNFactor::_DBNFactor(const Domain& domain, Size target)
 }
 
 void _DBNFactor::addDelayedDependency(Size index) {
-  assert(i < _domain->getNumStateFactors());
+  assert(index < _domain->getNumStateFactors());
   SizeVec::iterator it = std::lower_bound(_delayed_dep.begin(), _delayed_dep.end(), index);
   if(it == _delayed_dep.end() || *it != index) {
     _delayed_dep.insert(it, index);
@@ -34,7 +34,7 @@ void _DBNFactor::addDelayedDependency(Size index) {
 }
 
 void _DBNFactor::addConcurrentDependency(Size index) {
-  assert(i < _domain->getNumStateFactors());
+  assert(index < _domain->getNumStateFactors());
   SizeVec::iterator it = std::lower_bound(_concurrent_dep.begin(), _concurrent_dep.end(), index);
   if(it == _concurrent_dep.end() || *it != index) {
     _concurrent_dep.insert(it, index);
