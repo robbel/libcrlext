@@ -15,4 +15,8 @@ using namespace std;
 
 namespace crl {
 
+void _ALPPlanner::plan() {
+
+}
+
 } // namespace crl
