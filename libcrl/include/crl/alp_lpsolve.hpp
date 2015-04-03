@@ -35,7 +35,7 @@ namespace lpsolve {
 /// Source: http://lpsolve.sourceforge.net/5.5/formulate.htm
 int lp_demo();
 /// \brief Some random experiments with lpsolve
-void lp_demo_2();
+void lp_exp();
 
 } // namespace lpsolve
 

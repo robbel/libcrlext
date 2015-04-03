@@ -13,7 +13,7 @@
 
 namespace lpsolve {
 
-void lp_demo_2() {
+void lp_exp() {
     lprec *lp;
 
     lp = make_lp(0,4);
@@ -29,6 +29,12 @@ void lp_demo_2() {
 }
 
 // Source: http://lpsolve.sourceforge.net/5.5/formulate.htm
+//  max(143x + 60y)
+// s.t.
+//  120x + 210y <= 15000
+//  110x + 30y <= 4000
+//  x + y <= 75
+//  x >= 0, y >= 0
 int lp_demo() {
   lprec *lp;
   int Ncol, *colno = nullptr, j, ret = 0;
@@ -46,8 +52,8 @@ int lp_demo() {
     set_col_name(lp, 2, &std::string("y")[0]);
 
     // create space large enough for one row
-    colno = (int *) malloc(Ncol * sizeof(*colno));
-    row = (REAL *) malloc(Ncol * sizeof(*row));
+    colno = new int[Ncol];
+    row = new REAL[Ncol];
     if((colno == nullptr) || (row == nullptr))
       ret = 2;
   }
@@ -58,11 +64,11 @@ int lp_demo() {
     // construct first row (120 x + 210 y <= 15000)
     j = 0;
 
-    colno[j] = 1; // first column
-    row[j++] = 120;
+    colno[j] = 1; // first column (index)
+    row[j++] = 120; // associated value in row 0
 
-    colno[j] = 2; // second column
-    row[j++] = 210;
+    colno[j] = 2; // second column (index)
+    row[j++] = 210; // associated value in row 0
 
     // add the row to lpsolve
     if(!add_constraintex(lp, j, row, colno, LE, 15000))
@@ -73,13 +79,12 @@ int lp_demo() {
     // construct second row (110 x + 30 y <= 4000)
     j = 0;
 
-    colno[j] = 1; // first column
+    colno[j] = 1;
     row[j++] = 110;
 
-    colno[j] = 2; // second column
+    colno[j] = 2;
     row[j++] = 30;
 
-    // add the row to lpsolve
     if(!add_constraintex(lp, j, row, colno, LE, 4000))
       ret = 3;
   }
@@ -88,13 +93,12 @@ int lp_demo() {
     // construct third row (x + y <= 75)
     j = 0;
 
-    colno[j] = 1; // first column
+    colno[j] = 1;
     row[j++] = 1;
 
-    colno[j] = 2; // second column
+    colno[j] = 2;
     row[j++] = 1;
 
-    // add the row to lpsolve
     if(!add_constraintex(lp, j, row, colno, LE, 75))
       ret = 3;
   }
@@ -146,22 +150,20 @@ int lp_demo() {
     get_variables(lp, row);
     for(j = 0; j < Ncol; j++)
       printf("%s: %f\n", get_col_name(lp, j + 1), row[j]);
-
-    // we are done now
   }
 
   // free allocated memory
   if(row != nullptr)
-    free(row);
+    delete [] row;
   if(colno != nullptr)
-    free(colno);
+    delete [] colno;
 
   if(lp != nullptr) {
     // clean up such that all used memory by lpsolve is freed
     delete_lp(lp);
   }
 
-  return(ret);
+  return ret;
 }
 
 } // namespace lpsolve

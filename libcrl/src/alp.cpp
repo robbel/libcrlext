@@ -17,7 +17,7 @@ using namespace std;
 namespace crl {
 
 int _ALPPlanner::plan() {
-  lpsolve::lp_demo_2();
+  lpsolve::lp_exp();
   int res = lpsolve::lp_demo();
   return res;
 }
