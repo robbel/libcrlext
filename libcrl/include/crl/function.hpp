@@ -227,6 +227,10 @@ public:
   /// \note The number of state and action factor values in s must match the scope of this function
   ///
   virtual T eval(const State& s, const Action& a) const = 0;
+  /// \brief Convenience function for functions that do not depend on action variables
+  virtual T eval(const State& s) const {
+    return eval(s, Action());
+  }
   /// \brief Convenience function for evaluating this basis function
   virtual T operator()(const State& s, const Action& a) const {
     return eval(s, a);
@@ -349,13 +353,33 @@ protected:
     /// \brief True iff \a pack() has been called (required for some function calls)
     bool _packed;
     /// \brief General in-place transformation method with another function
+    /// \note Supports the case that function \a other is defined over a (proper) subset of factors from this function
+    /// (in this case it may not contain any action factors as per the current implementation, however)
     template<class F>
     void transform(const _FDiscreteFunction<T>& other, F f) {
       auto& vals = _sa_table->values();
-      if(vals.size() != other._sa_table->values().size()) {
-          throw cpputil::InvalidException("Function scopes do not match");
+      if(vals.size() == other._sa_table->values().size()) { // efficient transform possible
+          std::transform(vals.begin(), vals.end(), other._sa_table->values().begin(), vals.begin(), f);
       }
-      std::transform(vals.begin(), vals.end(), other._sa_table->values().begin(), vals.begin(), f);
+      // apply a function with smaller domain FIXME optimize
+      else if(other.getActionFactors().empty()
+              && std::includes(this->getStateFactors().begin(), this->getStateFactors().end(), // check if other domain is proper subset
+                               other.getStateFactors().begin(), other.getStateFactors().end())) {
+          const Size num_actions = this->_domain->getNumActions(); // note: value is identical for all actions
+          const subdom_map s_dom(this->getStateFactors()); // assumed to subsume all states from function `other'
+          _StateIncrementIterator sitr(this->_domain);
+          while(sitr.hasNext()) {
+              const State& s = sitr.next();
+              State ms = other.mapState(s, s_dom);
+              T val = other(ms); // evaluate `other' function
+              T& start = vals[s.getIndex()*num_actions]; // fill from here
+              auto start_it = vals.begin() + (&start - vals.data());
+              std::transform(start_it, start_it+num_actions, start_it, std::bind2nd(f, val));
+          }
+      }
+      else {
+          throw cpputil::InvalidException("Operation on two given functions not currently implemented.");
+      }
     }
 public:
     /// \brief ctor
@@ -430,12 +454,14 @@ public:
     }
 
     /// \brief Add another \a DiscreteFunction to this one (element-wise)
+    /// Supports the case that function \a other is defined over a (proper) subset of factors from this function
     _FDiscreteFunction<T>& operator+=(const _FDiscreteFunction<T>& other) {
       assert(_packed);
       transform(other, std::plus<T>());
       return *this;
     }
     /// \brief Subtract another \a DiscreteFunction from this one (element-wise)
+    /// Supports the case that function \a other is defined over a (proper) subset of factors from this function
     _FDiscreteFunction<T>& operator-=(const _FDiscreteFunction<T>& other) {
       assert(_packed);
       transform(other, std::minus<T>());

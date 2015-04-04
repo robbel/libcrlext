@@ -317,10 +317,9 @@ public:
           // FIXME maintain special functions for sparse domains (ala these StateSetIterators !)
       }
       else {
-        const Action empty_a;
         while (hitr.hasNext()) {
             const State& s = hitr.next();
-            h[(Size)s] = _func->eval(s, empty_a);
+            h[(Size)s] = _func->eval(s);
         }
       }
 

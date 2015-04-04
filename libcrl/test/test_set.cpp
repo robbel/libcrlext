@@ -106,7 +106,7 @@ TEST(FunctionSetTest, FunctionAdditionTest) {
 
   const State s(domain, 1);
   const State s2(domain,2);
-  const Action a(domain, 0);
+  const Action a(domain,0);
 
   _FDiscreteFunction<double> f(domain, "test_name");
   f.addStateFactor(0);
@@ -133,8 +133,42 @@ TEST(FunctionSetTest, FunctionAdditionTest) {
   EXPECT_EQ(f.eval(s,a), 6);
   EXPECT_EQ(f.eval(s2,a), 8);
 
+  //
+  // examples where f2 has reduced scope and is subtracted from f
+  //
+
+  f2.eraseStateFactor(0);
+  f2.pack();
+  EXPECT_THROW(f += f2, cpputil::InvalidException); // f2 still contains action scope, not allowed as per current implementation
+
   f2.eraseActionFactor(0);
   f2.pack();
-  EXPECT_THROW(f += f2, cpputil::InvalidException); // incompatible scopes
+  f2.define(s,Action(),5);
+  f2.define(s2,Action(),3);
+  // print before
+  std::cout << "Before: " << std::endl;
+  _StateIncrementIterator sitr(f.getSubdomain());
+  _ActionIncrementIterator aitr(f.getSubdomain());
+  while(sitr.hasNext()) {
+      const State& s = sitr.next();
+      aitr.reset();
+      while(aitr.hasNext()) {
+          const Action& a = aitr.next();
+          std::cout << s << "," << a << ": " << f(s,a) << std::endl;
+      }
+  }
+  EXPECT_NO_THROW(f -= f2); // f2's domain is proper subset
+  std::cout << "After: " << std::endl;
+  sitr.reset();
+  while(sitr.hasNext()) {
+      const State& s = sitr.next();
+      aitr.reset();
+      while(aitr.hasNext()) {
+          const Action& a = aitr.next();
+          std::cout << s << "," << a << ": " << f(s,a) << std::endl;
+      }
+  }
 
+  f.eraseStateFactor(1);
+  EXPECT_THROW(f += f2, cpputil::InvalidException); // f2's domain is not a proper subset anymore
 }
