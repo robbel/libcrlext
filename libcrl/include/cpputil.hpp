@@ -554,12 +554,13 @@ std::vector<T> ordered_vec(typename std::vector<T>::size_type size, T start = 0)
 template<class T>
 class inverse_map {
 private:
+  const typename std::vector<T>::size_type dom_size;
   std::unordered_map<T,typename std::vector<T>::size_type> _uo;
   /// \brief True if this is effectively an identity mapping (optimization)
   bool _identity;
 public:
   explicit inverse_map(const std::vector<T>& dom)
-  : _uo(dom.size()), _identity(true) {
+  : dom_size(dom.size()), _uo(dom_size), _identity(true) {
     for(typename std::vector<T>::size_type i = 0; i < dom.size(); i++) {
         if(i != dom[i]) {
           _identity = false;
@@ -571,8 +572,11 @@ public:
     if(!_identity) {
       return _uo.at(i);
     }
-    else {
+    else if(i < dom_size) {
       return i;
+    }
+    else {
+      throw IndexException(i, dom_size, "inverse_map");
     }
   }
   const std::unordered_map<T,typename std::vector<T>::size_type>& map() const {
