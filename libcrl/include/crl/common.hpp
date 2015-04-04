@@ -364,6 +364,131 @@ public:
 };
 typedef boost::shared_ptr<_StateActionIncrementIterator> StateActionIncrementIterator;
 
+/**
+ * \brief Efficient Iterator over state or action variables in a domain
+ * Unlike StateIncrementIterator and ActionIncrementIterator, the individual components are incremented, i.e.,
+ * no further getFactor() computations are necessary.
+ */
+class _ComponentIterator : public cpputil::Iterator<SizeVec>
+{
+protected:
+  const Domain _domain;
+  const SizeVec _components;
+  const Size _num_elements;
+  SizeVec _current;
+  Size _flat_index;
+public:
+  /// \brief Choose among state or action components from \a Domain
+  enum Type {
+    STATE,
+    ACTION
+  };
+  _ComponentIterator(const Domain& domain, Type t)
+    : _domain(domain),
+      _components(t == STATE ? domain->getStateIndexComponents() : domain->getActionIndexComponents()),
+      _num_elements(t == STATE ? domain->getNumStates() : domain->getNumActions()),
+      _current(_components.size(),0), _flat_index(0) { }
+
+  virtual const SizeVec& next() override {
+    // todo logic
+    return _current;
+  }
+  virtual bool hasNext() override {
+    return _flat_index < _num_elements;
+  }
+  virtual void reset() override {
+    _flat_index = 0;
+    std::fill(_current.begin(), _current.end(), 0);
+  }
+};
+
+/**
+ * \brief From libDAI:
+ */
+class IndexFor {
+private:
+  const Domain _domain;
+  /// The current linear index corresponding to the state of indexVars
+  Size _flat_index;
+  /// For each variable in forVars, the amount of change in _flat_index
+  SizeVec _sum;
+  /// For each variable in forVars, the current state
+  FactorVec _state;
+  /// For each variable in forVars, its number of possible values
+  FactorVec _ranges;
+  /// \todo
+  bool _has_next;
+public:
+  /// \brief Choose among state or action components from \a Domain
+  enum Type {
+    STATE,
+    ACTION
+  };
+  /// Construct IndexFor object from \a indexVars and \a forVars
+  IndexFor(const Domain& indexVars, const SizeVec& forVars, Type t) // assumes sorted `forVars'!
+  : _domain(indexVars), _state(forVars.size(), 0), _has_next(true) {
+    Size sum = 1;
+    _ranges.reserve(forVars.size());
+    _sum.reserve(forVars.size());
+
+    SizeVec::const_iterator j = forVars.begin();
+    const RangeVec ranges = t == STATE ? _domain->getStateRanges() : _domain->getActionRanges();
+    const Size num_factors = t == STATE ? _domain->getNumStateFactors() : _domain->getNumActionFactors();
+    for(Size i = 0; i < num_factors; i++) {
+        for(; j != forVars.end() && *j <= i; ++j) {
+            _ranges.push_back(ranges[*j].getSpan()+1);
+            _sum.push_back((i == *j) ? sum : 0);
+        }
+        sum *= ranges[i].getSpan()+1;
+    }
+    for(; j != forVars.end(); ++j) {
+        _ranges.push_back(ranges[*j].getSpan()+1);
+        _sum.push_back(0);
+    }
+    _flat_index = 0;
+  }
+
+  /// Resets the state
+  void reset() {
+    std::fill(_state.begin(), _state.end(), 0);
+    _flat_index = 0;
+  }
+
+  /// Conversion to \a Size: returns linear index of the current state of indexVars
+  operator Size() const {
+    return _flat_index;
+  }
+
+  /// Increments the current state of \a forVars (prefix)
+  IndexFor& operator++ () {
+    if(_has_next) {
+        FactorVec::size_type i = 0;
+        while(i < _state.size()) {
+            _flat_index += _sum[i];
+            if(++_state[i] < _ranges[i])
+              break;
+            _flat_index -= _sum[i] * _ranges[i];
+            _state[i] = 0;
+            i++;
+        }
+
+        if(i == _state.size())
+          _has_next = false;
+    }
+    return *this ;
+  }
+
+  /// Increments the current state of \a forVars (postfix)
+  void operator++( int ) {
+    operator++();
+  }
+
+  /// Returns \c true if the current state is valid
+  bool valid() const {
+    return _has_next;
+  }
+};
+
 class _StateRandomIterator : public _StateIterator {
 protected:
 	const Domain _domain;

@@ -72,8 +72,29 @@ TEST(DBNTest, BasicTest) {
   Domain domain = boost::make_shared<_Domain>();
   domain->addStateFactor(0, 3, "sf0"); // 4 states
   domain->addStateFactor(0, 2, "sf1"); // 3 states
+  domain->addStateFactor(0, 5, "sf2"); // 4 states
   domain->addActionFactor(0, 1, "agent1");  // 2 actions
   domain->setRewardRange(-1, 0);
+
+  // some debug out
+  const SizeVec& sz = domain->getStateIndexComponents();
+  for(auto i : sz) {
+      std::cout << i << ", ";
+  }
+  std::cout << std::endl;
+
+  _StateIncrementIterator sit(domain);
+  while(sit.hasNext()) {
+      std::cout << sit.next() << std::endl;
+  }
+
+  IndexFor idx(domain,{0,1,2},IndexFor::STATE);
+  while(idx.valid()) {
+      std::cout << "Idx: " << (Size)idx << endl;
+      ++idx;
+  }
+
+
 
   const State s(domain, 1);
   const State s2(domain,2);
