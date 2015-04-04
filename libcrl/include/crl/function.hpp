@@ -348,6 +348,15 @@ protected:
     boost::shared_ptr<_FStateActionTable<T>> _sa_table;
     /// \brief True iff \a pack() has been called (required for some function calls)
     bool _packed;
+    /// \brief General in-place transformation method with another function
+    template<class F>
+    void transform(const _FDiscreteFunction<T>& other, F f) {
+      auto& vals = _sa_table->values();
+      if(vals.size() != other._sa_table->values().size()) {
+          throw cpputil::InvalidException("Function scopes do not match");
+      }
+      std::transform(vals.begin(), vals.end(), other._sa_table->values().begin(), vals.begin(), f);
+    }
 public:
     /// \brief ctor
     _FDiscreteFunction(const Domain& domain, std::string name = "")
@@ -423,11 +432,13 @@ public:
     /// \brief Add another \a DiscreteFunction to this one (element-wise)
     _FDiscreteFunction<T>& operator+=(const _FDiscreteFunction<T>& other) {
       assert(_packed);
-      auto& vals = _sa_table->values();
-      if(vals.size() != other._sa_table->values().size()) {
-          throw cpputil::InvalidException("Function scopes do not match");
-      }
-      std::transform(vals.begin(), vals.end(), other._sa_table->values().begin(), vals.begin(), std::plus<T>());
+      transform(other, std::plus<T>());
+      return *this;
+    }
+    /// \brief Subtract another \a DiscreteFunction from this one (element-wise)
+    _FDiscreteFunction<T>& operator-=(const _FDiscreteFunction<T>& other) {
+      assert(_packed);
+      transform(other, std::minus<T>());
       return *this;
     }
 };

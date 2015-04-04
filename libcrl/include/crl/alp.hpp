@@ -16,43 +16,48 @@
 #include "crl/dbn.hpp"
 #include "crl/factor_learner.hpp"
 
-#if 0 // example invokation:
-Action testFALP(FactoredMDP fmdp, Domain domain) {
-	long start_time = time_in_milli();
-	cout << "FALP" << endl;
-	ALPPlanner planner(new _ALPPlanner(fmdp, .9));
-	planner->plan();
-	long end_time = time_in_milli();
-	QTable qtable = planner->getQTable();
-	State s(domain, 0);
-	cout << " V(" << s << ") = " << qtable->getV(s) << endl;
-	Action a = planner->getAction(s);
-	cout << " best action = " << a << endl;
-	cout << "FVI finished " << count << " iterations in " << end_time - start_time << endl;
-	return a;
-}
-#endif
-
 namespace crl {
 
 /**
- * \brief A factored value function
+ * \brief A factored (linear) value function
  * Consists of locally-scoped basis functions along with their weights
+ * FIXME maybe move into fafctor_learner.hpp
  */
 class _FactoredValueFunction {
 protected:
   /// \brief The (global) domain of this value function
   const Domain _domain;
+  /// \brief The basis functions, each mapping (ms,ma) -> val, where ms,ma have local scope
+  std::vector<DiscreteFunction<Reward>> _basis;
+  /// \brief The weight vector associated with the basis functions
+  std::vector<double> _weight;
 public:
-  _FactoredValueFunction() { }
+  _FactoredValueFunction(const Domain& domain)
+  : _domain(domain) { }
 
   /// \brief Add a basis function (with local state and action scope) to this V-fn
-  void addBasisFunction(const DiscreteFunction<Reward>& h);
+  void addBasisFunction(DiscreteFunction<Reward> h);
 
   /// \brief Return value of (global) \a State s
   virtual Reward eval(const State& s) const;
+#if 0
+  virtual Reward getV(const State& s) override {
+//    checkInitial(s);
+//    return _best_qs[s.getIndex()];
+    return 0.;
+  }
+  virtual Action getBestAction(const State& s) override {
+//          checkInitial(s);
+          if (!_best_actions[s.getIndex()]) {
+                  //FIXME why does this return action 0 in this case?
+                  return Action(_domain);
+          }
+          return _best_actions[s.getIndex()];
+  }
+#endif
 };
 typedef boost::shared_ptr<_FactoredValueFunction> FactoredValueFunction;
+
 
 /**
  * A planner that uses an approximate linear program (ALP) along with a factored value function
@@ -63,8 +68,10 @@ protected:
   Domain _domain;
   /// \brief The factored dynamics and reward models
   FactoredMDP _fmdp;
-  /// \brief The computed factored value function
-  // todo...
+  /// \brief The factored value function for which weights will be computed
+  FactoredValueFunction _value_fn;
+  /// \brief The alpha vector (state relevance weights) associated with the basis functions
+  std::vector<double> _alpha;
   /// \brief Discount factor
   float _gamma;
   /// \brief Whether all basis functions have been cached
@@ -74,10 +81,9 @@ public:
   : _domain(fmdp->getDomain()), _fmdp(fmdp), _gamma(gamma), _cached(false) { }
 
   virtual Action getAction(const State& s) override {
-
-    // todo...
-    // Action a = _qfunction->getBestAction(s);
-
+    assert(_value_fn != nullptr);
+//    return _value_fn->getBestAction(s);
+    // todo
     return Action();
   }
 
@@ -86,10 +92,16 @@ public:
   ///
   int plan();
 
-//  QFunction getQFunction() {
-//     return _qfunction;
-//  }
-
+  ///
+  /// \brief Input a factored value function that will be used for solving
+  ///
+  void setFactoredValueFunction(FactoredValueFunction vfn) {
+    _value_fn = std::move(vfn);
+  }
+  /// \brief Return value function associated with this ALP
+  FactoredValueFunction getFactoredValueFunction() const {
+    return _value_fn;
+  }
 };
 typedef boost::shared_ptr<_ALPPlanner> ALPPlanner;
 

@@ -63,6 +63,23 @@ FactoredMDP makeFactoredMDP(Domain domain) {
   return fmdp;
 }
 
+#if 0 // example invokation:
+Action testFALP(FactoredMDP fmdp, Domain domain) {
+	long start_time = time_in_milli();
+	cout << "FALP" << endl;
+	ALPPlanner planner(new _ALPPlanner(fmdp, .9));
+	planner->plan();
+	long end_time = time_in_milli();
+	QTable qtable = planner->getQTable();
+	State s(domain, 0);
+	cout << " V(" << s << ") = " << qtable->getV(s) << endl;
+	Action a = planner->getAction(s);
+	cout << " best action = " << a << endl;
+	cout << "FVI finished " << count << " iterations in " << end_time - start_time << endl;
+	return a;
+}
+#endif
+
 ///
 /// \brief Placeholder for some initial experiments
 ///

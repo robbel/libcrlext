@@ -20,10 +20,9 @@ namespace crl {
 // FactoredValueFunction implementation
 //
 
-void _FactoredValueFunction::addBasisFunction(const DiscreteFunction<Reward>& h) {
-
+void _FactoredValueFunction::addBasisFunction(DiscreteFunction<Reward> h) {
+  _basis.push_back(std::move(h));
 }
-
 
 Reward _FactoredValueFunction::eval(const State &s) const {
   return 0.;
