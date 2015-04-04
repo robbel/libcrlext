@@ -362,10 +362,10 @@ protected:
           std::transform(vals.begin(), vals.end(), other._sa_table->values().begin(), vals.begin(), f);
       }
       // apply a function with smaller domain FIXME optimize
-      else if(other.getActionFactors().empty()
-              && std::includes(this->getStateFactors().begin(), this->getStateFactors().end(), // check if other domain is proper subset
-                               other.getStateFactors().begin(), other.getStateFactors().end())) {
-          const Size num_actions = this->_domain->getNumActions(); // note: value is identical for all actions
+      else if(other.getActionFactors().empty() &&
+              std::includes(this->getStateFactors().begin(), this->getStateFactors().end(), // check if other domain is proper subset
+                            other.getStateFactors().begin(), other.getStateFactors().end())) {
+          const Size num_actions = this->_domain->getNumActions();
           const subdom_map s_dom(this->getStateFactors()); // assumed to subsume all states from function `other'
           _StateIncrementIterator sitr(this->_domain);
           while(sitr.hasNext()) {
