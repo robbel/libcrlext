@@ -20,12 +20,38 @@ namespace crl {
 // FactoredValueFunction implementation
 //
 
-void _FactoredValueFunction::addBasisFunction(DiscreteFunction<Reward> h) {
+void _FactoredValueFunction::addBasisFunction(DiscreteFunction<Reward> h, double weight) {
   _basis.push_back(std::move(h));
+  _weight.push_back(weight);
 }
 
-Reward _FactoredValueFunction::eval(const State &s) const {
+void _FactoredValueFunction::setWeight(Size i, double weight) {
+  if(i >= _basis.size()) {
+      throw cpputil::IndexException(i, _basis.size(), "Basis function not available");
+  }
+  _weight[i] = weight;
+}
+
+Reward _FactoredValueFunction::getV(const State &s) const {
+  assert(_weight.size() == _basis.size());
+
+  // todo
+
   return 0.;
+}
+
+Action _FactoredValueFunction::getBestAction(const State& js) const {
+
+  // todo
+
+  return Action();
+}
+
+Action _FactoredValueFunction::getBestAction(const State& js, const SizeVec& elimination_order) const {
+
+  // todo
+
+  return Action();
 }
 
 //
