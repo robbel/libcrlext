@@ -217,7 +217,7 @@ protected:
 		_ActionIncrementIterator itr(_domain);
 		_best_qs[index] = -1*std::numeric_limits<Reward>::max();
 		while (itr.hasNext()) {
-			Action a = itr.next();
+			const Action& a = itr.next();
 			Reward r = _potential->getPotential(s, a);
 			if (r > _best_qs[index]) {
 				_best_qs[index] = r;

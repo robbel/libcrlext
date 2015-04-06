@@ -47,8 +47,8 @@ void exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& p
       cerr << "libcrl::exportToSpudd: failed to open file " << filename << endl;
       return;
   }
-  const DBN dbn = fmdp->T();
-  if(dbn->hasConcurrentDependency()) {
+  const _DBN& dbn = fmdp->T();
+  if(dbn.hasConcurrentDependency()) {
       cerr << "libcrl::exportToSpudd: spudd does not currently support concurrent dependencies in transition function" << endl;
       return;
   }
@@ -75,11 +75,11 @@ void exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& p
   // write actions
   const StrVec& a_str_vec = domain->getActionNames();
   _ActionIncrementIterator jaitr(domain);
-  FactorIterator fitr = dbn->factors();
+  FactorIterator fitr = dbn.factors();
 
   while (jaitr.hasNext()) {
       // construct and print joint action name
-      Action ja = jaitr.next();
+      const Action& ja = jaitr.next();
       fp << "action " << concat(ja, a_str_vec) << endl;
 
       // write out CPT for each state factor
@@ -98,7 +98,7 @@ void exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& p
           //bool firstIter = true;
 
           do { // for each permutation
-              State s = sitr.next();
+              const State& s = sitr.next();
 
               // close previously opened variable blocks
               // TODO
@@ -124,7 +124,7 @@ void exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& p
       fp << "cost [+" << endl;
       _StateIncrementIterator jsitr(domain);
       while(jsitr.hasNext()) {
-          State js = jsitr.next();
+          const State& js = jsitr.next();
 
           // close previously opened variable blocks
           // TODO

@@ -64,11 +64,11 @@ StateDistribution _Cluster::T(const State& s, const Action& a) {
 	OutcomeDistribution od = _action_outcome_distributions->getValue(a);
 	OutcomeIterator oitr = od->iterator();
 	while (oitr->hasNext()) {
-		Outcome o = oitr->next();
+		const Outcome& o = oitr->next();
 		StateDistribution osd = o->T(s);
 		StateIterator sitr = osd->iterator();
 		while (sitr->hasNext()) {
-			State s = sitr->next();
+			const State& s = sitr->next();
 			Probability p = od->P(o)*osd->P(s);
 			sd->setP(s, p+sd->P(s));
 		}
@@ -83,7 +83,7 @@ Probability _Cluster::P(const State& s, const Action& a, const State& n) {
 	OutcomeDistribution od = _action_outcome_distributions->getValue(a);
 	OutcomeIterator oitr = od->iterator();
 	while (oitr->hasNext()) {
-		Outcome o = oitr->next();
+		const Outcome& o = oitr->next();
 		StateDistribution osd = o->T(s);
 		p += od->P(o)*osd->P(n);
 	}

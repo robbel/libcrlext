@@ -40,7 +40,7 @@ Reward _VIPlanner::backupState(const State& s, ActionIterator& aitr) {
 	aitr->reset();
 	Reward error_inf = 0;
 	while (aitr->hasNext()) {
-		Action a = aitr->next();
+		const Action& a = aitr->next();
 		Reward error = backupStateAction(s, a);
 		if (error > error_inf)
 			error_inf = error;
@@ -62,7 +62,7 @@ Reward _VIPlanner::evaluateStateAction(const State& s, const Action& a) {
 	StateIterator nitr = sd->iterator();
 	Reward q = 0;
 	while (nitr->hasNext()) {
-		State n = nitr->next();
+		const State& n = nitr->next();
 		Probability p = sd->P(n);
 		Reward v = _qtable->getV(n);
 		q += p*v;
@@ -83,7 +83,7 @@ int _VIPlanner::plan(StateIterator sitr, ActionIterator aitr) {
 		sitr->reset();
 
 		while (sitr->hasNext()) {
-			State s = sitr->next();
+			const State& s = sitr->next();
 			Reward error = backupState(s, aitr);
 			if (error > error_inf)
 				error_inf = error;

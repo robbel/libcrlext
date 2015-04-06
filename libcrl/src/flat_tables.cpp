@@ -58,7 +58,7 @@ void _FQTable::setQ(const State& s, const Action& a, Reward r) {
 		_best_qs[index] = r;
 		_ActionIncrementIterator itr(_domain);
 		while (itr.hasNext()) {
-			Action fa = itr.next();
+			const Action& fa = itr.next();
 			Reward q = getQ(s, fa);
 			if (q > _best_qs[index]) {
 				_best_qs[index] = q;
@@ -82,7 +82,7 @@ State _FStateDistribution::sample() {
 	Probability i = cpputil::randDouble();
 	Iterator itr = iterator();
 	while (itr->hasNext()) {
-		State s = itr->next();
+		const State& s = itr->next();
 		c += P(s);
 		if (c >= i)
 			return s;
@@ -232,7 +232,7 @@ bool _FMDPLearner::observe(const State& s, const Action& a, const Observation& o
 	clear(s, a);
 	StateIterator itr = _counter->iterator(s, a);
 	while (itr->hasNext()) {
-		State n = itr->next();
+		const State& n = itr->next();
 		Size c_sa_n = _counter->getCount(s, a, n);
 		setT(s, a, n, c_inv*c_sa_n);
 	}

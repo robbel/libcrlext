@@ -65,7 +65,7 @@ StateDistribution _FactorLearner::augmentDistribution(StateDistribution sd, cons
 	
 	FStateDistribution sdp(new _FStateDistribution(_domain));
 	while (itr->hasNext()) {
-		State n = itr->next();
+		const State& n = itr->next();
 		Probability p = sd->P(n); // the current probability assigned to n
 		
 		State ms = mapState(s, n);
@@ -131,8 +131,8 @@ bool _FactoredMDPLearner::observe(const State& s, const Action& a, const Observa
 	// call observation function on each FactorLearner
 	FactorIterator fitr = _FactoredMDP::_T_map.factors();
 	while(fitr->hasNext()) {
-	  FactorLearner f = boost::static_pointer_cast<_FactorLearner>(fitr->next()); //FIXME terrible, all these shared_ptr copies...
-	  f->observe(s, a, o);
+	  _FactorLearner* pfl = static_cast<_FactorLearner*>(fitr->next().get());
+	  pfl->observe(s, a, o);
 	}
 
 	return true;

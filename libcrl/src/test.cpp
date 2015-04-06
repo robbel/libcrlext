@@ -47,14 +47,14 @@ void testCount(Domain domain) {
 	_ActionIncrementIterator aitr(domain);
 	_StateIncrementIterator nitr(domain);
 	while (sitr.hasNext()) {
-		State s = sitr.next();
+		const State& s = sitr.next();
 		aitr.reset();
 		while (aitr.hasNext()) {
-			Action a = aitr.next();
+			const Action& a = aitr.next();
 			nitr.reset();
 			cout << s << ", " << a << " : " << counter->getCount(s, a) << endl;
 			while (nitr.hasNext()) {
-				State n = nitr.next();
+				const State& n = nitr.next();
 				cout << " " << n << " : " << counter->getCount(s, a, n) << endl;
 			}
 		}

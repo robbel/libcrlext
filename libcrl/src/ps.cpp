@@ -101,7 +101,7 @@ int _PSPlanner::sweep(ActionIterator& aitr) {
 		Reward error = backupState(s, aitr);
 		StateIterator sitr = _mdp->predecessors(s);
 		while (sitr->hasNext()) {
-			State p = sitr->next();
+			const State& p = sitr->next();
 			insert(p, error);
 		}
 	}
@@ -118,7 +118,7 @@ void _PSPlanner::insert(State s, Reward priority) {
 void _PSPlanner::insert(State s) {
 	ActionIterator aitr = _mdp->A();
 	while (aitr->hasNext()) {
-		Action a = aitr->next();
+		const Action& a = aitr->next();
 		_pqueue->insert(s, _mdp->R(s, a));
 	}
 }
@@ -130,10 +130,10 @@ void _PSPlanner::insert(StateIterator& sitr) {
 void _PSPlanner::insertThreshold(StateIterator& sitr, Reward threshold) {
 	ActionIterator aitr = _mdp->A();
 	while (sitr->hasNext()) {
-		State s = sitr->next();
+		const State& s = sitr->next();
 		aitr->reset();
 		while (aitr->hasNext()) {
-			Action a = aitr->next();
+			const Action& a = aitr->next();
 			Reward r = _mdp->R(s, a);
 			if (fabs(r)>threshold)
 				_pqueue->insert(s, r);

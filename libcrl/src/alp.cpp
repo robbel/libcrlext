@@ -88,10 +88,7 @@ int _ALPPlanner::plan() {
     // w values in FactoredValueFunction have been computed successfully
     // todo..
 
-    // random tests TODO remove
-    lpsolve::testing::lp_exp();
-    int res = lpsolve::testing::lp_demo();
-    return res;
+    return 0;
 }
 
 } // namespace crl
