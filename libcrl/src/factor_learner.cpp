@@ -111,7 +111,9 @@ StateDistribution _FactoredMDP::T(const State& s, const Action& a) {
 Reward _FactoredMDP::R(const State& s, const Action& a) {
    Reward rew = 0.;
    for(const auto& lrf : _lrf_factors) {
-     rew += lrf->R(s,a);
+       State ms = lrf->mapState(s); // access through DiscreteFunction requires manual scoping of s,a to subdomain (unlike LRF->R())
+       Action ma = lrf->mapAction(a);
+       rew += lrf->eval(ms,ma);
    }
    return rew;
 }

@@ -14,6 +14,7 @@
 
 #include <iostream>
 #include <lpsolve/lp_lib.h>
+#include "crl/function.hpp"
 #include <boost/shared_ptr.hpp>
 
 //
@@ -30,10 +31,21 @@
 //   is sparse (a lot of zero elements).
 // Also see http://cgi.csc.liv.ac.uk/~anshul/BIMatrix/lpsolve/leader.c for another example
 
+namespace crl {
+
+/// \brief typedef for vectors of flat functions
+template<class T>
+using FunctionVec = std::vector<DiscreteFunction<T>>;
+/// \brief typedef for vectors of (flat) reward functions
+typedef FunctionVec<Reward> RFunctionVec;
+
+} // namespace crl
+
 namespace lpsolve {
 
 /**
  * \brief A class that abstracts an lpsolve LP
+ * All specific LP solver dependencies should be restricted to this hpp/cpp file
  */
 class _LP {
 private:
@@ -45,9 +57,12 @@ public:
   /// \brief dtor
   ~_LP();
 
-  /// \brief given targets \f$C\f$ and \f$\mathbf{b}\f$ compute polynomial set of constraints
+  /// \brief Given targets \f$C\f$ and \f$\mathbf{b}\f$ compute polynomial set of constraints
   /// \return 0 iff successful
-  int generateLP();
+  int generateLP(const crl::RFunctionVec& C, const crl::RFunctionVec& b, const crl::SizeVec& elim_order);
+  /// \brief Solve this LP
+  /// \return 0 iff successful
+  int solve();
 };
 typedef boost::shared_ptr<_LP> LP;
 

@@ -11,6 +11,8 @@
 
 #include "crl/alp_lpsolve.hpp"
 
+using namespace crl;
+
 namespace lpsolve {
 
 //
@@ -23,7 +25,11 @@ _LP::~_LP() {
   }
 }
 
-int _LP::generateLP() {
+int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const SizeVec& elim_order) {
+  return 0;
+}
+
+int _LP::solve() {
   return 0;
 }
 

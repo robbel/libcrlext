@@ -80,7 +80,7 @@ protected:
   /// \brief The factored transition function
   _DBN _T_map;
   /// \brief The local reward functions, each mapping (ms,ma) -> r, where ms,ma have local scope
-  std::vector<LRF> _lrf_factors;
+  std::vector<DiscreteFunction<Reward>> _lrf_factors;
 public:
   _FactoredMDP(Domain domain)
   : _domain(domain) { }
@@ -112,7 +112,7 @@ public:
     _lrf_factors.push_back(std::move(lrf));
   }
   /// \brief Obtain all local reward functions
-  const std::vector<LRF>& getLRFs() const {
+  const std::vector<DiscreteFunction<Reward>>& getLRFs() const {
     return _lrf_factors;
   }
 };

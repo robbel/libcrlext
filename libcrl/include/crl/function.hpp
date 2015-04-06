@@ -13,6 +13,7 @@
 #define FUNCTION_HPP_
 
 #include <iostream>
+#include <cassert>
 #include "crl/flat_tables.hpp"
 #include "crl/common.hpp"
 
@@ -511,6 +512,10 @@ public:
     }
 };
 
+//
+// Some useful functions
+//
+
 /**
  * \brief Indicator basis centered on a specific state
  */
@@ -551,6 +556,22 @@ public:
 };
 template<class T = double>
 using Indicator = boost::shared_ptr<_Indicator<T>>;
+
+/**
+ * \brief A constant function
+ */
+template<class T = double>
+class _ConstantFn : public _DiscreteFunction<T> {
+public:
+  _ConstantFn(const Domain& domain, std::string name = "")
+  : _DiscreteFunction<T>(domain, name) { }
+  /// \brief Return 1 for any (s,a)
+  virtual T eval(const State& s, const Action& a) const override {
+    return T(1);
+  }
+};
+template<class T = double>
+using ConstantFn = boost::shared_ptr<_ConstantFn<T>>;
 
 //
 // algorithm implementations

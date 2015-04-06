@@ -72,12 +72,20 @@ int _ALPPlanner::plan() {
         _alpha.push_back(r_sum/dom_size);
     }
 
+    // build the lp constraints from the target functions above
+    // create a basic elimination order (sorted state variables, followed by sorted action variables)
+    SizeVec elim_order = cpputil::ordered_vec<Size>(_domain->getNumStateFactors() + _domain->getNumActionFactors());
+
     lpsolve::_LP lp;
-    if(!lp.generateLP()) {
+    if(!lp.generateLP(_C_set, _fmdp->getLRFs(), elim_order)) {
       return 1;
     }
 
+    if(!lp.solve()) {
+      return 2;
+    }
 
+    // random tests TODO remove
     lpsolve::testing::lp_exp();
     int res = lpsolve::testing::lp_demo();
     return res;
