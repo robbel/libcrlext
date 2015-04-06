@@ -274,13 +274,13 @@ public:
 template <class T>
 class EmptyIterator : public Iterator<T> {
 public:
-	virtual const T& next() {
+	virtual const T& next() override {
 		throw IteratorException("calling next on empty iterator");
 	}
-	virtual bool hasNext() {
+	virtual bool hasNext() override {
 		return false;
 	}
-	virtual void reset() { }
+	virtual void reset() override { }
 };
 
 ///
@@ -303,17 +303,17 @@ public:
 		_itr = _map.begin();
 		_end = _map.end();
 	}
-	virtual const T& next() {
+	virtual const T& next() override {
 		if (_itr == _end)
 			throw IteratorException("Attempting to get next element of exhausted iterator");
 		const T& t = _itr->first;
 		++_itr;
 		return t;
 	}
-	virtual bool hasNext() {
+	virtual bool hasNext() override {
 		return _itr != _end;
 	}
-	virtual void reset() {
+	virtual void reset() override {
 		_itr = _map.begin();
 	}
 };
@@ -338,17 +338,17 @@ public:
 		_itr = _map.begin();
 		_end = _map.end();
 	}
-	virtual const T& next() {
+	virtual const T& next() override {
 		if (_itr == _end)
 			throw IteratorException("Attempting to get next element of exhausted iterator");
 		const T& t = _itr->second;
 		++_itr;
 		return t;
 	}
-	virtual bool hasNext() {
+	virtual bool hasNext() override {
 		return _itr != _end;
 	}
-	virtual void reset() {
+	virtual void reset() override {
 		_itr = _map.begin();
 	}
 };
@@ -367,17 +367,17 @@ public:
   MapValueRangeIterator(std::pair<typename M::iterator, typename M::iterator> iters)
   : _begin(iters.first), _end(iters.second), _itr(iters.first) { }
 
-  virtual const T& next() {
+  virtual const T& next() override {
     if (_itr == _end)
       throw IteratorException("Attempting to get next element of exhausted iterator");
     const T& t = _itr->second;
     ++_itr;
     return t;
   }
-  virtual bool hasNext() {
+  virtual bool hasNext() override {
     return _itr != _end;
   }
-  virtual void reset() {
+  virtual void reset() override {
     _itr = _begin;
   }
 };
@@ -388,32 +388,32 @@ public:
 template <class T, class C>
 class ContainerIterator : public Iterator<T> {
 protected:
-	C& _container;
-	typename C::iterator _itr;
-	typename C::iterator _end;
+	const C& _container;
+	typename C::const_iterator _itr;
+	typename C::const_iterator _end;
 	typedef typename C::size_type size_type;
 public:
-	ContainerIterator(C& _container)
+	ContainerIterator(const C& _container)
 	: _container(_container) {
-		_itr = _container.begin();
-		_end = _container.end();
+	  _itr = _container.begin();
+	  _end = _container.end();
 	}
 	ContainerIterator(boost::shared_ptr<C> shared_container)
 	: _container(*shared_container) {
-		_itr = _container.begin();
-		_end = _container.end();
+	  _itr = _container.cbegin();
+	  _end = _container.cend();
 	}
-	virtual const T& next() {
+	virtual const T& next() override {
 		if (_itr == _end)
 			throw IteratorException("Attempting to get next element of exhausted iterator");
 		const T& t = *_itr;
 		_itr++;
 		return t;
 	}
-	virtual bool hasNext() {
+	virtual bool hasNext() override {
 		return _itr != _end;
 	}
-	virtual void reset() {
+	virtual void reset() override {
 		_itr = _container.begin();
 	}
 };
@@ -426,43 +426,46 @@ template <class T, class C>
 class SharedContainerIterator : public Iterator<T> {
 protected:
 	boost::shared_ptr<C> _container;
-	typename C::iterator _itr;
-	typename C::iterator _end;
+	typename C::const_iterator _itr;
+	typename C::const_iterator _end;
 	typedef typename C::size_type size_type;
 public:
 	SharedContainerIterator(boost::shared_ptr<C> _container)
 	: _container(_container) {
-		_itr = _container->begin();
-		_end = _container->end();
+		_itr = _container->cbegin();
+		_end = _container->cend();
 	}
-	virtual const T& next() {
+	virtual const T& next() override {
 		if (_itr == _end)
 			throw IteratorException("Attempting to get next element of exhausted iterator");
 		const T& t = *_itr;
 		_itr++;
 		return t;
 	}
-	virtual bool hasNext() {
+	virtual bool hasNext() override {
 		return _itr != _end;
 	}
-	virtual void reset() {
+	virtual void reset() override {
 		_itr = _container->begin();
 	}
 };
 
+///
+/// \brief Forward iterator for std::vector storing elements of type T.
+///
 template <class T>
 class VectorIterator : public ContainerIterator<T,std::vector<T> > {
 private:
 public:
-	VectorIterator(std::vector<T>& _vec)
+	VectorIterator(const std::vector<T>& _vec)
 	: ContainerIterator<T,std::vector<T> >(_vec) { }
 	VectorIterator(boost::shared_ptr<std::vector<T> > shared_vec)
 	: ContainerIterator<T,std::vector<T> >(*shared_vec) { }
 	// direct iterator access (for optimizations)
-	typename std::vector<T>::iterator& get() {
+	typename std::vector<T>::const_iterator& get() {
 	    return this->_itr;
 	}
-	const typename std::vector<T>::iterator& end() {
+	const typename std::vector<T>::const_iterator& end() {
 	    return this->_end;
 	}
 };
