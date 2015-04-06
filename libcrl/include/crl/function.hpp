@@ -287,10 +287,12 @@ public:
     const SizeVec& s_scope = f->getStateFactors();
     const SizeVec& a_scope(f->getActionFactors());
     for(Size i : s_scope) {
-        this->emplace(i,f);
+        std::multimap<Size, DiscreteFunction<T>>::insert(std::pair<Size, DiscreteFunction<T>>(i,f));
+        //this->emplace(i,f);
     }
     for(Size i : a_scope) {
-        this->emplace(i+_a_offset,f);
+        std::multimap<Size, DiscreteFunction<T>>::insert(std::pair<Size, DiscreteFunction<T>>(i+_a_offset,f));
+        //this->emplace(i+_a_offset,f);
     }
   }
 
@@ -489,24 +491,24 @@ public:
     /// Supports the case that function \a other is defined over a (proper) subset of factors from this function
     _FDiscreteFunction<T>& operator+=(const _FDiscreteFunction<T>& other) {
       assert(_packed);
-      transform(&other, std::plus<T>(), "true");
+      transform(&other, std::plus<T>(), true);
       return *this;
     }
     _FDiscreteFunction<T>& operator+=(const _DiscreteFunction<T>* other) {
       assert(_packed);
-      transform(other, std::plus<T>(), "false");
+      transform(other, std::plus<T>(), false);
       return *this;
     }
     /// \brief Subtract another \a DiscreteFunction from this one (element-wise)
     /// Supports the case that function \a other is defined over a (proper) subset of factors from this function
     _FDiscreteFunction<T>& operator-=(const _FDiscreteFunction<T>& other) {
       assert(_packed);
-      transform(&other, std::minus<T>(), "true");
+      transform(&other, std::minus<T>(), true);
       return *this;
     }
     _FDiscreteFunction<T>& operator-=(const _DiscreteFunction<T>* other) {
       assert(_packed);
-      transform(other, std::minus<T>(), "false");
+      transform(other, std::minus<T>(), false);
       return *this;
     }
 };
