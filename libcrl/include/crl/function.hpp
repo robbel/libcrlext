@@ -287,12 +287,10 @@ public:
     const SizeVec& s_scope = f->getStateFactors();
     const SizeVec& a_scope(f->getActionFactors());
     for(Size i : s_scope) {
-        std::multimap<Size, DiscreteFunction<T>>::insert(std::pair<Size, DiscreteFunction<T>>(i,f));
-        //this->emplace(i,f);
+        this->emplace(i,f);
     }
     for(Size i : a_scope) {
-        std::multimap<Size, DiscreteFunction<T>>::insert(std::pair<Size, DiscreteFunction<T>>(i+_a_offset,f));
-        //this->emplace(i+_a_offset,f);
+        this->emplace(i+_a_offset,f);
     }
   }
 
