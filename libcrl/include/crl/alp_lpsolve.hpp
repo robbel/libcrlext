@@ -14,8 +14,7 @@
 
 #include <iostream>
 #include <lpsolve/lp_lib.h>
-#include "crl/function.hpp"
-#include <boost/shared_ptr.hpp>
+#include "crl/alp.hpp"
 
 //
 // LPSolve5.5 specific code to support the \a ALPPlanner
@@ -62,7 +61,7 @@ public:
   int generateLP(const crl::RFunctionVec& C, const crl::RFunctionVec& b, const crl::SizeVec& elim_order);
   /// \brief Solve this LP
   /// \return 0 iff successful
-  int solve();
+  int solve(const std::vector<double>& alpha, crl::FactoredValueFunction& vfn);
 };
 typedef boost::shared_ptr<_LP> LP;
 

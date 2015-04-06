@@ -29,7 +29,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const SizeVec&
   return 0;
 }
 
-int _LP::solve() {
+int _LP::solve(const std::vector<double>& alpha, FactoredValueFunction& vfn) {
   return 0;
 }
 

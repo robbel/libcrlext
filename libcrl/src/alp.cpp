@@ -81,9 +81,12 @@ int _ALPPlanner::plan() {
       return 1;
     }
 
-    if(!lp.solve()) {
+    if(!lp.solve(_alpha, _value_fn)) {
       return 2;
     }
+
+    // w values in FactoredValueFunction have been computed successfully
+    // todo..
 
     // random tests TODO remove
     lpsolve::testing::lp_exp();
