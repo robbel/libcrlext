@@ -18,11 +18,23 @@
 
 namespace crl {
 
+// forward declaration
+template<class T> class _DiscreteFunction;
 /// \brief The identity mapping
 static auto identity_map = [](Size i) { return i; };
 /// \brief A mapping from global factor indices to those in a subdomain
 /// \see mapState(), mapAction()
 typedef cpputil::inverse_map<Size> subdom_map;
+
+// some useful algorithms on functions
+namespace algorithm {
+
+/// \brief sum the given function over its entire domain
+/// \param known_flat True iff function `pf' is known to be a \a _FDiscreteFunction (optimization)
+template<class T> T sum_over_domain(const crl::_DiscreteFunction<T>* pf, bool known_flat);
+
+} // namespace algorithm
+
 
 /**
  * \brief An abstract interface for a discrete function defined over a subset of (either state or action) variables.
@@ -347,31 +359,51 @@ using EmptyFunction = boost::shared_ptr<_EmptyFunction<T>>;
  */
 template<class T>
 class _FDiscreteFunction : public _DiscreteFunction<T> {
+    friend T algorithm::sum_over_domain<T>(const _DiscreteFunction<T>* pf, bool known_flat);
 protected:
     /// \brief The internal storage for this function
     boost::shared_ptr<_FStateActionTable<T>> _sa_table;
     /// \brief True iff \a pack() has been called (required for some function calls)
     bool _packed;
     /// \brief General in-place transformation method with another function
+    /// \param known_flat True iff `other' is known to be a _FDiscreteFunction and special optimizations apply
     /// \note Supports the case that function \a other is defined over a (proper) subset of factors from this function
     /// (in this case it may not contain any action factors as per the current implementation, however)
     template<class F>
-    void transform(const _FDiscreteFunction<T>& other, F f) {
+    void transform(const _DiscreteFunction<T>* other, F f, bool known_flat) {
       auto& vals = _sa_table->values();
-      if(vals.size() == other._sa_table->values().size()) { // efficient transform possible
-          std::transform(vals.begin(), vals.end(), other._sa_table->values().begin(), vals.begin(), f);
+      // optional rtti check to allow optimizations below
+      const _FDiscreteFunction<T>* fother;
+      if(known_flat) {
+          fother = static_cast<const _FDiscreteFunction<T>*>(other);
+      } else {
+          fother = dynamic_cast<const _FDiscreteFunction<T>*>(other);
+          if(fother) {
+              known_flat = true;
+          }
       }
-      // apply a function with smaller domain FIXME optimize
-      else if(other.getActionFactors().empty() &&
+      // implementation
+      if(known_flat && vals.size() == fother->_sa_table->values().size()) { // efficient transform possible
+          std::transform(vals.begin(), vals.end(), fother->_sa_table->values().begin(), vals.begin(), f);
+          return;
+      }
+#if 0
+      else if(!known_flat && this->getActionFactors() == other->getActionFactors() && this->getStateFactors() == other->getStateFactors()) {
+          // TODO: brute force evaluation for every (s,a) pair, aka method below
+          return;
+      }
+#endif
+      // apply a function with smaller domain FIXME optimize for fother case
+      if(other->getActionFactors().empty() &&
               std::includes(this->getStateFactors().begin(), this->getStateFactors().end(), // check if other domain is proper subset
-                            other.getStateFactors().begin(), other.getStateFactors().end())) {
+                            other->getStateFactors().begin(), other->getStateFactors().end())) {
           const Size num_actions = this->_domain->getNumActions();
           const subdom_map s_dom(this->getStateFactors()); // assumed to subsume all states from function `other'
           _StateIncrementIterator sitr(this->_domain);
           while(sitr.hasNext()) {
               const State& s = sitr.next();
-              State ms = other.mapState(s, s_dom);
-              T val = other(ms); // evaluate `other' function
+              State ms = other->mapState(s, s_dom);
+              T val = other->eval(ms); // evaluate `other' function
               T& start = vals[s.getIndex()*num_actions]; // fill from here
               auto start_it = vals.begin() + (&start - vals.data());
               std::transform(start_it, start_it+num_actions, start_it, std::bind2nd(f, val));
@@ -457,14 +489,24 @@ public:
     /// Supports the case that function \a other is defined over a (proper) subset of factors from this function
     _FDiscreteFunction<T>& operator+=(const _FDiscreteFunction<T>& other) {
       assert(_packed);
-      transform(other, std::plus<T>());
+      transform(&other, std::plus<T>(), "true");
+      return *this;
+    }
+    _FDiscreteFunction<T>& operator+=(const _DiscreteFunction<T>* other) {
+      assert(_packed);
+      transform(other, std::plus<T>(), "false");
       return *this;
     }
     /// \brief Subtract another \a DiscreteFunction from this one (element-wise)
     /// Supports the case that function \a other is defined over a (proper) subset of factors from this function
     _FDiscreteFunction<T>& operator-=(const _FDiscreteFunction<T>& other) {
       assert(_packed);
-      transform(other, std::minus<T>());
+      transform(&other, std::minus<T>(), "true");
+      return *this;
+    }
+    _FDiscreteFunction<T>& operator-=(const _DiscreteFunction<T>* other) {
+      assert(_packed);
+      transform(other, std::minus<T>(), "false");
       return *this;
     }
 };
@@ -472,28 +514,29 @@ public:
 /**
  * \brief Indicator basis centered on a specific state
  */
-class _Indicator : public _DiscreteFunction<double> {
+template<class T = double>
+class _Indicator : public _DiscreteFunction<T> {
 protected:
   /// \brief The state on which this indicator function is centered
   Size _s_index;
 public:
   /// \brief ctor
   _Indicator(const Domain& domain, std::string name = "")
-  : _DiscreteFunction(domain, name) { }
+  : _DiscreteFunction<T>(domain, name) { }
   /// \brief Initialize an indicator on \a State s in a subdomain
   /// \param factors Denotes a (sub-)set of state factors from the supplied \a Domain
   _Indicator(const Domain& domain, SizeVec factors, const State& s, std::string name = "")
-  : _DiscreteFunction(domain, name) {
+  : _DiscreteFunction<T>(domain, name) {
     assert(s);
     std::sort(factors.begin(),factors.end());
-    join(factors, this->getActionFactors());
+    _DiscreteFunction<T>::join(factors, this->getActionFactors());
     setState(s);
   }
 
   /// \brief Define the State for which this Indicator is set
   void setState(const State& s) {
-    if(!_DiscreteFunction::_computed) {
-      _DiscreteFunction::computeSubdomain();
+    if(!_DiscreteFunction<T>::_computed) {
+      _DiscreteFunction<T>::computeSubdomain();
     }
     _s_index = s; // copy index only-no other comparison (for identical domain, etc.) done
   }
@@ -502,11 +545,51 @@ public:
       return _s_index;
   }
 
-  virtual double eval(const State& s, const Action& a) const override {
-    return static_cast<double>(_s_index == (Size)s); // note: only compares indices
+  virtual T eval(const State& s, const Action& a) const override {
+    return static_cast<T>(_s_index == (Size)s); // note: only compares indices
   }
 };
-typedef boost::shared_ptr<_Indicator> Indicator;
+template<class T = double>
+using Indicator = boost::shared_ptr<_Indicator<T>>;
+
+//
+// algorithm implementations
+//
+
+namespace algorithm {
+
+template<class T>
+T sum_over_domain(const _DiscreteFunction<T>* pf, bool known_flat) {
+    const _FDiscreteFunction<T>* ff;
+    if(known_flat) {
+        ff = static_cast<const _FDiscreteFunction<T>*>(pf);
+    } else {
+        ff = dynamic_cast<const _FDiscreteFunction<T>*>(pf);
+        if(ff) {
+            known_flat = true;
+        }
+    }
+
+    if(known_flat) {
+        return std::accumulate(ff->_sa_table->values().begin(), ff->_sa_table->values().end(), T(0));
+    }
+    else { // some other cases FIXME move domainSum into base class
+        const _Indicator<T>* pif = dynamic_cast<const _Indicator<T>*>(pf);
+        if(pif) {
+            return 1;
+        } else { // brute force summation over domain
+            T sum = 0;
+            _StateActionIncrementIterator saitr(pf->getSubdomain());
+            while(saitr.hasNext()) {
+                const std::tuple<State,Action>& sa = saitr.next();
+                sum += pf->eval(std::get<0>(sa), std::get<1>(sa));
+            }
+            return sum;
+        }
+    }
+}
+
+}
 
 } // namespace crl
 

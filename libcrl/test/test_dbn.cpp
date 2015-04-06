@@ -84,7 +84,7 @@ TEST(DBNTest, BasicTest) {
   //
 
   // Note: we can effectively ignore that s is not in I's domain: only its index (= 2) will be used by the indicator.
-  Indicator I = boost::make_shared<_Indicator>(domain, SizeVec({1}), s2);
+  Indicator<> I = boost::make_shared<_Indicator<>>(domain, SizeVec({1}), s2);
   EXPECT_TRUE(!(*I)(s) && (*I)(s2));
 
   //
@@ -151,7 +151,7 @@ TEST(DBNTest, BasicTest) {
   // Test with indicator over complete state factor scope (2 state factors)
   //
 
-  I = boost::make_shared<_Indicator>(domain);
+  I = boost::make_shared<_Indicator<>>(domain);
   I->addStateFactor(0); // exercise some other code paths
   I->addStateFactor(1);
   I->setState(s2);

@@ -84,7 +84,6 @@ protected:
 public:
   _FactoredMDP(Domain domain)
   : _domain(domain) { }
-  virtual ~_FactoredMDP() { }
   Domain getDomain() const {return _domain;}
 
   // MDP interface

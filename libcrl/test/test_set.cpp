@@ -38,8 +38,9 @@ TEST(FunctionSetTest, BasicTest) {
   //
 
   // Note: we can effectively ignore that s is not in I's domain: only its index (= 2) will be used by the indicator.
-  Indicator I = boost::make_shared<_Indicator>(domain, SizeVec({1}), s2);
+  Indicator<> I = boost::make_shared<_Indicator<>>(domain, SizeVec({1}), s2);
   EXPECT_TRUE(!(*I)(s) && (*I)(s2));
+  EXPECT_DOUBLE_EQ(algorithm::sum_over_domain(I.get(),false), 1.);
 
   FunctionSet<double> f_set(domain);
   EXPECT_EQ(f_set.getNumFactors(), 0);
@@ -48,7 +49,7 @@ TEST(FunctionSetTest, BasicTest) {
   EXPECT_EQ(f_set.getNumFactors(), 1);
 
   // add another function
-  I = boost::make_shared<_Indicator>(domain);
+  I = boost::make_shared<_Indicator<>>(domain);
   I->addStateFactor(0); // exercise some other code paths
   I->addStateFactor(1);
   I->setState(s2);
@@ -122,6 +123,8 @@ TEST(FunctionSetTest, FunctionAdditionTest) {
 
   f.define(s,a, 3);
   EXPECT_EQ(f.eval(s,a), 3);
+  EXPECT_DOUBLE_EQ(algorithm::sum_over_domain(&f,false), 3.);
+  EXPECT_DOUBLE_EQ(algorithm::sum_over_domain(&f,true), 3.);
   f2.define(s2,a,4);
   EXPECT_EQ(f2.eval(s2,a), 4);
 
@@ -132,6 +135,8 @@ TEST(FunctionSetTest, FunctionAdditionTest) {
   f *= 2;
   EXPECT_EQ(f.eval(s,a), 6);
   EXPECT_EQ(f.eval(s2,a), 8);
+  EXPECT_DOUBLE_EQ(algorithm::sum_over_domain(&f,false), 14.);
+  EXPECT_DOUBLE_EQ(algorithm::sum_over_domain(&f,true), 14.);
 
   //
   // examples where f2 has reduced scope and is subtracted from f

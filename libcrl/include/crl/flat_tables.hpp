@@ -215,7 +215,7 @@ protected:
 			return;
 		const Size index = s.getIndex();
 		_ActionIncrementIterator itr(_domain);
-		_best_qs[index] = -1*std::numeric_limits<double>::max();
+		_best_qs[index] = -1*std::numeric_limits<Reward>::max();
 		while (itr.hasNext()) {
 			Action a = itr.next();
 			Reward r = _potential->getPotential(s, a);

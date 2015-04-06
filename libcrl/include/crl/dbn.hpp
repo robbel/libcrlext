@@ -310,7 +310,7 @@ public:
       _StateIncrementIterator hitr(hdom);
       std::vector<T> h(hdom->getNumStates(), 0); // the basis function cache over its domain
       // specialization for indicator functions
-      Indicator I = boost::dynamic_pointer_cast<_Indicator>(_func);
+      Indicator<> I = boost::dynamic_pointer_cast<_Indicator<>>(_func);
       if(I) {
           h[I->getStateIndex()] = 1.;
           // TODO simplify the entire computation below as well for this special case
