@@ -12,6 +12,7 @@
 #include <gtest/gtest.h>
 
 #include "crl/alp.hpp"
+#include "crl/alp_lpsolve.hpp"
 
 using namespace std;
 using namespace crl;
@@ -57,10 +58,19 @@ FactoredMDP makeFactoredMDP(Domain domain) {
 //    cout << "created DBNFactor in " << end_time - start_time << "ms" << endl;
 
       // add random factor to dbn
-      fmdp->addDBNFactor(fa);
+      fmdp->addDBNFactor(std::move(fa));
   }
 
   return fmdp;
+}
+
+///
+/// \brief Placeholder for some ALP experiments
+///
+TEST(ALPTest, BasicLpSolveTest) {
+  lpsolve::testing::lp_exp();
+  int res = lpsolve::testing::lp_demo();
+  EXPECT_EQ(res, 0) << "no optimal solution found"; // else: optimal solution found, no error
 }
 
 #if 0 // example invokation:
@@ -81,9 +91,10 @@ Action testFALP(FactoredMDP fmdp, Domain domain) {
 #endif
 
 ///
-/// \brief Placeholder for some initial experiments
+/// \brief Placeholder for some ALP experiments
 ///
-TEST(ALPTest, BasicLpSolveTest) {
+
+TEST(ALPTest, BasicALPTest) {
   srand(time(NULL));
 
   Domain domain = boost::make_shared<_Domain>();
@@ -93,10 +104,12 @@ TEST(ALPTest, BasicLpSolveTest) {
   domain->setRewardRange(-1, 0);
 
   FactoredMDP fmdp = makeFactoredMDP(domain);
-
-  _ALPPlanner planner(fmdp, 0.9);
+  std::cout << fmdp->T() << std::endl;
 #if 0
-  EXPECT_EQ(planner.plan(), 0) << "no optimal solution found"; // optimal solution found, no error
+  _ALPPlanner planner(fmdp, 0.9);
 #endif
+  // todo
+
   SUCCEED();
 }
+

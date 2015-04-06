@@ -175,5 +175,6 @@ TEST(FunctionSetTest, FunctionAdditionTest) {
   }
 
   f.eraseStateFactor(1);
+  f.pack();
   EXPECT_THROW(f += f2, cpputil::InvalidException); // f2's domain is not a proper subset anymore
 }

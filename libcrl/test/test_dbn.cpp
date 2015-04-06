@@ -57,7 +57,7 @@ DBN makeSimpleDBN(Domain domain) {
       cout << "created DBNFactor " << y << " in " << end_time - start_time << "ms" << endl;
 
       // add random factor to dbn
-      dbn->addDBNFactor(fa);
+      dbn->addDBNFactor(std::move(fa));
   }
 
   return dbn;
@@ -92,6 +92,7 @@ TEST(DBNTest, BasicTest) {
   //
 
   DBN dbn = makeSimpleDBN(domain);
+  std::cout << *dbn << std::endl;
 
   // normalized?
   Probability total = 0.;
@@ -125,7 +126,7 @@ TEST(DBNTest, BasicTest) {
   // TODO test with invalid functions too (and expect exception)
   // TODO increase complexity of another DBN2 (perhaps even randomize parent dependencies in (s,a))
 
-  _Backprojection<double> B(domain, dbn, I, "backproject_thru_dbn");
+  _Backprojection<double> B(domain, *dbn, I, "backproject_thru_dbn");
   EXPECT_TRUE(B.getStateFactors().size() == 1 && B.getActionFactors().size() == 1); // based on DBN structure above
   EXPECT_TRUE(B.getStateFactors()[0] == 1);
 
@@ -158,12 +159,12 @@ TEST(DBNTest, BasicTest) {
   ASSERT_TRUE(I->getSubdomain()->getNumStateFactors() == domain->getNumStateFactors()); // over complete domain
   EXPECT_TRUE(!(*I)(s) && (*I)(s2));
 
-  B = _Backprojection<double>(domain, dbn, I, "backproject_thru_dbn_2");
-  EXPECT_TRUE(B.getStateFactors().size() == 2 && B.getActionFactors().size() == 1); // based on DBN structure above
-  EXPECT_TRUE(B.getStateFactors()[0] == 0 && B.getStateFactors()[1] == 1);
+  _Backprojection<double> BB(domain, *dbn, I, "backproject_thru_dbn_2");
+  EXPECT_TRUE(BB.getStateFactors().size() == 2 && BB.getActionFactors().size() == 1); // based on DBN structure above
+  EXPECT_TRUE(BB.getStateFactors()[0] == 0 && BB.getStateFactors()[1] == 1);
 
-  B.cache();
-  EXPECT_TRUE(B.getSubdomain()->getNumStateFactors() == 2 && B.getSubdomain()->getNumActionFactors() == 1); // based on DBN structure above
+  BB.cache();
+  EXPECT_TRUE(BB.getSubdomain()->getNumStateFactors() == 2 && BB.getSubdomain()->getNumActionFactors() == 1); // based on DBN structure above
 
   // Backprojection is now the complete dbn
   for (Size state_index=0; state_index<domain->getNumStates(); state_index++) {
@@ -171,10 +172,10 @@ TEST(DBNTest, BasicTest) {
           for (Size action_index=0; action_index<domain->getNumActions(); action_index++) {
                   Action a(domain, action_index);
                   double v_dbn = dbn->T(s, a, s2);
-                  EXPECT_DOUBLE_EQ(v_dbn, B(s,a));
+                  EXPECT_DOUBLE_EQ(v_dbn, BB(s,a));
                   // alternative means of computing the same thing
                   v_dbn = dbn->T(s, a, s2, mapping, mapping, subdom_map(cpputil::ordered_vec<Size>(domain->getNumActionFactors())));
-                  EXPECT_DOUBLE_EQ(v_dbn, B(s,a));
+                  EXPECT_DOUBLE_EQ(v_dbn, BB(s,a));
           }
   }
 
