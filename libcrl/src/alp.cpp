@@ -72,10 +72,15 @@ int _ALPPlanner::plan() {
         _alpha.push_back(r_sum/dom_size);
     }
 
+    lpsolve::_LP lp;
+    if(!lp.generateLP()) {
+      return 1;
+    }
 
-  lpsolve::lp_exp();
-  int res = lpsolve::lp_demo();
-  return res;
+
+    lpsolve::testing::lp_exp();
+    int res = lpsolve::testing::lp_demo();
+    return res;
 }
 
 } // namespace crl

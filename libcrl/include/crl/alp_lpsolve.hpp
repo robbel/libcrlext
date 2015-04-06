@@ -14,6 +14,7 @@
 
 #include <iostream>
 #include <lpsolve/lp_lib.h>
+#include <boost/shared_ptr.hpp>
 
 //
 // LPSolve5.5 specific code to support the \a ALPPlanner
@@ -31,11 +32,34 @@
 
 namespace lpsolve {
 
+/**
+ * \brief A class that abstracts an lpsolve LP
+ */
+class _LP {
+private:
+  lprec *_lp;
+public:
+  /// \brief ctor
+  _LP()
+  : _lp(nullptr) {}
+  /// \brief dtor
+  ~_LP();
+
+  /// \brief given targets \f$C\f$ and \f$\mathbf{b}\f$ compute polynomial set of constraints
+  /// \return 0 iff successful
+  int generateLP();
+};
+typedef boost::shared_ptr<_LP> LP;
+
+namespace testing {
+
 /// \brief A basic LP example that ships with lpsolve
 /// Source: http://lpsolve.sourceforge.net/5.5/formulate.htm
 int lp_demo();
 /// \brief Some random experiments with lpsolve
 void lp_exp();
+
+}
 
 } // namespace lpsolve
 

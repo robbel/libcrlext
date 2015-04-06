@@ -13,6 +13,26 @@
 
 namespace lpsolve {
 
+//
+// LP abstraction implementation
+//
+
+_LP::~_LP() {
+  if(_lp) {
+      delete_lp(_lp);
+  }
+}
+
+int _LP::generateLP() {
+  return 0;
+}
+
+//
+// Various lpsolve testing methods
+//
+
+namespace testing {
+
 void lp_exp() {
     lprec *lp;
 
@@ -165,5 +185,7 @@ int lp_demo() {
 
   return ret;
 }
+
+} // namespace testing
 
 } // namespace lpsolve

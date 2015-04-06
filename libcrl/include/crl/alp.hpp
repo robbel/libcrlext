@@ -85,7 +85,7 @@ protected:
   FactoredValueFunction _value_fn;
   /// \brief The alpha vector (state relevance weights) associated with the basis functions
   std::vector<double> _alpha;
-  /// \brief The set of functions (\f$\mathbb{C}\f$) appearing as nonlinear constraints in the LP
+  /// \brief The set of functions (\f$C\f$) appearing as nonlinear constraints in the LP
   std::vector<DiscreteFunction<Reward>> _C_set;
   /// \brief Discount factor
   float _gamma;
