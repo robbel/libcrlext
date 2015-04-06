@@ -98,9 +98,8 @@ public:
   /// \brief return the sum of rewards accumulated over all local reward functions (LRFs) at (s,a)
   virtual Reward R(const State& s, const Action& a) override;
   /// \brief return entire factored transition function
-  DBN T() const {
-    DBN dbn = boost::make_shared<_DBN>(_T_map);
-    return dbn;
+  const _DBN& T() {
+    return _T_map;
   }
 
   /// \brief Add a factor to the factored transition function

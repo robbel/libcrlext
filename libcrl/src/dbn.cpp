@@ -13,7 +13,8 @@
 #include "crl/dbn.hpp"
 
 using namespace std;
-using namespace crl;
+
+namespace crl {
 
 //
 // DBNFactor implementation
@@ -106,13 +107,14 @@ void _DBN::addDBNFactor(DBNFactor dbn_factor) {
     _has_concurrency = true;
   }
   // insert preserving order
-  std::vector<DBNFactor>::iterator it = std::lower_bound(_dbn_factors.begin(), _dbn_factors.end(), dbn_factor);
+  std::vector<DBNFactor>::iterator it = std::lower_bound(_dbn_factors.begin(), _dbn_factors.end(), dbn_factor,
+                                                         [](const DBNFactor &a, const DBNFactor &b) { return *a < *b; });
   if(it == _dbn_factors.end()) {
     _dbn_factors.insert(it, std::move(dbn_factor)); // overwrite and de-allocate previous if it exists
   }
 }
 
-Probability _DBN::T(const State& js, const Action& ja, const State& jn) {
+Probability _DBN::T(const State& js, const Action& ja, const State& jn) const {
     Probability p = 1.;
 
     _FactorVecIterator fitr(_dbn_factors);
@@ -124,3 +126,26 @@ Probability _DBN::T(const State& js, const Action& ja, const State& jn) {
     }
     return p;
 }
+
+std::ostream& operator<<(std::ostream &os, const _DBN& dbn) {
+  Size i = 0;
+  os << "DBN:" << std::endl;
+  for(const DBNFactor& fa : dbn._dbn_factors) {
+      os << "  [" << i << "] Target " << fa->getTarget() << " with parents { ";
+      for(Size px : fa->getDelayedDependencies()) {
+          os << "X_d" << px << ", ";
+      }
+      for(Size px : fa->getConcurrentDependencies()) {
+          os << "X_c" << px << ", ";
+      }
+      for(Size pa : fa->getActionDependencies()) {
+          os << "A" << pa << ", ";
+      }
+      os << "}" << std::endl;
+      i++;
+  }
+  return os;
+
+}
+
+} // namespace crl

@@ -136,6 +136,8 @@ public:
   template<class C>
   Probability T(const State& s, const State& n, const Action& a, Factor t, C&& state_map_s, C&& state_map_n, C&& action_map) const {
       const ProbabilityVec& pv = T(s, n, a, std::forward<C>(state_map_s), std::forward<C>(state_map_n), std::forward<C>(action_map));
+      if(pv.size() == 0)
+        return 0.;
       Factor offset = t - _target_range.getMin();
       return pv[offset];
   }
@@ -212,6 +214,7 @@ typedef boost::shared_ptr<_LRF> LRF;
  * \note DBNFactors are sorted internally in ascending order of their target variables.
  */
 class _DBN {
+  friend std::ostream& operator<<(std::ostream &os, const _DBN& dbn);
 protected:
   std::vector<DBNFactor> _dbn_factors;
   /// \brief True iff there are any concurrent dependencies in the DBN (i.e., at time slice t)
@@ -229,10 +232,12 @@ public:
   /// \note Overwrites an existing DBNFactor with the identical target variable
   void addDBNFactor(DBNFactor dbn_factor);
   /// \brief Iterator over all \a DBNFactor in this DBN
-  FactorIterator factors() {
+  FactorIterator factors() const {
     return boost::make_shared<_FactorVecIterator>(_dbn_factors);
   }
-  /// \brief Return \a DBNFactor for a specific target variable
+  /// \brief Return \a DBNFactor at offset `t'.
+  /// \note This is not necessarily equivalent to state factor for a target variable `t'!
+  /// FIXME there is an implicit assumption that the DBN covers all state factors in Domain!
   DBNFactor factor(Size t) const {
     assert(t < size());
     return _dbn_factors[t];
@@ -243,11 +248,11 @@ public:
   }
 
   /// \brief Compute the probability of transitioning from (joint) s -> n under (joint) \a Action a
-  Probability T(const State& js, const Action& ja, const State& jn);
+  Probability T(const State& js, const Action& ja, const State& jn) const;
   /// \brief Compute the probability of transitioning from (sub_s,sub_a) -> n
   /// As per the 2-TBN definition, this is a product over a selection of \a DBNFactors.
   template<class C>
-  Probability T(const State& s, const Action& a, const State& n, C state_map_s, C state_map_n, C action_map) {
+  Probability T(const State& s, const Action& a, const State& n, C state_map_s, C state_map_n, C action_map) const {
       Probability p = 1.;
 
       const auto& targets = state_map_n.map();
@@ -264,9 +269,12 @@ public:
 typedef boost::shared_ptr<_DBN> DBN;
 
 /// \brief Template specialization corresponding to total (joint) probability transitioning from s -> under (joint) \a Action a
-template<> Probability _DBN::T(const State& js, const Action& ja, const State& jn, decltype(identity_map), decltype(identity_map), decltype(identity_map)) {
+template<> Probability _DBN::T(const State& js, const Action& ja, const State& jn, decltype(identity_map), decltype(identity_map), decltype(identity_map)) const {
     return _DBN::T(js,ja,jn);
 }
+
+/// \brief Stream output of a \a DBN
+std::ostream& operator<<(std::ostream &os, const _DBN& dbn);
 
 /**
  * \brief Backprojection of a function through a DBN
@@ -278,15 +286,15 @@ template<class T>
 class _Backprojection : public _FDiscreteFunction<T> {
 protected:
   /// \brief The \a DBN used for backprojections
-  DBN _dbn;
+  const _DBN& _dbn;
   /// \brief The \a DiscreteFunction to backproject
   DiscreteFunction<T> _func;
   /// \brief True iff function has been computed over entire domain.
   bool _cached;
 public:
-  _Backprojection(const Domain& domain, const DBN& dbn, const DiscreteFunction<T>& other, std::string name = "")
+  _Backprojection(const Domain& domain, const _DBN& dbn, const DiscreteFunction<T>& other, std::string name = "")
   : _FDiscreteFunction<T>(domain, name), _dbn(dbn), _func(other), _cached(false) {
-    if(_dbn->hasConcurrentDependency()) {
+    if(_dbn.hasConcurrentDependency()) {
       throw cpputil::InvalidException("Backprojection does currently not support concurrent dependencies in DBN.");
     }
     if(!other->getActionFactors().empty()) {
@@ -294,8 +302,8 @@ public:
     }
     // determine parent scope via DBN
     for(Size t : other->getStateFactors()) {
-        const SizeVec& delayed_dep = _dbn->factor(t)->getDelayedDependencies();
-        const SizeVec& action_dep = _dbn->factor(t)->getActionDependencies();
+        const SizeVec& delayed_dep = _dbn.factor(t)->getDelayedDependencies();
+        const SizeVec& action_dep = _dbn.factor(t)->getActionDependencies();
         _FDiscreteFunction<T>::join(delayed_dep, action_dep);
     }
   }
@@ -336,7 +344,7 @@ public:
           hitr.reset();
           while(hitr.hasNext()) {
               const State& s = hitr.next();
-              v += h[(Size)s] * _dbn->T(std::get<0>(sa), std::get<1>(sa), s, s_dom, h_dom, a_dom);
+              v += h[(Size)s] * _dbn.T(std::get<0>(sa), std::get<1>(sa), s, s_dom, h_dom, a_dom);
           }
       }
       _cached = true;
@@ -355,6 +363,6 @@ public:
 template<class T>
 using Backprojection = boost::shared_ptr<_Backprojection<T>>;
 
-}
+} // namespace crl
 
 #endif /*DBN_HPP_*/
