@@ -43,6 +43,10 @@ public:
   }
   /// \brief Add a basis function (with local state and action scope) to this V-fn
   void addBasisFunction(DiscreteFunction<Reward> h, double weight);
+  /// \brief Get the basis functions
+  const std::vector<DiscreteFunction<Reward>>& getBasis() const {
+      return _basis;
+  }
   /// \brief (Re-)define the weight associated with basis function `i'
   void setWeight(Size i, double weight);
 
@@ -80,6 +84,8 @@ protected:
   FactoredValueFunction _value_fn;
   /// \brief The alpha vector (state relevance weights) associated with the basis functions
   std::vector<double> _alpha;
+  /// \brief The set of functions (\f$\mathbb{C}\f$) appearing as nonlinear constraints in the LP
+  std::vector<DiscreteFunction<Reward>> _C_set;
   /// \brief Discount factor
   float _gamma;
   /// \brief Whether all basis functions have been cached
@@ -88,7 +94,7 @@ public:
   _ALPPlanner(const FactoredMDP& fmdp, float gamma)
   : _domain(fmdp->getDomain()), _fmdp(fmdp), _gamma(gamma), _cached(false) { }
 
-  /// \brief
+  /// \brief Get best joint \a Action from joint \a State js
   virtual Action getAction(const State& js) override {
     assert(_value_fn != nullptr);
     return _value_fn->getBestAction(js);
@@ -104,6 +110,8 @@ public:
   ///
   void setFactoredValueFunction(FactoredValueFunction vfn) {
     _value_fn = std::move(vfn);
+    _C_set.reserve(_value_fn->getBasis().size());
+    _alpha.reserve(_C_set.size());
   }
   /// \brief Return value function associated with this ALP
   FactoredValueFunction getFactoredValueFunction() const {

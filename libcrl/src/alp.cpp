@@ -59,6 +59,20 @@ Action _FactoredValueFunction::getBestAction(const State& js, const SizeVec& eli
 //
 
 int _ALPPlanner::plan() {
+    // compute backprojections and state relevance weights
+    for(const DiscreteFunction<Reward>& h : _value_fn->getBasis()) {
+        Backprojection<Reward> B = boost::make_shared<_Backprojection<Reward>>(_domain, _fmdp->T(), h);
+        B->cache();
+        (*B) *= _gamma;
+        (*B) -= h.get(); // FIXME in indicator case, h is not a `flat' function, implement efficient sparse multiplication
+        _C_set.push_back(std::move(B));
+        // compute factored state relevance weights assuming uniform state likelihoods
+        const Size dom_size = h->getSubdomain()->getNumStates() * h->getSubdomain()->getNumActions();
+        Reward r_sum = algorithm::sum_over_domain(h.get(), false);
+        _alpha.push_back(r_sum/dom_size);
+    }
+
+
   lpsolve::lp_exp();
   int res = lpsolve::lp_demo();
   return res;
