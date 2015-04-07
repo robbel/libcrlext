@@ -56,7 +56,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   }
 
   // make building the model faster if it is done row by row
-  // TODO: test whether this disallows further column naming below!
+  // TODO: test whether this disallows further column naming or lp column-number increases below!
   set_add_rowmode(_lp, TRUE);
 
   // objective function
@@ -72,10 +72,9 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   set_add_rowmode(_lp, FALSE);
   write_LP(_lp, stdout);
 
-#if 0
   // generate equality constraints to abstract away basis functions
-  int var = C.size()+1; // 1-offset
-  int fi = 1; // the relevant w_i variable
+  int var = alpha.size()+1; // insert more variables
+  int fi = 1; // corresponding to active w_i variable
   for(const auto& f : C) {
       const _FDiscreteFunction<Reward>* pf = static_cast<_FDiscreteFunction<Reward>*>(f.get()); // assumption: flat representation
       const vector<Reward>& vals = pf->values(); // optimization: direct access of all values in subdomain
@@ -85,39 +84,48 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
           // create new lp variable
           const State& s = std::get<0>(z);
           const Action& a = std::get<1>(z);
-//          std::string varname = "f" + to_string(fi) + "@s: " + to_string(s.getIndex()) + ", a: " + to_string(a.getIndex());
-//          set_col_name(_lp, var++, &varname[0]);
-          // add lpsolve constraint
-
+          string varname = "f" + to_string(fi) + "@s: " + to_string(s.getIndex()) + ", a: " + to_string(a.getIndex());
+          set_col_name(_lp, var++, &varname[0]);
+          // add lpsolve constraint corresponding to w_i
+          // todo ...
+          cout << v << endl;
       }
-      F.insert(std::move(f)); // FIXME move ok here?
+      F.insert(std::move(f)); // TODO move ok here?
       fi++;
   }
 
   // generate equality constraints to abstract away target functions
   for(const auto& f : b) {
+      const _FDiscreteFunction<Reward>* pf = static_cast<_FDiscreteFunction<Reward>*>(f.get()); // assumption: flat representation
+      const vector<Reward>& vals = pf->values(); // optimization: direct access of all values in subdomain
       _StateActionIncrementIterator saitr(f->getSubdomain());
-      while(saitr.hasNext()) {
-          //const std::tuple<State,Action>& z = saitr.next();
-          // create new lp variable and add constraint
-
+      for(auto v : vals) {
+          const std::tuple<State,Action>& z = saitr.next();
+          // create new lp variable
+          const State& s = std::get<0>(z);
+          const Action& a = std::get<1>(z);
+          string varname = "b" + to_string(fi) + "@s: " + to_string(s.getIndex()) + ", a: " + to_string(a.getIndex());
+          set_col_name(_lp, var++, &varname[0]);
+          // add lpsolve equality constraint
+          // todo ...
+          cout << v << endl;
       }
       F.insert(f);
+      fi++;
   }
 
   // Now F contains all the functions involved in the LP. Run variable elimination to generate constraints
   using range = decltype(F)::range;
   const Size num_states = _domain->getNumStateFactors();
-//  typedef F::range range;
-  for(Size v : elim_order) {
+  for(Size var : elim_order) {
       // eliminate variable `v'
-      if(v < num_states) { // a state factor, as per convention
+      if(var < num_states) { // a state factor, as per convention
           // todo
-          F.eraseStateFactor(v);
+          F.eraseStateFactor(var);
       }
       else { // an action factor
           // todo
-          F.eraseActionFactor(v-num_states);
+          F.eraseActionFactor(var-num_states);
       }
   }
 
@@ -126,20 +134,27 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
 
   // add one final constraint
   // \f$\phi=0\f$
-#endif
+
   return 0;
 }
 
 int _LP::solve(_FactoredValueFunction* vfn) {
   // solve minimization
-  // \f$\sum_i \alpha_i w_i\f$
-  // subject to generated constraints
+  set_verbose(_lp, IMPORTANT);
 
+  // Let lpsolve calculate a solution
+  int ret = ::solve(_lp);
+  if(ret != OPTIMAL)
+    return ret;
 
-  //set_verbose(lp, IMPORTANT);
+  REAL *ptr_var; // memory maintained by lpsolve
+  get_ptr_variables(_lp, &ptr_var);
 
+  // TODO update w vector in vfn
+  for(int i = 0; i < vfn->getBasis().size(); i++) {
+      vfn->setWeight(i, ptr_var[i]);
+  }
 
-  // update w vector in vfn
   return 0;
 }
 
