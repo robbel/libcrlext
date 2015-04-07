@@ -150,7 +150,7 @@ int _LP::solve(_FactoredValueFunction* vfn) {
   REAL *ptr_var; // memory maintained by lpsolve
   get_ptr_variables(_lp, &ptr_var);
 
-  // TODO update w vector in vfn
+  // update w vector in vfn
   for(int i = 0; i < vfn->getBasis().size(); i++) {
       vfn->setWeight(i, ptr_var[i]);
   }
@@ -286,6 +286,13 @@ int lp_demo() {
     get_variables(lp, row);
     for(j = 0; j < Ncol; j++)
       printf("%s: %f\n", get_col_name(lp, j + 1), row[j]);
+
+    // equivalent call with lpsolve-maintained memory
+    REAL *ptr_var;
+    get_ptr_variables(lp, &ptr_var);
+
+    for(j = 0; j < Ncol; j++)
+      printf("%s: %f\n", get_col_name(lp, j + 1), ptr_var[j]);
   }
 
   // free allocated memory
