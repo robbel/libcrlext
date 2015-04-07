@@ -31,7 +31,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const SizeVec&
   for(const auto& f : C) {
       _StateActionIncrementIterator saitr(f->getSubdomain());
       while(saitr.hasNext()) {
-          const std::tuple<State,Action>& z = saitr.next();
+          //const std::tuple<State,Action>& z = saitr.next();
           // create new lp variable and add constraint
 
       }
@@ -41,7 +41,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const SizeVec&
   for(const auto& f : b) {
       _StateActionIncrementIterator saitr(f->getSubdomain());
       while(saitr.hasNext()) {
-          const std::tuple<State,Action>& z = saitr.next();
+          //const std::tuple<State,Action>& z = saitr.next();
           // create new lp variable and add constraint
 
       }
@@ -49,23 +49,36 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const SizeVec&
   }
 
   // Now F contains all the functions involved in the LP. Run variable elimination to generate constraints
-  using range = FunctionSet<Reward>::range;
+  using range = decltype(F)::range;
   const Size num_states = _domain->getNumStateFactors();
 //  typedef F::range range;
   for(Size v : elim_order) {
       // eliminate variable `v'
-      if(v < num_states) { // a state factor
-        F.eraseStateFactor(v);
+      if(v < num_states) { // a state factor, as per convention
+          // todo
+          F.eraseStateFactor(v);
       }
-      else { // an action
-        F.eraseActionFactor(v-num_states);
+      else { // an action factor
+          // todo
+          F.eraseActionFactor(v-num_states);
       }
   }
+
+  // add remaining constraints
+  // \f$\phi \geq \ldots\f$
+
+  // add one final constraint
+  // \f$\phi=0\f$
 
   return 0;
 }
 
 int _LP::solve(const std::vector<double>& alpha, _FactoredValueFunction* vfn) {
+  // solve minimization
+  // \f$\sum_i \alpha_i w_i\f$
+  // subject to generated constraints
+
+  // update w vector in vfn
   return 0;
 }
 
@@ -74,21 +87,6 @@ int _LP::solve(const std::vector<double>& alpha, _FactoredValueFunction* vfn) {
 //
 
 namespace testing {
-
-void lp_exp() {
-    lprec *lp;
-
-    lp = make_lp(0,4);
-    if(lp == nullptr) {
-        std::cerr << "Unable to create new LP model" << std::endl;
-        return;
-    }
-
-    set_verbose(lp, NORMAL);
-//  set_verbose(lp, IMPORTANT);
-
-    delete_lp(lp);
-}
 
 // Source: http://lpsolve.sourceforge.net/5.5/formulate.htm
 //  max(143x + 60y)

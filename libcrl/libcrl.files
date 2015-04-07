@@ -1,4 +1,5 @@
 include/crl/alp.hpp
+include/crl/alp_cplex.hpp
 include/crl/alp_lpsolve.hpp
 include/crl/common.hpp
 include/crl/conversions.hpp
@@ -22,6 +23,7 @@ include/crl/util.hpp
 include/crl/vi.hpp
 include/cpputil.hpp
 src/alp.cpp
+src/alp_cplex.cpp
 src/alp_lpsolve.cpp
 src/conversions.cpp
 src/crl.cpp

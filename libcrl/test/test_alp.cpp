@@ -68,7 +68,6 @@ FactoredMDP makeFactoredMDP(Domain domain) {
 /// \brief Placeholder for some ALP experiments
 ///
 TEST(ALPTest, BasicLpSolveTest) {
-  lpsolve::testing::lp_exp();
   int res = lpsolve::testing::lp_demo();
   EXPECT_EQ(res, 0) << "no optimal solution found"; // else: optimal solution found, no error
 }

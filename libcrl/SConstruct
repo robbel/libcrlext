@@ -28,14 +28,14 @@ sources = """
 crl.cpp				flat_tables.cpp			vi.cpp					rmax.cpp
 environment.cpp		sparse_sampling.cpp  	uct.cpp					uctdata.cpp
 ps.cpp	  			factor_learner.cpp		hash_tables.cpp			rtdp.cpp
-ram.cpp              conversions.cpp           dbn.cpp          alp.cpp          alp_lpsolve.cpp
+ram.cpp              conversions.cpp           dbn.cpp          alp.cpp          alp_lpsolve.cpp          alp_cplex.cpp
 """.split()
 headers = """
 crl/crl.hpp         crl/flat_tables.hpp  	crl/uct.hpp				crl/uctdata.hpp		
 crl/rmax.hpp 		crl/environment.hpp		crl/sparse_sampling.hpp	crl/vi.hpp
 crl/ps.hpp          crl/common.hpp			crl/util.hpp			crl/rtdp.hpp
 crl/types.hpp	 	crl/factor_learner.hpp	crl/hash_tables.hpp		crl/ram.hpp
-crl/tables.hpp      crl/conversions.hpp         crl/dbn.hpp          crl/alp.hpp          crl/alp_lpsolve.hpp          crl/function.hpp
+crl/tables.hpp      crl/conversions.hpp         crl/dbn.hpp          crl/alp.hpp          crl/alp_lpsolve.hpp          crl/alp_cplex.hpp          crl/function.hpp
 """.split()
 
 build_sources = [build.File(source) for source in sources]
