@@ -48,11 +48,15 @@ namespace lpsolve {
  */
 class _LP {
 private:
+  const crl::Domain _domain;
+  /// \brief Storage for functions generated during variable elimination
+  crl::FunctionSet<crl::Reward> F;
+  /// \brief The lpsolve LP
   lprec *_lp;
 public:
   /// \brief ctor
-  _LP()
-  : _lp(nullptr) {}
+  _LP(const crl::Domain& domain)
+  : _domain(domain), F(domain), _lp(nullptr) { }
   /// \brief dtor
   ~_LP();
 
@@ -61,7 +65,7 @@ public:
   int generateLP(const crl::RFunctionVec& C, const crl::RFunctionVec& b, const crl::SizeVec& elim_order);
   /// \brief Solve this LP
   /// \return 0 iff successful
-  int solve(const std::vector<double>& alpha, crl::FactoredValueFunction& vfn);
+  int solve(const std::vector<double>& alpha, crl::_FactoredValueFunction* vfn);
 };
 typedef boost::shared_ptr<_LP> LP;
 

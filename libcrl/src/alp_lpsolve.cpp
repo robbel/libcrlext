@@ -26,10 +26,46 @@ _LP::~_LP() {
 }
 
 int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const SizeVec& elim_order) {
+  F.clear();
+  // generate equality constraints to abstract away basis functions
+  for(const auto& f : C) {
+      _StateActionIncrementIterator saitr(f->getSubdomain());
+      while(saitr.hasNext()) {
+          const std::tuple<State,Action>& z = saitr.next();
+          // create new lp variable and add constraint
+
+      }
+      F.insert(f);
+  }
+  // generate equality constraints to abstract away target functions
+  for(const auto& f : b) {
+      _StateActionIncrementIterator saitr(f->getSubdomain());
+      while(saitr.hasNext()) {
+          const std::tuple<State,Action>& z = saitr.next();
+          // create new lp variable and add constraint
+
+      }
+      F.insert(f);
+  }
+
+  // Now F contains all the functions involved in the LP. Run variable elimination to generate constraints
+  using range = FunctionSet<Reward>::range;
+  const Size num_states = _domain->getNumStateFactors();
+//  typedef F::range range;
+  for(Size v : elim_order) {
+      // eliminate variable `v'
+      if(v < num_states) { // a state factor
+        F.eraseStateFactor(v);
+      }
+      else { // an action
+        F.eraseActionFactor(v-num_states);
+      }
+  }
+
   return 0;
 }
 
-int _LP::solve(const std::vector<double>& alpha, FactoredValueFunction& vfn) {
+int _LP::solve(const std::vector<double>& alpha, _FactoredValueFunction* vfn) {
   return 0;
 }
 

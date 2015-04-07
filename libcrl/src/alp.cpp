@@ -76,12 +76,12 @@ int _ALPPlanner::plan() {
     // create a basic elimination order (sorted state variables, followed by sorted action variables)
     SizeVec elim_order = cpputil::ordered_vec<Size>(_domain->getNumStateFactors() + _domain->getNumActionFactors());
 
-    lpsolve::_LP lp;
+    lpsolve::_LP lp(_domain);
     if(!lp.generateLP(_C_set, _fmdp->getLRFs(), elim_order)) {
       return 1;
     }
 
-    if(!lp.solve(_alpha, _value_fn)) {
+    if(!lp.solve(_alpha, _value_fn.get())) {
       return 2;
     }
 
