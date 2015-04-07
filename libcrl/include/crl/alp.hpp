@@ -49,6 +49,13 @@ public:
   }
   /// \brief (Re-)define the weight associated with basis function `i'
   void setWeight(Size i, double weight);
+  /// \brief Obtain storage location for basis function weights
+  std::vector<double>& getWeight() {
+    return _weight;
+  }
+  const std::vector<double>& getWeight() const {
+    return _weight;
+  }
 
   //
   // Evaluation

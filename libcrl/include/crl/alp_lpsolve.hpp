@@ -45,6 +45,7 @@ namespace lpsolve {
 /**
  * \brief A class that abstracts an lpsolve LP
  * All specific LP solver dependencies should be restricted to this hpp/cpp file
+ * TODO: could implement iterative constraint generation if performance becomes prohibitive
  */
 class _LP {
 private:

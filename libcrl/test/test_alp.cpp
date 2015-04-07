@@ -127,3 +127,6 @@ TEST(ALPTest, BasicALPTest) {
   SUCCEED();
 }
 
+//
+// TODO: could add simple degenerate case with indicator basis functions for small MDP with one factor in V-fn
+//

@@ -59,7 +59,9 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   // TODO: test whether this disallows further column naming or lp column-number increases below!
   set_add_rowmode(_lp, TRUE);
 
-  // objective function
+  //
+  // Objective function
+  //
   {
     vector<REAL>& row = const_cast<vector<REAL>&>(alpha); // API interface requires non-const pointer
     vector<int> colno = cpputil::ordered_vec(alpha.size(), 1); // 1-offset column numbering
@@ -68,11 +70,9 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
     }
   }
 
-  // debug out
-  set_add_rowmode(_lp, FALSE);
-  write_LP(_lp, stdout);
-
+  //
   // generate equality constraints to abstract away basis functions
+  //
   int var = alpha.size()+1; // insert more variables
   int fi = 1; // corresponding to active w_i variable
   for(const auto& f : C) {
@@ -94,7 +94,9 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       fi++;
   }
 
+  //
   // generate equality constraints to abstract away target functions
+  //
   for(const auto& f : b) {
       const _FDiscreteFunction<Reward>* pf = static_cast<_FDiscreteFunction<Reward>*>(f.get()); // assumption: flat representation
       const vector<Reward>& vals = pf->values(); // optimization: direct access of all values in subdomain
@@ -114,7 +116,9 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       fi++;
   }
 
+  //
   // Now F contains all the functions involved in the LP. Run variable elimination to generate constraints
+  //
   using range = decltype(F)::range;
   const Size num_states = _domain->getNumStateFactors();
   for(Size var : elim_order) {
@@ -128,6 +132,10 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
           F.eraseActionFactor(var-num_states);
       }
   }
+
+  // debug out
+  set_add_rowmode(_lp, FALSE);
+  write_LP(_lp, stdout);
 
   // add remaining constraints
   // \f$\phi \geq \ldots\f$
@@ -151,9 +159,8 @@ int _LP::solve(_FactoredValueFunction* vfn) {
   get_ptr_variables(_lp, &ptr_var);
 
   // update w vector in vfn
-  for(int i = 0; i < vfn->getBasis().size(); i++) {
-      vfn->setWeight(i, ptr_var[i]);
-  }
+  std::vector<double>& weights = vfn->getWeight();
+  std::copy(ptr_var, ptr_var+weights.size(), weights.begin());
 
   return 0;
 }
