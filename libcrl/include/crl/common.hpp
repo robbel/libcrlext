@@ -189,7 +189,7 @@ public:
 	void setIndex(int index) {
 		_index = index;
 	}
-	const Size& getIndex() const {
+	Size getIndex() const {
 		return _index;
 	}
 	/**

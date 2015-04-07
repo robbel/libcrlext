@@ -61,11 +61,12 @@ public:
   ~_LP();
 
   /// \brief Given targets \f$C\f$ and \f$\mathbf{b}\f$ compute polynomial set of constraints
+  /// \note This assumes that functions in \f$C\f$ and \f$\mathbf{b}\f$ are flat (and can be statically cast to that)
   /// \return 0 iff successful
-  int generateLP(const crl::RFunctionVec& C, const crl::RFunctionVec& b, const crl::SizeVec& elim_order);
+  int generateLP(const crl::RFunctionVec& C, const crl::RFunctionVec& b, const std::vector<double>& alpha, const crl::SizeVec& elim_order);
   /// \brief Solve this LP
   /// \return 0 iff successful
-  int solve(const std::vector<double>& alpha, crl::_FactoredValueFunction* vfn);
+  int solve(crl::_FactoredValueFunction* vfn);
 };
 typedef boost::shared_ptr<_LP> LP;
 

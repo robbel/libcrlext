@@ -72,6 +72,21 @@ TEST(ALPTest, BasicLpSolveTest) {
   EXPECT_EQ(res, 0) << "no optimal solution found"; // else: optimal solution found, no error
 }
 
+///
+/// \brief Some lpsolve generation tests
+///
+TEST(ALPTest, LpSolveGenerationTest) {
+  Domain domain = boost::make_shared<_Domain>();
+  domain->addStateFactor(0, 3, "sf0"); // 4 states
+  domain->addStateFactor(0, 2, "sf1"); // 3 states
+  domain->addActionFactor(0, 1, "agent1");  // 2 actions
+  domain->setRewardRange(-1, 0);
+
+  lpsolve::_LP lp(domain);
+  int res = lp.generateLP({}, {}, {1.,2.,3.}, {});
+  EXPECT_EQ(res, 0) << "lpsolve generation failed with error code " << res; // else: lp successfully generated
+}
+
 #if 0 // example invokation:
 Action testFALP(FactoredMDP fmdp, Domain domain) {
 	long start_time = time_in_milli();

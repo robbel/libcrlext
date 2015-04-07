@@ -449,6 +449,16 @@ public:
       assert(_packed);
       return _sa_table->getValue(s,a);
     }
+    /// \brief Return flat representation
+    std::vector<T>& values() {
+      assert(_packed);
+      return _sa_table->values();
+    }
+    /// \brief Return flat representation
+    const std::vector<T>& values() const {
+      assert(_packed);
+      return _sa_table->values();
+    }
 
     //
     // invalidate tabular storage when function scope changes occur

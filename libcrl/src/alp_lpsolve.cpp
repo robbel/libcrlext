@@ -12,6 +12,7 @@
 #include "crl/alp_lpsolve.hpp"
 
 using namespace crl;
+using namespace std;
 
 namespace lpsolve {
 
@@ -25,16 +26,21 @@ _LP::~_LP() {
   }
 }
 
-int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const SizeVec& elim_order) {
+//
+// LP constraint/variable ordering:
+// first go w_i (for all funcs in C), then `equality' variables associated with C, then those with b.
+//
+
+int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vector<double>& alpha, const SizeVec& elim_order) {
   F.clear();
 
-  // compute lower bound on lp size
-  int lp_vars = 0;
+  // compute lower bound on lp size (before variable elimination algorithm)
+  int lp_vars = C.size(); // corresponding to the w_i
   for(const auto& f : C) {
-      lp_vars += f->getSubdomain()->size();
+      lp_vars += f->getSubdomain()->size(); // for each instantiation of C's subdomain
   }
   for(const auto& f : b) {
-      lp_vars += f->getSubdomain()->size();
+      lp_vars += f->getSubdomain()->size(); // for each instantiation of b's subdomain
   }
 
   // create LP with this number of variables (will require resizing later)
@@ -43,23 +49,53 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const SizeVec&
     return 1; // couldn't construct a new model
   }
 
+  // note the 1-offset in lpsolve
+  for(RFunctionVec::size_type w = 1; w <= C.size(); w++) {
+    set_col_name(_lp, w, &string("w"+to_string(w))[0]);
+  }
+
+  // make building the model faster if it is done row by row
+  // TODO: test whether this disallows further column naming below!
+  set_add_rowmode(_lp, TRUE);
+
+  // objective function
+  // TODO: test whether mem has to stay around for solve() call or if it's internally copied in _lp!
+  {
+    std::unique_ptr<int[]> colno(new int[C.size()]);
+    std::unique_ptr<REAL[]> row(new REAL[C.size()]);
+
+    int j = 0;
+    for(auto a : alpha) {
+        colno[j] = j+1; // 1-offset column numbers (corresponding to w_1, w_2, ...)
+        row[j++] = a;
+    }
+    // set the objective in lpsolve
+    if(!set_obj_fnex(_lp, j, row.get(), colno.get())) {
+        return 2; // objective function setting failed
+    }
+  }
+#if 0
   // generate equality constraints to abstract away basis functions
-//  int var = 1; // 1-offset
-  for(RFunctionVec::size_type i = 0; i < C.size(); i++) {
-      const DiscreteFunction<Reward>& f = C[i];
+  int var = C.size()+1; // 1-offset
+  int fi = 1; // the relevant w_i variable
+  for(const auto& f : C) {
+      const _FDiscreteFunction<Reward>* pf = static_cast<_FDiscreteFunction<Reward>*>(f.get()); // assumption: flat representation
+      const vector<Reward>& vals = pf->values(); // optimization: direct access of all values in subdomain
       _StateActionIncrementIterator saitr(f->getSubdomain());
-      while(saitr.hasNext()) {
-//          const std::tuple<State,Action>& z = saitr.next();
-//          const State& s = std::get<0>(z);
-//          const Action& a = std::get<1>(z);
-//          // create new lp variable and add constraint
-//          set_col_name(_lp, var++, &std::string(f->getName() + s + a)[0]);
-
-
+      for(auto v : vals) {
+          const std::tuple<State,Action>& z = saitr.next();
+          // create new lp variable
+          const State& s = std::get<0>(z);
+          const Action& a = std::get<1>(z);
+//          std::string varname = "f" + to_string(fi) + "@s: " + to_string(s.getIndex()) + ", a: " + to_string(a.getIndex());
+//          set_col_name(_lp, var++, &varname[0]);
+          // add lpsolve constraint
 
       }
-      F.insert(f);
+      F.insert(std::move(f)); // FIXME move ok here?
+      fi++;
   }
+
   // generate equality constraints to abstract away target functions
   for(const auto& f : b) {
       _StateActionIncrementIterator saitr(f->getSubdomain());
@@ -92,14 +128,18 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const SizeVec&
 
   // add one final constraint
   // \f$\phi=0\f$
-
+#endif
   return 0;
 }
 
-int _LP::solve(const std::vector<double>& alpha, _FactoredValueFunction* vfn) {
+int _LP::solve(_FactoredValueFunction* vfn) {
   // solve minimization
   // \f$\sum_i \alpha_i w_i\f$
   // subject to generated constraints
+
+
+  //set_verbose(lp, IMPORTANT);
+
 
   // update w vector in vfn
   return 0;
