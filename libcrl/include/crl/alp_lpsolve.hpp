@@ -74,8 +74,6 @@ namespace testing {
 /// \brief A basic LP example that ships with lpsolve
 /// Source: http://lpsolve.sourceforge.net/5.5/formulate.htm
 int lp_demo();
-/// \brief Some random experiments with lpsolve
-void lp_exp();
 
 }
 

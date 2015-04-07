@@ -48,6 +48,8 @@ public:
 	Reward getReward() {return _r;}
 };
 typedef boost::shared_ptr<_Observation> Observation;
+
+/// \brief Stream output of an \a Observation
 inline std::ostream& operator<<(std::ostream& os, const Observation& o) {
 	os << "o{" << o->getState() << "," << o->getReward() << "}";
 	return os;
@@ -60,6 +62,8 @@ inline std::ostream& operator<<(std::ostream& os, const Observation& o) {
  */
 class _MDP {
 public:
+	virtual ~_MDP() { }
+
 	virtual StateIterator S() = 0;
 	virtual StateIterator predecessors(const State& s) = 0;
 	virtual ActionIterator A() = 0;
@@ -84,6 +88,7 @@ typedef boost::shared_ptr<_MDP> MDP;
  */
 class _Heuristic {
 public:
+	virtual ~_Heuristic() { }
 	virtual Reward getPotential(const State& s) = 0;
 	virtual Reward getPotential(const State& s, const Action& a) = 0;
 };
@@ -98,10 +103,11 @@ protected:
 public:
 	_FlatHeuristic(Reward v)
 	: _v(v) { }
-	virtual Reward getPotential(const State& s) {
+	virtual ~_FlatHeuristic() { }
+	virtual Reward getPotential(const State& s) override {
 		return _v;
 	}
-	virtual Reward getPotential(const State& s, const Action& a) {
+	virtual Reward getPotential(const State& s, const Action& a) override {
 		return _v;
 	}
 };
@@ -120,6 +126,8 @@ protected:
 	_QTable(Heuristic potential)
 	: _potential(potential) { }
 public:
+	virtual ~_QTable() { }
+
 	virtual Reward getQ(const State& s, const Action& a) = 0;
 	virtual void setQ(const State& s, const Action& a, Reward r) = 0;
 	virtual Action getBestAction(const State& s) = 0;
@@ -135,6 +143,7 @@ typedef boost::shared_ptr<_QTable> QTable;
  */
 class _Planner {
 public:
+	virtual ~_Planner() { }
 	virtual Action getAction(const State& s) = 0;
 };
 typedef boost::shared_ptr<_Planner> Planner;
@@ -148,7 +157,8 @@ protected:
 public:
 	_RandomPlanner(const Domain& domain)
 	: _domain(domain) { }
-	virtual Action getAction(const State& s) {
+	virtual ~_RandomPlanner() { }
+	virtual Action getAction(const State& s) override {
 		Size numActions = _domain->getNumActions();
 		Index actionIndex = random()%numActions;
 		Action a(_domain, actionIndex);
@@ -162,6 +172,7 @@ typedef boost::shared_ptr<_RandomPlanner> RandomPlanner;
  */
 class _Learner {
 public:
+	virtual ~_Learner() { }
 	/**
 	 * Returns true if this observation changed what the learner knows. Allows
 	 * agents to only trigger the planner when necessary.
@@ -183,6 +194,7 @@ protected:
 public:
 	_Agent(Planner planner);
 	_Agent(Planner planner, Learner learner);
+	virtual ~_Agent() { }
 
 	virtual void begin(const State& s);
 	virtual void end();
@@ -204,6 +216,8 @@ typedef boost::shared_ptr<_Agent> Agent;
  */
 class _Environment {
 public:
+	virtual ~_Environment() { }
+
 	virtual State begin() = 0;
 	virtual bool isTerminated() = 0;
 	virtual Observation getObservation(const Action& a) = 0;
@@ -230,6 +244,8 @@ typedef boost::shared_ptr<_Experiment> Experiment;
  * learner be one thing without having to do runtime type checking to verify.
  */
 class _MDPLearner : public _MDP, public _Learner {
+public:
+	virtual ~_MDPLearner() { }
 };
 typedef boost::shared_ptr<_MDPLearner> MDPLearner;
 

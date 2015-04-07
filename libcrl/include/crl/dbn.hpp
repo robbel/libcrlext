@@ -88,6 +88,7 @@ public:
   /// \brief Initialize this \a DBNFactor for a specific factor in the domain.
   ///
   _DBNFactor(const Domain& domain, Size target);
+  virtual ~_DBNFactor() { }
 
   void addDelayedDependency(Size index);
   const SizeVec& getDelayedDependencies() const { return _delayed_dep; }

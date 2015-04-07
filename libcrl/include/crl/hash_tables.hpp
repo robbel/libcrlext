@@ -87,6 +87,8 @@ template <class T>
 class _HStateTable : public _HashTable<T>, public _StateTable<T> {
 	_StateSet _states;
 public:
+	virtual ~_HStateTable() { }
+
 	using _HashTable<T>::getValue;
 	virtual T& getValue(const State& s) {
 		return _HashTable<T>::getValue(s);
@@ -105,6 +107,7 @@ template <class T>
 class _HActionTable : public _HashTable<T>, public _ActionTable<T> {
 	_ActionSet _actions;
 public:
+	virtual ~_HActionTable() { }
 	virtual T& getValue(const Action& a) {
 		return _HashTable<T>::getValue(a);
 	}
@@ -133,6 +136,8 @@ public:
 	: _domain(domain), _sa_values(alloc_hash_map<Size,std::vector<T>,SizeHash>(num_buckets)) { }
 	_HStateActionTable(const Domain& domain, T initial, Size num_buckets=1000)
 	: _domain(domain), _sa_values(alloc_hash_map<Size,std::vector<T>,SizeHash>(num_buckets)), _initial(initial) { }
+	virtual ~_HStateActionTable() { }
+
 	virtual void clear() {
 		_sa_values.clear();
 	}
@@ -162,6 +167,7 @@ protected:
 	Reward _initial;
 public:
 	_HQTable(const Domain& domain, Size num_buckets=1000);
+	virtual ~_HQTable() { }
 
 	virtual Reward getQ(const State& s, const Action& a) {
 		return _HStateActionTable<Reward>::getValue(s, a);
@@ -184,6 +190,7 @@ class _HStateDistribution : public _Distribution<State> {
 	_StateSet _known_states;
 public:
 	_HStateDistribution(const Domain& domain);
+	virtual ~_HStateDistribution() { }
 	virtual StateIterator iterator() {
 		StateIterator itr = boost::make_shared<_StateSetIterator>(_known_states);
 		return itr;
@@ -208,7 +215,7 @@ protected:
 	SASCountTable _count_sa_s;
 public:
 	_HCounter(const Domain& domain);
-	~_HCounter() { }
+	virtual ~_HCounter() { }
 	/**
 	 * returns an iterator over all observed next states to s,a
 	 */
@@ -230,6 +237,7 @@ protected:
 	_HStateTable<StateSet> _predecessors;
 public:
 	_HMDP(const Domain& domain);
+	virtual ~_HMDP() { }
 	const Domain getDomain() {return _domain;}
 	virtual StateIterator S();
 	virtual StateIterator predecessors(const State& s);

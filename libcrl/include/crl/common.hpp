@@ -108,6 +108,10 @@ public:
 		return _action_ranges.size();
 	}
 
+	Size size() const {
+	  return _num_states * _num_actions;
+	}
+
 	void addStateFactor(Factor min, Factor max, std::string name="");
 	void addActionFactor(Factor min, Factor max, std::string name="");
 };
@@ -146,9 +150,7 @@ protected:
 	RLType(const RangeVec* ranges, const SizeVec* components, Size index)
 	: _ranges(ranges), _components(components), _index(index) { }
 public:
-	virtual ~RLType() { }
-
-	virtual Size size() const {
+	Size size() const {
 		if (!_ranges) {
 			throw NullObjectException();
 		}
@@ -158,7 +160,7 @@ public:
 	///
 	/// \brief set the value associated with the \a Factor at \a index
 	///
-	virtual void setFactor(Size index, Factor data) {
+	void setFactor(Size index, Factor data) {
 		if (!_ranges) {
 			throw NullObjectException();
 		}
@@ -170,7 +172,7 @@ public:
 	///
 	/// \brief get the value associated with the \a Factor at \a index.
 	///
-	virtual const Factor getFactor(Size index) const {
+	const Factor getFactor(Size index) const {
 		if (!_ranges) {
 			throw NullObjectException();
 		}
@@ -196,7 +198,7 @@ public:
 	operator Size() const {
 		return _index;
 	}
-	virtual void print(std::ostream& os) const;
+	void print(std::ostream& os) const;
 	bool operator<(const RLType& r) const {
 		return getIndex() < r.getIndex();
 	}
@@ -227,7 +229,6 @@ public:
 	: RLType(&(domain->getStateRanges()),
 		 &(domain->getStateIndexComponents()),
 		 index) { }
-	virtual ~State() { }
 };
 
 ///
@@ -246,7 +247,6 @@ public:
 	: RLType(&(domain->getActionRanges()),
 		 &(domain->getActionIndexComponents()),
 		 index) { }
-	virtual ~Action() { }
 };
 
 inline std::ostream& operator<<(std::ostream& os, const State& s) {

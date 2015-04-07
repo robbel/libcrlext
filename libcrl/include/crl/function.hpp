@@ -73,12 +73,17 @@ public:
       join(func);
     }
   }
+  /// \brief dtor
+  virtual ~_DiscreteFunction() { }
 
   /// \brief Return subdomain associated with this function
   /// \note Only available after call to \a computeSubdomain()
   Domain getSubdomain() const {
     assert(_computed);
     return _subdomain;
+  }
+  std::string getName() const {
+    return _name;
   }
   /// \brief Computes the subdomain associated with this function
   virtual void computeSubdomain() {

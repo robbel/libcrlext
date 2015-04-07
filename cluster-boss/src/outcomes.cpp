@@ -614,7 +614,7 @@ void _ClusterMDP::printXML(std::ostream& os) {
 	Cluster c = _clusters.getValue(State(_domain, 2));
 	ActionIterator aitr(new _ActionIncrementIterator(_domain));
 	while (aitr->hasNext()) {
-		Action a = aitr->next();
+		//Action a = aitr->next();
 		//c->calcProbs(a);
 	}
 	_MDP::printXML(os);

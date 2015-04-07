@@ -55,18 +55,18 @@ public:
   //
 
   /// \brief Return value of (global) \a State js
-  virtual Reward getV(const State& js) const;
+  Reward getV(const State& js) const;
   /// \brief Return value of (global) \a State s
-  virtual Reward eval(const State& js) const {
+  Reward eval(const State& js) const {
     return getV(js);
   }
   /// \brief Return the best action in (global) \a State js
   /// \note Runs distributed action selection via variable elimination in the coordination graph
-  virtual Action getBestAction(const State& js) const;
+  Action getBestAction(const State& js) const;
   /// \brief Return the best action in (global) \a State js
   /// \note Runs distributed action selection via variable elimination (given an \a elimination order) in the coordination graph
   /// \note The elimination order is over states and actions, {v1, v2, ..., vZ}, where a value vJ = |num_state_factors|+K denotes action factor K.
-  virtual Action getBestAction(const State& js, const SizeVec& elimination_order) const;
+  Action getBestAction(const State& js, const SizeVec& elimination_order) const;
 
 };
 typedef boost::shared_ptr<_FactoredValueFunction> FactoredValueFunction;

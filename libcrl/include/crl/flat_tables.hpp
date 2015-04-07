@@ -73,6 +73,7 @@ public:
 	: _FlatTable<T>(domain->getNumActions()), _set_actions(new _ActionSet()) { }
 	_FActionTable(const Domain& domain, T initial)
 	: _FlatTable<T>(domain->getNumActions(), initial), _set_actions(new _ActionSet()) { }
+	virtual ~_FActionTable() { }
 
 	// ActionTable interface
 	using _FlatTable<T>::setValue;
@@ -108,6 +109,7 @@ public:
 	: _FlatTable<T>(domain->getNumStates()), _set_states(new _StateSet()) { }
 	_FStateTable(const Domain& domain, T initial)
 	: _FlatTable<T>(domain->getNumStates(), initial), _set_states(new _StateSet()) { }
+	virtual ~_FStateTable() { }
 
 	// StateTable interface
 	using _FlatTable<T>::setValue;
@@ -148,6 +150,8 @@ public:
 	: _domain(domain), _sa_values(domain->getNumStates() * domain->getNumActions(), initial), _num_actions(domain->getNumActions()) {
 	  static_assert(sizeof(decltype(_sa_values.size())) >= 8, "vector size_t must be at least 64-bits");
 	}
+	virtual ~_FStateActionTable() { }
+
 	virtual void clear() {
 	  _sa_values = std::vector<T>(_domain->getNumStates() * _domain->getNumActions());
 	}
@@ -233,6 +237,7 @@ public:
 	_FQTable(const Domain& domain, Reward initial);
 	/// \brief ctor which supports a \a Heuristic for estimating q-values of each state
 	_FQTable(const Domain& domain, Heuristic potential);
+	virtual ~_FQTable() { }
 
 	// QTable interface
 	virtual Reward getQ(const State& s, const Action& a) override {
@@ -266,6 +271,7 @@ class _FStateDistribution : public _Distribution<State> {
 	_StateSet _known_states;
 public:
 	_FStateDistribution(const Domain& domain);
+	virtual ~_FStateDistribution() { }
 	virtual StateIterator iterator() override {
 		StateIterator itr = boost::make_shared<_StateSetIterator>(_known_states);
 		return itr;

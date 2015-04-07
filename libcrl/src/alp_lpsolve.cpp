@@ -27,12 +27,35 @@ _LP::~_LP() {
 
 int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const SizeVec& elim_order) {
   F.clear();
-  // generate equality constraints to abstract away basis functions
+
+  // compute lower bound on lp size
+  int lp_vars = 0;
   for(const auto& f : C) {
+      lp_vars += f->getSubdomain()->size();
+  }
+  for(const auto& f : b) {
+      lp_vars += f->getSubdomain()->size();
+  }
+
+  // create LP with this number of variables (will require resizing later)
+  _lp = make_lp(0, lp_vars);
+  if(_lp == nullptr) {
+    return 1; // couldn't construct a new model
+  }
+
+  // generate equality constraints to abstract away basis functions
+//  int var = 1; // 1-offset
+  for(RFunctionVec::size_type i = 0; i < C.size(); i++) {
+      const DiscreteFunction<Reward>& f = C[i];
       _StateActionIncrementIterator saitr(f->getSubdomain());
       while(saitr.hasNext()) {
-          //const std::tuple<State,Action>& z = saitr.next();
-          // create new lp variable and add constraint
+//          const std::tuple<State,Action>& z = saitr.next();
+//          const State& s = std::get<0>(z);
+//          const Action& a = std::get<1>(z);
+//          // create new lp variable and add constraint
+//          set_col_name(_lp, var++, &std::string(f->getName() + s + a)[0]);
+
+
 
       }
       F.insert(f);
