@@ -83,7 +83,7 @@ TEST(ALPTest, LpSolveGenerationTest) {
   domain->setRewardRange(-1, 0);
 
   lpsolve::_LP lp(domain);
-  int res = lp.generateLP({}, {}, {1.,2.,3.}, {});
+  int res = lp.generateLP({}, {}, {1.,2.3,3.5}, {});
   EXPECT_EQ(res, 0) << "lpsolve generation failed with error code " << res; // else: lp successfully generated
 }
 

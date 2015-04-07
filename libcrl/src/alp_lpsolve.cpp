@@ -32,10 +32,11 @@ _LP::~_LP() {
 //
 
 int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vector<double>& alpha, const SizeVec& elim_order) {
+//assert(C.size() == alpha.size());
   F.clear();
 
   // compute lower bound on lp size (before variable elimination algorithm)
-  int lp_vars = C.size(); // corresponding to the w_i
+  int lp_vars = alpha.size(); // corresponding to the w_i
   for(const auto& f : C) {
       lp_vars += f->getSubdomain()->size(); // for each instantiation of C's subdomain
   }
@@ -50,7 +51,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   }
 
   // note the 1-offset in lpsolve
-  for(RFunctionVec::size_type w = 1; w <= C.size(); w++) {
+  for(RFunctionVec::size_type w = 1; w <= alpha.size(); w++) {
     set_col_name(_lp, w, &string("w"+to_string(w))[0]);
   }
 
@@ -59,21 +60,18 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   set_add_rowmode(_lp, TRUE);
 
   // objective function
-  // TODO: test whether mem has to stay around for solve() call or if it's internally copied in _lp!
   {
-    std::unique_ptr<int[]> colno(new int[C.size()]);
-    std::unique_ptr<REAL[]> row(new REAL[C.size()]);
-
-    int j = 0;
-    for(auto a : alpha) {
-        colno[j] = j+1; // 1-offset column numbers (corresponding to w_1, w_2, ...)
-        row[j++] = a;
-    }
-    // set the objective in lpsolve
-    if(!set_obj_fnex(_lp, j, row.get(), colno.get())) {
+    vector<REAL>& row = const_cast<vector<REAL>&>(alpha); // API interface requires non-const pointer
+    vector<int> colno = cpputil::ordered_vec(alpha.size(), 1); // 1-offset column numbering
+    if(!set_obj_fnex(_lp, row.size(), row.data(), colno.data())) {
         return 2; // objective function setting failed
     }
   }
+
+  // debug out
+  set_add_rowmode(_lp, FALSE);
+  write_LP(_lp, stdout);
+
 #if 0
   // generate equality constraints to abstract away basis functions
   int var = C.size()+1; // 1-offset
