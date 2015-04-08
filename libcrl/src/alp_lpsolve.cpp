@@ -10,6 +10,7 @@
  */
 
 #include "crl/alp_lpsolve.hpp"
+#include <unordered_map>
 
 using namespace crl;
 using namespace std;
@@ -73,12 +74,14 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   //
   // generate equality constraints to abstract away basis functions
   //
+  std::unordered_map<const _DiscreteFunction<Reward>*, int> var_offset; // store function -> lp variable offset
   int var = alpha.size()+1; // insert more variables
   int wi = 1; // corresponding to active w_i variable
   int colno[2];
   REAL row[2];
   for(const auto& f : C) {
       const _FDiscreteFunction<Reward>* pf = static_cast<_FDiscreteFunction<Reward>*>(f.get()); // assumption: flat representation
+      var_offset.insert({pf,var});
       const vector<Reward>& vals = pf->values(); // optimization: direct access of all values in subdomain
       _StateActionIncrementIterator saitr(f->getSubdomain());
       for(auto v : vals) {
@@ -108,6 +111,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   //
   for(const auto& f : b) {
       const _FDiscreteFunction<Reward>* pf = static_cast<_FDiscreteFunction<Reward>*>(f.get()); // assumption: flat representation
+      var_offset.insert({pf,var});
       const vector<Reward>& vals = pf->values(); // optimization: direct access of all values in subdomain
       _StateActionIncrementIterator saitr(f->getSubdomain());
       for(auto v : vals) {
