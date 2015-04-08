@@ -126,6 +126,7 @@ inline std::string translateSymbol(char* symbol) {
 
 class Exception {
 protected:
+#if 0
 	void createTrace() {
 		void* array[25];
 		int nSize = backtrace(array, 25);
@@ -139,11 +140,14 @@ protected:
 
 		free(symbols);
 	}
+#endif
 	Exception(std::string name, std::string what) {
 		this->name = name;
 		if (what != "")
 			this->what = what;
+#if 0
 		createTrace();
+#endif
     }
 public:
 	std::string name;
@@ -152,7 +156,9 @@ public:
 	Exception(std::string what) {
 		this->name = "Exception";
 		this->what = what;
+#if 0
 		createTrace();
+#endif
     }
 	operator std::string() {return what;}
 };

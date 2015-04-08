@@ -82,9 +82,32 @@ TEST(ALPTest, LpSolveGenerationTest) {
   domain->addActionFactor(0, 1, "agent1");  // 2 actions
   domain->setRewardRange(-1, 0);
 
-  lpsolve::_LP lp(domain);
-  int res = lp.generateLP({}, {}, {1.,2.3,3.5}, {});
-  EXPECT_EQ(res, 0) << "lpsolve generation failed with error code " << res; // else: lp successfully generated
+  const State s(domain, 1);
+  const State s2(domain,2);
+  const Action a(domain, 0);
+
+  {
+    lpsolve::_LP lp(domain);
+    int res = lp.generateLP({}, {}, {1.,2.3,3.5}, {});
+    EXPECT_EQ(res, 0) << "lpsolve generation failed with error code " << res; // else: lp successfully generated
+  }
+
+  // more complex lp generation example
+  _FDiscreteFunction<Reward> f1(domain); // function over complete domain
+
+  f1.addStateFactor(0);
+  f1.addStateFactor(1);
+  f1.addActionFactor(0);
+  f1.pack();
+  f1.define(s,a,1.);
+  _FDiscreteFunction<Reward> f2(domain); // function over complete domain
+  f2.addStateFactor(0);
+  f2.pack();
+  f2.define(s2,a,-2.);
+  // mix the functions up a little bit
+  f1-=f2;
+
+  SUCCEED();
 }
 
 #if 0 // example invokation:

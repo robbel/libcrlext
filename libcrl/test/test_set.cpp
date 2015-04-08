@@ -132,11 +132,15 @@ TEST(FunctionSetTest, FunctionAdditionTest) {
   EXPECT_EQ(f.eval(s,a), 3);
   EXPECT_EQ(f.eval(s2,a), 4);
 
+  f -= f2;
+  EXPECT_EQ(f.eval(s,a), 3);
+  EXPECT_EQ(f.eval(s2,a), 0);
+
   f *= 2;
   EXPECT_EQ(f.eval(s,a), 6);
-  EXPECT_EQ(f.eval(s2,a), 8);
-  EXPECT_DOUBLE_EQ(algorithm::sum_over_domain(&f,false), 14.);
-  EXPECT_DOUBLE_EQ(algorithm::sum_over_domain(&f,true), 14.);
+  EXPECT_EQ(f.eval(s2,a), 0);
+  EXPECT_DOUBLE_EQ(algorithm::sum_over_domain(&f,false), 6.);
+  EXPECT_DOUBLE_EQ(algorithm::sum_over_domain(&f,true), 6.);
 
   //
   // examples where f2 has reduced scope and is subtracted from f
