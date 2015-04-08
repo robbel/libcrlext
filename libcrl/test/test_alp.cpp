@@ -102,7 +102,7 @@ TEST(ALPTest, LpSolveGenerationTest) {
   FDiscreteFunction<Reward> f2 = boost::make_shared<_FDiscreteFunction<Reward>>(domain); // function over complete domain
   f2->addStateFactor(0);
   f2->pack();
-  f2->define(s2,a,-2.);
+  f2->define(s2,a,-2.5);
   // mix the functions up a little bit
   *f1-=*f2;
 

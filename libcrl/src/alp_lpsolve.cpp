@@ -74,24 +74,33 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   // generate equality constraints to abstract away basis functions
   //
   int var = alpha.size()+1; // insert more variables
-  int fi = 1; // corresponding to active w_i variable
+  int wi = 1; // corresponding to active w_i variable
+  int colno[2];
+  REAL row[2];
   for(const auto& f : C) {
       const _FDiscreteFunction<Reward>* pf = static_cast<_FDiscreteFunction<Reward>*>(f.get()); // assumption: flat representation
       const vector<Reward>& vals = pf->values(); // optimization: direct access of all values in subdomain
       _StateActionIncrementIterator saitr(f->getSubdomain());
       for(auto v : vals) {
-          const std::tuple<State,Action>& z = saitr.next();
-          // create new lp variable
-          const State& s = std::get<0>(z);
-          const Action& a = std::get<1>(z);
-          string varname = "f" + to_string(fi) + "@s: " + to_string(s.getIndex()) + ", a: " + to_string(a.getIndex());
-          set_col_name(_lp, var++, &varname[0]);
+//          const std::tuple<State,Action>& z = saitr.next();
+//          // create new lp variable
+//          const State& s = std::get<0>(z);
+//          const Action& a = std::get<1>(z);
+//          string varname = "[f" + to_string(wi) + "@s:" + to_string(s.getIndex()) + ",a:" + to_string(a.getIndex()) + "]";
+//          set_col_name(_lp, var, &varname[0]);
+//          //cout << varname << ": " << v << endl;
           // add lpsolve constraint corresponding to w_i
-          // todo ...
-          cout << v << endl;
+          int j = 0;
+          colno[j] = wi;
+          row[j++] = v;
+          colno[j] = var++;
+          row[j++] = -1;
+          if(!add_constraintex(_lp, j, row, colno, EQ, 0)) {
+              return 3; // adding of constraint failed
+          }
       }
       F.insert(std::move(f)); // TODO move ok here?
-      fi++;
+      wi++;
   }
 
   //
@@ -102,18 +111,22 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       const vector<Reward>& vals = pf->values(); // optimization: direct access of all values in subdomain
       _StateActionIncrementIterator saitr(f->getSubdomain());
       for(auto v : vals) {
-          const std::tuple<State,Action>& z = saitr.next();
-          // create new lp variable
-          const State& s = std::get<0>(z);
-          const Action& a = std::get<1>(z);
-          string varname = "b" + to_string(fi) + "@s: " + to_string(s.getIndex()) + ", a: " + to_string(a.getIndex());
-          set_col_name(_lp, var++, &varname[0]);
+//          const std::tuple<State,Action>& z = saitr.next();
+//          // create new lp variable
+//          const State& s = std::get<0>(z);
+//          const Action& a = std::get<1>(z);
+//          string varname = "b" + to_string(wi) + "@s:" + to_string(s.getIndex()) + ",a:" + to_string(a.getIndex());
+//          set_col_name(_lp, var, &varname[0]);
+//          // cout << varname << ": " << v << endl;
           // add lpsolve equality constraint
-          // todo ...
-          cout << v << endl;
+          int j = 0;
+          colno[j] = var++;
+          row[j++] = 1;
+          if(!add_constraintex(_lp, j, row, colno, EQ, v)) {
+              return 4; // adding of constraint failed
+          }
       }
-      F.insert(f);
-      fi++;
+      F.insert(std::move(f));
   }
 
   //
