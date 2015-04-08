@@ -93,21 +93,24 @@ TEST(ALPTest, LpSolveGenerationTest) {
   }
 
   // more complex lp generation example
-  _FDiscreteFunction<Reward> f1(domain); // function over complete domain
-
-  f1.addStateFactor(0);
-  f1.addStateFactor(1);
-  f1.addActionFactor(0);
-  f1.pack();
-  f1.define(s,a,1.);
-  _FDiscreteFunction<Reward> f2(domain); // function over complete domain
-  f2.addStateFactor(0);
-  f2.pack();
-  f2.define(s2,a,-2.);
+  FDiscreteFunction<Reward> f1 = boost::make_shared<_FDiscreteFunction<Reward>>(domain); // function over complete domain
+  f1->addStateFactor(0);
+  f1->addStateFactor(1);
+  f1->addActionFactor(0);
+  f1->pack();
+  f1->define(s,a,1.);
+  FDiscreteFunction<Reward> f2 = boost::make_shared<_FDiscreteFunction<Reward>>(domain); // function over complete domain
+  f2->addStateFactor(0);
+  f2->pack();
+  f2->define(s2,a,-2.);
   // mix the functions up a little bit
-  f1-=f2;
+  *f1-=*f2;
 
-  SUCCEED();
+  {
+    lpsolve::_LP lp(domain);
+    int res = lp.generateLP({f1, f2}, {}, {1.,2.3,3.5}, {});
+    EXPECT_EQ(res, 0) << "lpsolve generation failed with error code " << res; // else: lp successfully generated
+  }
 }
 
 #if 0 // example invokation:

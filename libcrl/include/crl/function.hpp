@@ -526,6 +526,8 @@ public:
       return *this;
     }
 };
+template<class T>
+using FDiscreteFunction = boost::shared_ptr<_FDiscreteFunction<T>>;
 
 //
 // Some useful functions
