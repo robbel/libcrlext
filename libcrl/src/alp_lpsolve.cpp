@@ -115,7 +115,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
 //          // create new lp variable
 //          const State& s = std::get<0>(z);
 //          const Action& a = std::get<1>(z);
-//          string varname = "b" + to_string(wi) + "@s:" + to_string(s.getIndex()) + ",a:" + to_string(a.getIndex());
+//          string varname = "b" + "@s:" + to_string(s.getIndex()) + ",a:" + to_string(a.getIndex());
 //          set_col_name(_lp, var, &varname[0]);
 //          // cout << varname << ": " << v << endl;
           // add lpsolve equality constraint
@@ -129,9 +129,17 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       F.insert(std::move(f));
   }
 
+  // sanity check
+  if(get_Ncolumns(_lp) != lp_vars) {
+      return 5; // not all lp variables have been added
+  }
+
   //
   // Now F contains all the functions involved in the LP. Run variable elimination to generate constraints
   //
+
+  std::cout << "number of unique factors (S,A): " << F.getNumFactors() << std::endl;
+
   using range = decltype(F)::range;
   const Size num_states = _domain->getNumStateFactors();
   for(Size var : elim_order) {
@@ -145,6 +153,8 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
           F.eraseActionFactor(var-num_states);
       }
   }
+
+  std::cout << "number of unique factors (S,A): " << F.getNumFactors() << " and size: " << F.size() << std::endl;
 
   // debug out
   set_add_rowmode(_lp, FALSE);
