@@ -273,7 +273,7 @@ template <class T>
 class Iterator {
 public:
 	virtual const T& next() = 0;
-	virtual bool hasNext() = 0;
+	virtual bool hasNext() const = 0;
 	virtual void reset() = 0;
 };
 
@@ -283,7 +283,7 @@ public:
 	virtual const T& next() override {
 		throw IteratorException("calling next on empty iterator");
 	}
-	virtual bool hasNext() override {
+	virtual bool hasNext() const override {
 		return false;
 	}
 	virtual void reset() override { }
@@ -316,7 +316,7 @@ public:
 		++_itr;
 		return t;
 	}
-	virtual bool hasNext() override {
+	virtual bool hasNext() const override {
 		return _itr != _end;
 	}
 	virtual void reset() override {
@@ -351,7 +351,7 @@ public:
 		++_itr;
 		return t;
 	}
-	virtual bool hasNext() override {
+	virtual bool hasNext() const override {
 		return _itr != _end;
 	}
 	virtual void reset() override {
@@ -362,7 +362,7 @@ public:
 ///
 /// \brief Forward iterator for a value range from a map
 ///
-template <class M, class T>
+template <class T, class M>
 class MapValueRangeIterator : public Iterator<T> {
   typename M::iterator _begin;
   typename M::iterator _end;
@@ -380,7 +380,7 @@ public:
     ++_itr;
     return t;
   }
-  virtual bool hasNext() override {
+  virtual bool hasNext() const override {
     return _itr != _end;
   }
   virtual void reset() override {
@@ -413,10 +413,10 @@ public:
 		if (_itr == _end)
 			throw IteratorException("Attempting to get next element of exhausted iterator");
 		const T& t = *_itr;
-		_itr++;
+		++_itr;
 		return t;
 	}
-	virtual bool hasNext() override {
+	virtual bool hasNext() const override {
 		return _itr != _end;
 	}
 	virtual void reset() override {
@@ -445,10 +445,10 @@ public:
 		if (_itr == _end)
 			throw IteratorException("Attempting to get next element of exhausted iterator");
 		const T& t = *_itr;
-		_itr++;
+		++_itr;
 		return t;
 	}
-	virtual bool hasNext() override {
+	virtual bool hasNext() const override {
 		return _itr != _end;
 	}
 	virtual void reset() override {

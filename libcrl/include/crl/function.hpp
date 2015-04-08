@@ -36,6 +36,9 @@ template<class T> T sum_over_domain(const crl::_DiscreteFunction<T>* pf, bool kn
 
 } // namespace algorithm
 
+// instead of typedef (which needs full type)
+template<class T>
+using DiscreteFunction = boost::shared_ptr<_DiscreteFunction<T>>;
 
 /**
  * \brief An abstract interface for a discrete function defined over a subset of (either state or action) variables.
@@ -65,12 +68,16 @@ public:
   _DiscreteFunction(const Domain& domain, std::string name = "")
   : _domain(domain), _name(name), _computed(false) { }
   /// \brief Initialize this function's scope with the union of scopes of the ones in \a funcs
-  _DiscreteFunction(std::initializer_list<_DiscreteFunction<T>> funcs, std::string name = "")
+  _DiscreteFunction(std::initializer_list<DiscreteFunction<T>> funcs, std::string name = "")
+  : _DiscreteFunction(cpputil::ContainerIterator<DiscreteFunction<T>,std::initializer_list<DiscreteFunction<T>>>(funcs), name) { }
+  /// \brief Initialize this function's scope with the union of scopes of the ones in \a funcs
+  _DiscreteFunction(cpputil::Iterator<DiscreteFunction<T>>& funcs, std::string name = "")
   : _name(name), _computed(false) {
-    assert(funcs.size() != 0);
-    _domain = funcs.begin()->_domain; // same domain
-    for(const auto& func : funcs) {
-      join(func);
+    assert(funcs.hasNext());
+    _domain = funcs.next()->_domain; // same domain
+    funcs.reset();
+    while(funcs.hasNext()) {
+        join(*funcs.next());
     }
   }
   /// \brief dtor
@@ -258,12 +265,9 @@ public:
     return eval(s, Action());
   }
 };
-// instead of typedef (which needs full type)
-template<class T>
-using DiscreteFunction = boost::shared_ptr<_DiscreteFunction<T>>;
 
 template<class T>
-using FunctionSetIterator = cpputil::MapValueRangeIterator<std::multimap<Size, DiscreteFunction<T>>, DiscreteFunction<T>>;
+using FunctionSetIterator = cpputil::MapValueRangeIterator<DiscreteFunction<T>, std::multimap<Size, DiscreteFunction<T>>>;
 
 /**
  * \brief A many-to-many mapping from function scopes to particular functions
@@ -347,8 +351,10 @@ public:
   /// \brief ctor
   _EmptyFunction(const Domain& domain, std::string name = "")
   : _DiscreteFunction<T>(domain, name) { }
-  _EmptyFunction(std::initializer_list<_DiscreteFunction<T>> funcs, std::string name = "")
+  _EmptyFunction(std::initializer_list<DiscreteFunction<T>> funcs, std::string name = "")
   : _DiscreteFunction<T>(std::move(funcs), name) { }
+  _EmptyFunction(cpputil::Iterator<DiscreteFunction<T>>& funcs, std::string name = "")
+  : _DiscreteFunction<T>(funcs, name) { }
 
   virtual T eval(const State& s, const Action& a) const override {
       throw cpputil::InvalidException("calling eval on an empty function");

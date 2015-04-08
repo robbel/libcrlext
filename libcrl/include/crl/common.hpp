@@ -286,7 +286,7 @@ public:
 		_index++;
 		return _last;
 	}
-	bool hasNext() override {
+	bool hasNext() const override {
 		return _index < _domain->getNumStates();
 	}
 	void reset() override {
@@ -312,7 +312,7 @@ public:
 		_index++;
 		return _last;
 	}
-	bool hasNext() override {
+	bool hasNext() const override {
 		return _index < _domain->getNumActions();
 	}
 	void reset() override {
@@ -352,7 +352,7 @@ public:
         return _last_sa;
     }
 
-    bool hasNext() override {
+    bool hasNext() const override {
         return _flat_index < _num_elements;
     }
 
@@ -376,7 +376,7 @@ public:
 		_last.setIndex(random()%_domain->getNumStates());
 		return _last;
 	}
-	bool hasNext() override {
+	bool hasNext() const override {
 		return true;
 	}
 	void reset() override {
@@ -396,7 +396,7 @@ public:
 		_last.setIndex(random()%_domain->getNumActions());
 		return _last;
 	}
-	bool hasNext() override {
+	bool hasNext() const override {
 		return true;
 	}
 	void reset() override {

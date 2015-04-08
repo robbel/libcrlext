@@ -29,7 +29,7 @@ _LP::~_LP() {
 
 //
 // LP constraint/variable ordering:
-// first go w_i (for all funcs in C), then `equality' variables associated with C, then those with b.
+// first go w_i (for all funcs in C), then `equality' variables associated with C, then those with b, then those from variable elimination
 //
 
 int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vector<double>& alpha, const SizeVec& elim_order) {
@@ -144,21 +144,43 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
 
   std::cout << "number of unique factors (S,A): " << F.getNumFactors() << std::endl;
 
+  // perhaps resize lp here (depending on performance)
+
   using range = decltype(F)::range;
   const Size num_states = _domain->getNumStateFactors();
-  for(Size var : elim_order) {
+  for(Size v : elim_order) {
+      assert(v < num_states + _domain->getNumActionFactors());
+
+      // 1. collect all functions that have dependence on v: E
+      //      also obtain their offset into variable list
+      // 2. create new function e with joint scope sc[E] \ {v}      // implemented as `join()' or ctor.
+      // 3. add constraints:
+      //      for each dom[e], introduce variable u_z^e:
+      //          for each v add a constraint:
+      //          u_z^e >= \sum affected function instantiation variables..
+      //    store offset to beginning of those variables, as usual
+      //    store new function in FunctionSet
+
+
+
       // eliminate variable `v'
-      if(var < num_states) { // a state factor, as per convention
+      if(v < num_states) { // a state factor, as per convention
+          range r = F.getStateFactor(v);
+          _EmptyFunction<Reward> e(r);
+
+
           // todo
-          F.eraseStateFactor(var);
+          F.eraseStateFactor(v);
+          // could erase from var_offset hash table too
       }
       else { // an action factor
           // todo
-          F.eraseActionFactor(var-num_states);
+          F.eraseActionFactor(v-num_states);
+          // could erase from var_offset hash table too
       }
   }
 
-  std::cout << "number of unique factors (S,A): " << F.getNumFactors() << " and size: " << F.size() << std::endl;
+  std::cout << "number of unique factors (S,A) after elimination: " << F.getNumFactors() << " and size: " << F.size() << std::endl;
 
   // debug out
   set_add_rowmode(_lp, FALSE);

@@ -338,7 +338,7 @@ public:
       const subdom_map s_dom(this->getStateFactors());
       const subdom_map a_dom(this->getActionFactors());
       // efficient loop over all (s,a) pairs in backprojection domain
-      auto& vals = this->_sa_table->values();
+      auto& vals = this->values();
       for(T& v : vals) {
           const std::tuple<State,Action>& sa = saitr.next();
           v = 0.;
