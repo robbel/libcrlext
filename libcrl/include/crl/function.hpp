@@ -49,6 +49,19 @@ using DiscreteFunction = boost::shared_ptr<_DiscreteFunction<T>>;
  */
 template<class T>
 class _DiscreteFunction {
+  /// \brief template operator<< declared in place
+  friend std::ostream& operator<<(std::ostream &os, const _DiscreteFunction<T>& f) {
+    os << "f(S,A)=f({";
+    for(auto s : f._state_dom) {
+      os << s << ", ";
+    }
+    os << "},{";
+    for(auto a : f._action_dom) {
+      os << a << ", ";
+    }
+    os << "})";
+    return os;
+  }
 protected:
   /// \brief The (global) domain which includes all state and action factors
   Domain _domain;
@@ -86,7 +99,7 @@ public:
   /// \brief Return subdomain associated with this function
   /// \note Only available after call to \a computeSubdomain()
   Domain getSubdomain() const {
-    assert(_computed);
+    assert(_computed); // FIXME: can probably compute this on the fly if not yet done. Makes interface simpler.
     return _subdomain;
   }
   std::string getName() const {
@@ -277,14 +290,30 @@ using FunctionSetIterator = cpputil::MapValueRangeIterator<DiscreteFunction<T>, 
  */
 template<class T>
 class FunctionSet : private std::multimap<Size, DiscreteFunction<T>> {
+  /// \brief template operator<< declared in place
+  friend std::ostream& operator<<(std::ostream &os, const FunctionSet<T>& fset) {
+    os << "fset[ ";
+    for(const auto& f : fset) {
+        os << "[ " << f.first << ": " << *f.second << " ]";
+    }
+    os << " ]";
+    return os;
+  }
 private:
-  /// \brief type for iterator over multimap range
-  typedef std::pair<typename std::multimap<Size,DiscreteFunction<T>>::iterator,
-                    typename std::multimap<Size,DiscreteFunction<T>>::iterator> multimap_range;
-  /// The domain which includes all state and action factors
+  /// \brief Iterator type for this multimap
+  typedef typename std::multimap<Size, DiscreteFunction<T>>::iterator fset_iterator;
+  /// \brief The domain which includes all state and action factors
   const Domain _domain;
-  /// The index of the last state factor (where actions are inserted from)
+  /// \brief The index of the last state factor (where actions are inserted from)
   const Size _a_offset;
+  /// \brief Reverse lookup from an inserted \a DiscreteFunction to its iterators in the multimap
+  std::multimap<DiscreteFunction<T>, fset_iterator> reverse_lookup;
+  /// \brief Iterator for reverse lookups
+  typedef std::pair<typename std::multimap<DiscreteFunction<T>, fset_iterator>::iterator,
+                    typename std::multimap<DiscreteFunction<T>, fset_iterator>::iterator> reverse_range;
+  /// \brief Iterator for forward lookups
+  typedef std::pair<typename std::multimap<Size, DiscreteFunction<T>>::iterator,
+                    typename std::multimap<Size, DiscreteFunction<T>>::iterator> forward_range;
 public:
   /// \brief type for iterator over functions in this \a FunctionSet
   typedef FunctionSetIterator<T> range;
@@ -297,28 +326,60 @@ public:
     const SizeVec& s_scope = f->getStateFactors();
     const SizeVec& a_scope(f->getActionFactors());
     for(Size i : s_scope) {
-        this->emplace(i,f);
+        auto it = this->emplace(i,f);
+        reverse_lookup.emplace(f,it);
     }
     for(Size i : a_scope) {
-        this->emplace(i+_a_offset,f);
+        auto it = this->emplace(i+_a_offset,f);
+        reverse_lookup.emplace(f,it);
     }
   }
 
   /// \brief Erase all functions that depend on state factor `i'
   void eraseStateFactor(Size i) {
-    this->erase(i);
+    assert(i < _a_offset);
+    eraseFactor(i);
   }
   /// \brief Erase all functions that depend on action factor `i'
   void eraseActionFactor(Size i) {
-    this->erase(i+_a_offset);
+    eraseFactor(i+_a_offset);
+  }
+  /// \brief Erase all functions that depend on factor `i'
+  /// \note If `i' is greater than the number of state factors, it is assumed to be an action factor.
+  void eraseFactor(Size i) {
+    forward_range r = this->equal_range(i); // look up all such functions
+    while(r.first!=r.second) {
+        const DiscreteFunction<T>& f = r.first->second;
+        const reverse_range rr = reverse_lookup.equal_range(f); // list of iterators to delete
+        for(auto riter = rr.first; riter != rr.second; ) {
+            if(r.first == riter->second) { // invalidating myself
+              r.first = this->erase(riter->second);
+            }
+            else if(r.second == riter->second) { // invalidating the end of the range
+              r.second = this->erase(riter->second);
+            }
+            else { // no iterator will be invalidated by this erase
+              this->erase(riter->second);
+            }
+            ++riter;
+        }
+        // clean up reverse map (could be avoided)
+        reverse_lookup.erase(rr.first, rr.second);
+    }
   }
   /// \brief Get all functions that depend on state factor `i'
   range getStateFactor(Size i) {
+    assert(i < _a_offset);
     return range(this->equal_range(i));
   }
   /// \brief Get all functions that depend on action factor `i'
   range getActionFactor(Size i) {
     return range(this->equal_range(i+_a_offset));
+  }
+  /// \brief Get all functions that depend on factor `i'.
+  /// \note If `i' is greater than the number of state factors, it is assumed to be an action factor.
+  range getFactor(Size i) {
+    return range(this->equal_range(i));
   }
 
   /// \brief Number of elements in this std::multiset
@@ -337,7 +398,8 @@ public:
   }
   /// \brief Remove all elements from this std::multiset
   void clear() {
-    return std::multimap<Size, DiscreteFunction<T>>::clear();
+    std::multimap<Size, DiscreteFunction<T>>::clear();
+    reverse_lookup.clear();
   }
 
 };

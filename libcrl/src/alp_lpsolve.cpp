@@ -83,7 +83,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       const _FDiscreteFunction<Reward>* pf = static_cast<_FDiscreteFunction<Reward>*>(f.get()); // assumption: flat representation
       var_offset.insert({pf,var});
       const vector<Reward>& vals = pf->values(); // optimization: direct access of all values in subdomain
-      _StateActionIncrementIterator saitr(f->getSubdomain());
+//    _StateActionIncrementIterator saitr(f->getSubdomain());
       for(auto v : vals) {
 //          const std::tuple<State,Action>& z = saitr.next();
 //          // create new lp variable
@@ -113,7 +113,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       const _FDiscreteFunction<Reward>* pf = static_cast<_FDiscreteFunction<Reward>*>(f.get()); // assumption: flat representation
       var_offset.insert({pf,var});
       const vector<Reward>& vals = pf->values(); // optimization: direct access of all values in subdomain
-      _StateActionIncrementIterator saitr(f->getSubdomain());
+//    _StateActionIncrementIterator saitr(f->getSubdomain());
       for(auto v : vals) {
 //          const std::tuple<State,Action>& z = saitr.next();
 //          // create new lp variable
@@ -137,6 +137,9 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   if(get_Ncolumns(_lp) != lp_vars) {
       return 5; // not all lp variables have been added
   }
+  if(var != lp_vars+1) {
+      return 6; // sanity check
+  }
 
   //
   // Now F contains all the functions involved in the LP. Run variable elimination to generate constraints
@@ -153,7 +156,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
 
       // 1. collect all functions that have dependence on v: E
       //      also obtain their offset into variable list
-      // 2. create new function e with joint scope sc[E] \ {v}      // implemented as `join()' or ctor.
+      // 2. create new function e with joint scope sc[E] \ {v}    // implemented via `join()' or ctor.
       // 3. add constraints:
       //      for each dom[e], introduce variable u_z^e:
       //          for each v add a constraint:
@@ -161,30 +164,83 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       //    store offset to beginning of those variables, as usual
       //    store new function in FunctionSet
 
-
-
-      // eliminate variable `v'
-      if(v < num_states) { // a state factor, as per convention
-          range r = F.getStateFactor(v);
-          _EmptyFunction<Reward> e(r);
-
-
-          // todo
-          F.eraseStateFactor(v);
-          // could erase from var_offset hash table too
+      // eliminate variable `v' (either state or action)
+      range r = F.getFactor(v);
+      EmptyFunction<Reward> E = boost::make_shared<_EmptyFunction<Reward>>(r); // construct new function merely for domain computations
+      E->computeSubdomain();
+      Domain prev_dom_E = E->getSubdomain(); // which still includes v
+      const subdom_map s_dom(E->getStateFactors());
+      const subdom_map a_dom(E->getActionFactors());
+      if(v < num_states) {
+        E->eraseStateFactor(v);
       }
-      else { // an action factor
-          // todo
-          F.eraseActionFactor(v-num_states);
-          // could erase from var_offset hash table too
+      else {
+        E->eraseActionFactor(v-num_states);
       }
+      std::cout << "eliminating " << v << std::endl;
+      E->computeSubdomain();
+
+      std::cout << "new function E contains factor deps: " << std::endl;
+      for(auto s : E->getStateFactors()) { std::cout << s << " (state)" << std::endl; }
+      for(auto a : E->getActionFactors()) { std::cout << a + num_states << " (action)" << std::endl; }
+
+      // generate constraints
+      _StateActionIncrementIterator saitr(prev_dom_E);
+      var_offset.insert({E.get(),var}); // its variable offset
+      while(saitr.hasNext()) {
+          const std::tuple<State,Action>& z = saitr.next();
+          const State& s = std::get<0>(z);
+          const Action& a = std::get<1>(z);
+          // reduced state in E
+          State ms = E->mapState(s,s_dom);
+          Action ma = E->mapAction(a,a_dom);
+          // translate this reduced (ms,ma) pair into an LP variable offset (laid out as s0,a0;s0,a1;...)
+          const int offset_E = var + ms.getIndex() * E->getSubdomain()->getNumActions() + ma.getIndex();
+          // build constraint
+          vector<REAL> row; // TODO: move up
+          vector<int> colno; // 1-offset column numbering
+          colno.push_back(offset_E);
+          row.push_back(-1);
+
+          r.reset();
+          while(r.hasNext()) { // over all functions
+              const DiscreteFunction<Reward>& f = r.next();
+              // obtain their offset into variable list
+              const int offset = var_offset.at(f.get());
+              // obtain reduced state
+              ms = f->mapState(s,s_dom);
+              ma = f->mapAction(a,a_dom);
+              // translate this reduced (ms,ma) pair into LP variable offset (laid out as s0,a0;s0,a1;...)
+              const int f_offset = offset + ms.getIndex() * f->getSubdomain()->getNumActions() + ma.getIndex();
+
+              colno.push_back(f_offset);
+              row.push_back(1);
+
+              if(!add_constraintex(_lp, row.size(), row.data(), colno.data(), LE, 0)) {
+                  return 7; // adding of constraint failed
+              }
+          }
+      }
+
+      std::cout << "before erase of factor: " << v << std::endl;
+      std::cout << F << std::endl;
+
+      F.eraseFactor(v);
+      // could erase from var_offset hash table too
+      F.insert(E);
+      // update var count
+      var = get_Ncolumns(_lp) + 1;
+
+      std::cout << "after erase and insert: " << std::endl;
+      std::cout << F << std::endl;
+
   }
 
   std::cout << "number of unique factors (S,A) after elimination: " << F.getNumFactors() << " and size: " << F.size() << std::endl;
 
   // debug out
   set_add_rowmode(_lp, FALSE);
-  write_LP(_lp, stdout);
+//  write_LP(_lp, stdout);
 
   // add remaining constraints
   // \f$\phi \geq \ldots\f$
