@@ -238,6 +238,10 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
 
   std::cout << "number of unique factors (S,A) after elimination: " << F.getNumFactors() << " and size: " << F.size() << std::endl;
 
+  if(!F.empty()) {
+      return 8; // functions remain in function set: variable elimination failed
+  }
+
   // debug out
   set_add_rowmode(_lp, FALSE);
 //  write_LP(_lp, stdout);

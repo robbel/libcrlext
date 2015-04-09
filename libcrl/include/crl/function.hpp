@@ -202,7 +202,7 @@ public:
   }
   /// \brief Erase state factor `i' from the scope of this function
   virtual void eraseStateFactor(Size i) {
-    assert(i < _state_dom.size());
+    assert(i < _domain->getNumStateFactors());
     SizeVec::iterator it = std::lower_bound(_state_dom.begin(), _state_dom.end(), i);
     if(it != _state_dom.end()) {
       _state_dom.erase(it);
@@ -211,7 +211,7 @@ public:
   }
   /// \brief Erase action factor `i' from the scope of this function
   virtual void eraseActionFactor(Size i) {
-    assert(i < _action_dom.size());
+    assert(i < _domain->getNumActionFactors());
     SizeVec::iterator it = std::lower_bound(_action_dom.begin(), _action_dom.end(), i);
     if(it != _action_dom.end()) {
       _action_dom.erase(it);
@@ -352,18 +352,26 @@ public:
         const DiscreteFunction<T>& f = r.first->second;
         const reverse_range rr = reverse_lookup.equal_range(f); // list of iterators to delete
         for(auto riter = rr.first; riter != rr.second; ) {
+            bool erased = false;
             if(r.first == riter->second) { // invalidating myself
               r.first = this->erase(riter->second);
+              erased = true;
             }
-            else if(r.second == riter->second) { // invalidating the end of the range
-              r.second = this->erase(riter->second);
+            if(r.second == riter->second) { // invalidating the end of the range
+                if(!erased) {
+                    r.second = this->erase(riter->second);
+                }
+                else {
+                    r.second = r.first;
+                }
+                erased = true;
             }
-            else { // no iterator will be invalidated by this erase
+            if(!erased) { // no iterator will be invalidated by this erase
               this->erase(riter->second);
             }
             ++riter;
         }
-        // clean up reverse map (could be avoided)
+        // clean up reverse map (optional)
         reverse_lookup.erase(rr.first, rr.second);
     }
   }
@@ -401,7 +409,10 @@ public:
     std::multimap<Size, DiscreteFunction<T>>::clear();
     reverse_lookup.clear();
   }
-
+  /// \brief True iff this \a FunctionSet is empty
+  bool empty() const {
+    return std::multimap<Size, DiscreteFunction<T>>::empty();
+  }
 };
 
 /**
