@@ -149,6 +149,8 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
 
   // perhaps resize lp here (depending on performance)
 
+  std::vector<DiscreteFunction<Reward>> empty_fns;
+
   using range = decltype(F)::range;
   const Size num_states = _domain->getNumStateFactors();
   for(Size v : elim_order) {
@@ -156,7 +158,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
 
       // 1. collect all functions that have dependence on v: E
       //      also obtain their offset into variable list
-      // 2. create new function e with joint scope sc[E] \ {v}    // implemented via `join()' or ctor.
+      // 2. create new function e with joint scope sc[E] \ {v}
       // 3. add constraints:
       //      for each dom[e], introduce variable u_z^e:
       //          for each v add a constraint:
@@ -179,6 +181,10 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       }
       std::cout << "eliminating " << v << std::endl;
       E->computeSubdomain();
+      if(!E->getSubdomain()->getNumStateFactors() && !E->getSubdomain()->getNumStateFactors()) {
+          std::cout << "function with empty scope!" << std::endl;
+          empty_fns.push_back(E);
+      }
 
       std::cout << "new function E contains factor deps: " << std::endl;
       for(auto s : E->getStateFactors()) { std::cout << s << " (state)" << std::endl; }
@@ -215,10 +221,10 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
 
               colno.push_back(f_offset);
               row.push_back(1);
-
-              if(!add_constraintex(_lp, row.size(), row.data(), colno.data(), LE, 0)) {
-                  return 7; // adding of constraint failed
-              }
+          }
+          // add constraint (including new variables) to LP
+          if(!add_constraintex(_lp, row.size(), row.data(), colno.data(), LE, 0)) {
+              return 7; // adding of constraint failed
           }
       }
 
@@ -233,24 +239,35 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
 
       std::cout << "after erase and insert: " << std::endl;
       std::cout << F << std::endl;
-
   }
 
   std::cout << "number of unique factors (S,A) after elimination: " << F.getNumFactors() << " and size: " << F.size() << std::endl;
 
+  // F does not store empty scope functions
   if(!F.empty()) {
       return 8; // functions remain in function set: variable elimination failed
   }
 
+  // TODO verify var not off by 1
+  // add remaining constraints
+  // \f$\phi \geq \ldots\f$
+  vector<REAL> lrow;
+  vector<int> lcolno; // 1-offset column numbering
+  for(const DiscreteFunction<Reward>& e : empty_fns) {
+      const int offset = var_offset.at(e.get());
+      lcolno.push_back(offset);
+      lrow.push_back(1);
+  }
+  if(!add_constraintex(_lp, lrow.size(), lrow.data(), lcolno.data(), LE, 0)) {
+      return 9; // adding of constraint failed
+  }
+
+  // add one final constraint (not required for ALP as phi is no extra variable)
+  // \f$\phi=0\f$
+
   // debug out
   set_add_rowmode(_lp, FALSE);
 //  write_LP(_lp, stdout);
-
-  // add remaining constraints
-  // \f$\phi \geq \ldots\f$
-
-  // add one final constraint
-  // \f$\phi=0\f$
 
   return 0;
 }
