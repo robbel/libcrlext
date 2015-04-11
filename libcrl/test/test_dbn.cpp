@@ -18,6 +18,8 @@ using namespace std;
 using namespace crl;
 using namespace cpputil;
 
+namespace {
+
 ///
 /// \brief Create a rather random simple DBN
 ///
@@ -62,6 +64,8 @@ DBN makeSimpleDBN(Domain domain) {
 
   return dbn;
 }
+
+} // anonymous ns
 
 ///
 /// \brief Placeholder for some initial experiments
