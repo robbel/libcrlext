@@ -37,13 +37,13 @@ src/ram.cpp
 src/rmax.cpp
 src/rtdp.cpp
 src/sparse_sampling.cpp
-src/test_spudd.cpp
 src/test.cpp
 src/uct.cpp
 src/uctdata.cpp
 src/vi.cpp
+test/test_alp.cpp
 test/test_dbn.cpp
 test/test_set.cpp
-test/test_alp.cpp
+test/test_spudd.cpp
 README
 SConstruct

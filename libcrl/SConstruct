@@ -40,7 +40,6 @@ crl/tables.hpp      crl/conversions.hpp         crl/dbn.hpp          crl/alp.hpp
 
 build_sources = [build.File(source) for source in sources]
 test_sources = [build.File('test.cpp')]
-test_spudd_sources = [build.File('test_spudd.cpp')]
 #gtest_sources = [build.File(test) for test in ['test_dbn.cpp','test_set.cpp']]
 gtest_sources = Glob('test/*.cpp');
 
@@ -70,9 +69,6 @@ if has_lpsolve:
         test = env.Program(bin.Entry('test'), test_sources, LIBS=['crl'])
         bin_targets += [test]
 
-        test_spudd = env.Program(bin.Entry('test_spudd'), test_spudd_sources, LIBS=['crl'])
-        bin_targets += [test_spudd]
-
 	gtest = env.Program(bin.Entry('gtests'), gtest_sources, LIBS=[libcrl,'pthread','gtest','gtest_main'])
         bin_targets += [gtest]
 
@@ -99,6 +95,5 @@ COPYING COPYING.LESSER SConstruct tools.py
 dist_files += [inc.Entry(header) for header in headers]
 dist_files += [src.Entry(build_source) for build_source in build_sources] 
 dist_files += [src.Entry(test_source) for test_source in test_sources] 
-dist_files += [src.Entry(test_spudd_source) for test_spudd_source in test_spudd_sources] 
 
 env.Alias('dist', env.DistTar('libcrl.tar.gz', dist_files))

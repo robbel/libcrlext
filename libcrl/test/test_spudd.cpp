@@ -9,7 +9,8 @@
     GNU Lesser General Public License for more details.
  */
 
-#include <iostream>
+#include <gtest/gtest.h>
+
 #include "crl/conversions.hpp"
 #include "crl/factor_learner.hpp"
 #include "cpputil.hpp"
@@ -17,8 +18,13 @@
 using namespace std;
 using namespace crl;
 
-FactoredMDP makeFactoredMDP(Domain domain) {
+namespace {
 
+///
+/// \brief Create a rather simple factored MDP
+/// FIXME Empty rewards for now..
+///
+FactoredMDP makeFactoredMDP(Domain domain) {
   FactoredMDP fmdp = boost::make_shared<_FactoredMDP>(domain);
 
   const RangeVec& ranges = domain->getStateRanges();
@@ -61,8 +67,11 @@ FactoredMDP makeFactoredMDP(Domain domain) {
   return fmdp;
 }
 
+///
+/// \brief Convert factored MDP to flat MDP (exhaustive joint S,A enumeration)
+/// FIXME Empty rewards for now..
+///
 MDP convertToMDP(FactoredMDP fmdp) {
-
   const Domain& domain = fmdp->getDomain();
   _FMDP mdp(domain);
 
@@ -82,8 +91,12 @@ MDP convertToMDP(FactoredMDP fmdp) {
   return boost::make_shared<_FMDP>(mdp);
 }
 
-int main()
-{
+} // anonymous ns
+
+///
+/// \brief Simple FMDP construction/export test
+///
+TEST(SPUDDTest, BasicTest) {
   try {
     srand(0);
 
@@ -100,5 +113,8 @@ int main()
   }
   catch(const cpputil::Exception& e) {
     cerr << e << endl;
+    FAIL();
   }
+
+  SUCCEED();
 }
