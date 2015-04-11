@@ -1,0 +1,6 @@
+Integration tests that cover multiple packages. For example, tests that utilize 
+algorithms from `libcrl' and environments from `glue-environments' should be 
+tested here.
+
+Note: Library dependencies are defined in SConstruct as needed.
+Note: gtests are used for integration testing

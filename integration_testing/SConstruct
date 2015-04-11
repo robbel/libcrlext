@@ -1,0 +1,76 @@
+lib = Dir('lib')
+build = Dir('build')
+src = Dir('test')
+inc = Dir('include')
+bin = Dir('bin')
+
+prefix = Dir(ARGUMENTS.get('prefix', '.'))
+prefix_lib = prefix.Dir('lib')
+prefix_inc = prefix.Dir('include')
+prefix_bin = prefix.Dir('bin')
+
+import os
+cpath = os.environ.get('CPATH', "")
+ld_library_path = os.environ.get('LD_LIBRARY_PATH', "")
+cpp_paths = [cp for cp in cpath.split(':')]+[inc, prefix_inc]
+lib_paths = [lp for lp in ld_library_path.split(':')]+[lib, prefix_lib]
+
+ccflags = ['-Wall', '-Werror', '-Wno-deprecated', '-Wno-c++1y-extensions', '-std=c++11']
+if 'debug' in COMMAND_LINE_TARGETS:
+	ccflags += ['-g', '-O0']
+else:
+	ccflags += ['-DBOOST_DISABLE_ASSERTS', '-DNDEBUG', '-O2']
+
+BuildDir(build, src, duplicate=0)
+
+# Environment
+example_sources = [build.File('example.cpp')]
+headers = []
+
+env = Environment(tools = ["default", "tools"], toolpath = '.',
+                  CXX='clang++-3.5',
+                  CPPPATH=cpp_paths, CCFLAGS=ccflags, LIBPATH=lib_paths)
+
+shared_lib_suffix = ".so"
+if os.uname()[0] == "Darwin":
+	shared_lib_suffix = ".dylib"
+	env.Append(SHLINKFLAGS='-undefined dynamic_lookup')
+
+# Add dependencies here as required
+config = Configure(env)
+config.CheckCXXHeader('cpputil.hpp')
+config.CheckCXXHeader('boost/shared_ptr.hpp')
+config.CheckLibWithHeader('crl', 'crl/crl.hpp', 'cpp')
+config.CheckCXXHeader('rlglue/Agent_common.h')
+env = config.Finish()
+
+lib_targets = []
+bin_targets = []
+
+# Test programs
+example = env.Program(bin.Entry('example'), example_sources, LIBS=['crl','pthread','gtest','gtest_main'])
+bin_targets += [example]
+
+if prefix != Dir('.'):
+	for header in headers:
+		env.Alias('install', env.InstallPerm(prefix_inc.Dir('crl'), inc.Entry(header), 0644))
+	env.Alias('install', env.InstallPerm(prefix_lib, lib_targets, 0644))
+	env.Alias('install', env.InstallPerm(prefix_bin, bin_targets, 0755))
+
+for target in lib_targets+bin_targets:
+	Default(target)
+	env.Alias('debug', target)
+
+# Add as required
+gtest_alias = env.Alias('test', example, example[0].abspath)
+env.AlwaysBuild(gtest_alias)
+
+# Add configuration files in ./cfgs as required
+dist_files = [File(x) for x in """
+COPYING COPYING.LESSER README SConstruct tools.py
+""".split()]
+dist_files += [inc.Entry(header) for header in headers]
+
+dist_files += [src.Entry(example_source) for example_source in example_sources] 
+
+env.Alias('dist', env.DistTar('integration_testing.tar.gz', dist_files))
