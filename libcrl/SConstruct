@@ -86,6 +86,7 @@ for target in lib_targets+bin_targets:
 	Default(target)
 	env.Alias('debug', target)
 
+env.PrependENVPath('LD_LIBRARY_PATH', lib_paths)
 gtest_alias = env.Alias('test', gtest, gtest[0].abspath)
 env.AlwaysBuild(gtest_alias)
 
