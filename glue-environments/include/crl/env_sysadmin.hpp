@@ -19,17 +19,27 @@
 namespace crl {
 
 /**
- * \brief The SysAdmin environment with a variable number of computers arranged in a ring.
+ * \brief The (multi-agent) SysAdmin environment with a variable number of computers arranged in a ring.
  * Follows the factored MDP model in Guestrin's thesis, sec 8.1
  */
 class _Sysadmin : public _Environment {
 protected:
+  Domain _domain;
+  State _current;
+  // problem parameters
+  /// \brief The number of computers in this ring
+  Size _num_comps;
+  Size _num_agents;
+  /// \brief The reward function for the sysadmin problem
+  virtual Reward getReward(const State& s) const;
 public:
   /// \brief Create a SysAdmin problem from the supplied domain.
   _Sysadmin(Domain domain);
   virtual ~_Sysadmin() { }
   /// \brief Return domain associated with this SysAdmin instance
-  virtual Domain getDomain() const;
+  virtual Domain getDomain() const {
+    return _domain;
+  }
   /// \brief Return the FactoredMDP representing this SysAdmin instance
   virtual FactoredMDP getFactoredMDP() const;
 
@@ -38,12 +48,17 @@ public:
   //
   /// \brief Return initial state
   virtual State begin() override;
-  /// \brief True iff environment has reached a terminating state
-  virtual bool isTerminated() override;
+  /// \brief Environment never reaches terminating state
+  virtual bool isTerminated() override {
+    return false;
+  }
   /// \brief Apply the \a Action and return the resulting \a Observation
   virtual Observation getObservation(const Action& a) override;
 };
 typedef boost::shared_ptr<_Sysadmin> Sysadmin;
+
+/// \brief Build a sysadmin problem with the specified number of computers in the ring
+Sysadmin buildSysadmin(Size num_comps);
 
 }
 
