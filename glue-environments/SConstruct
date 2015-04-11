@@ -24,10 +24,11 @@ else:
 
 BuildDir(build, src, duplicate=0)
 
-poupart_sources = [build.File('env_poupart.cpp')]
-littman_sources = [build.File('env_littman.cpp')]
-ffg_sources     = [build.File('env_ffg.cpp')]
-headers = ['crl/env_ffg.hpp']
+poupart_sources  = [build.File('env_poupart.cpp')]
+littman_sources  = [build.File('env_littman.cpp')]
+ffg_sources      = [build.File('env_ffg.cpp')]
+sysadmin_sources = [build.File('env_sysadmin.cpp')]
+headers = ['crl/env_ffg.hpp','crl/env_sysadmin.hpp']
 
 env = Environment(tools = ["default", "tools"], toolpath = '.',
                   CXX='clang++-3.5',
@@ -70,6 +71,14 @@ if has_crl and has_glue:
 else:
 	print "Cannot build env_ffg"
 
+if has_crl and has_glue:
+	env_sysadmin = env.Program(bin.Entry('env_sysadmin'), sysadmin_sources,
+	                       LIBS=['crl', 'rlgnmenv', 'rlcrlenv', 
+                                     'rlutils', 'rlgluenetdev'])
+	bin_targets += [env_sysadmin]
+else:
+	print "Cannot build env_sysadmin"
+
 if prefix != Dir('.'):
 	for header in headers:
 		env.Alias('install', env.InstallPerm(prefix_inc.Dir('crl'), inc.Entry(header), 0644))
@@ -84,8 +93,9 @@ dist_files = [File(x) for x in """
 COPYING COPYING.LESSER SConstruct tools.py
 """.split()]
 dist_files += [inc.Entry(header) for header in headers]
-dist_files += [src.Entry(s) for s in env_poupart] 
-dist_files += [src.Entry(s) for s in env_littman] 
-dist_files += [src.Entry(s) for s in env_ffg] 
+dist_files += [src.Entry(s) for s in env_poupart]
+dist_files += [src.Entry(s) for s in env_littman]
+dist_files += [src.Entry(s) for s in env_ffg]
+dist_files += [src.Entry(s) for s in env_sysadmin]
 
 env.Alias('dist', env.DistTar('glue-environments.tar.gz', dist_files))

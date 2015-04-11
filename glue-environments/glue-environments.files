@@ -3,8 +3,10 @@ cfgs/littman1.xml
 cfgs/littman2.xml
 cfgs/ffg1.xml
 include/crl/env_ffg.hpp
+include/crl/env_sysadmin.hpp
+src/env_ffg.cpp
 src/env_littman.cpp
 src/env_poupart.cpp
-src/env_ffg.cpp
+src/env_sysadmin.cpp
 README
 SConstruct

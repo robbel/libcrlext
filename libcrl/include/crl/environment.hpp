@@ -38,9 +38,9 @@ public:
 	_MDPEnvironment(const MDP& mdp, const State& start_state);
 	virtual ~_MDPEnvironment() { }
 	
-	virtual State begin();
-	virtual bool isTerminated();
-	virtual Observation getObservation(const Action& a);
+	virtual State begin() override;
+	virtual bool isTerminated() override;
+	virtual Observation getObservation(const Action& a) override;
 };
 typedef boost::shared_ptr<_MDPEnvironment> MDPEnvironment;
 	

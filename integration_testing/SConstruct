@@ -25,6 +25,7 @@ BuildDir(build, src, duplicate=0)
 
 # Environment
 example_sources = [build.File('example.cpp')]
+alp_sources = [build.File('alp.cpp')]
 headers = []
 
 env = Environment(tools = ["default", "tools"], toolpath = '.',
@@ -36,7 +37,7 @@ if os.uname()[0] == "Darwin":
 	shared_lib_suffix = ".dylib"
 	env.Append(SHLINKFLAGS='-undefined dynamic_lookup')
 
-# Add dependencies here as required
+# Add dependency locations here as required
 config = Configure(env)
 config.CheckCXXHeader('cpputil.hpp')
 config.CheckCXXHeader('boost/shared_ptr.hpp')
@@ -47,9 +48,11 @@ env = config.Finish()
 lib_targets = []
 bin_targets = []
 
-# Test programs
+# Test programs with their individual dependencies
 example = env.Program(bin.Entry('example'), example_sources, LIBS=['crl','pthread','gtest','gtest_main'])
 bin_targets += [example]
+alp = env.Program(bin.Entry('alp'), alp_sources, LIBS=['crl','pthread','gtest','gtest_main'])
+bin_targets += [alp]
 
 if prefix != Dir('.'):
 	for header in headers:
@@ -61,17 +64,19 @@ for target in lib_targets+bin_targets:
 	Default(target)
 	env.Alias('debug', target)
 
-# Add as required
+# Run all gtests as required
 env.PrependENVPath('LD_LIBRARY_PATH', lib_paths)
 gtest_alias = env.Alias('test', example, example[0].abspath)
+gtest_alias = env.Alias('test', alp, alp[0].abspath)
 env.AlwaysBuild(gtest_alias)
 
-# Add configuration files in ./cfgs as required
+# TODO: add configuration files from ./cfgs as required
 dist_files = [File(x) for x in """
 COPYING COPYING.LESSER README SConstruct tools.py
 """.split()]
 dist_files += [inc.Entry(header) for header in headers]
 
 dist_files += [src.Entry(example_source) for example_source in example_sources] 
+dist_files += [src.Entry(alp_source) for alp_source in alp_sources] 
 
 env.Alias('dist', env.DistTar('integration_testing.tar.gz', dist_files))

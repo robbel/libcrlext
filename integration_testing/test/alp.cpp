@@ -18,10 +18,14 @@ using namespace std;
 using namespace crl;
 using namespace cpputil;
 
+//
+// More complex integration test that runs the ALP solver on the SysAdmin environment
+//
+
 namespace {
 
 } // anonymous ns
 
-TEST(ALPTest, SingleAgentALPTest) {
+TEST(ALPIntegrationTest, TestSysadmin) {
   SUCCEED();
 }

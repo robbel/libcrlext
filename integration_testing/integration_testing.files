@@ -1,3 +1,4 @@
 test/example.cpp
+test/alp.cpp
 README
 SConstruct

@@ -399,7 +399,7 @@ FireFightingGraph readFFG(std::istream& is) {
     return ffg;
 }
 
-}
+} // namespace crl
 
 char paramBuf[256];
 const char* env_message(const char* inMessage) {
