@@ -28,10 +28,9 @@ _LP::~_LP() {
 }
 
 //
-// LP constraint/variable ordering:
-// first go w_i (for all funcs in C), then `equality' variables associated with C, then those with b, then those from variable elimination
+// Regarding LP variable ordering:
+// - First go the w_i variables, then the `scope variables' associated with each function in C, then those with b, then those from variable elimination.
 //
-
 int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vector<double>& alpha, const SizeVec& elim_order) {
 //assert(C.size() == alpha.size());
   F.clear();
@@ -52,81 +51,66 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   }
 
   // note the 1-offset in lpsolve
-  for(RFunctionVec::size_type w = 1; w <= alpha.size(); w++) {
-    set_col_name(_lp, w, &string("w"+to_string(w))[0]);
+  for(vector<double>::size_type w = 1; w <= alpha.size(); w++) {
+    set_col_name(_lp, w, &string("w"+to_string(w))[0]); // TODO: optional if performance becomes an issue
   }
 
   // make building the model faster if it is done row by row
-  // TODO: test whether this disallows further column naming or lp column-number increases below!
   set_add_rowmode(_lp, TRUE);
 
   //
-  // Objective function
+  // Objective function (minimization is lpsolve default)
   //
+
   {
-    vector<REAL>& row = const_cast<vector<REAL>&>(alpha); // API interface requires non-const pointer
     vector<int> colno = cpputil::ordered_vec(alpha.size(), 1); // 1-offset column numbering
+    vector<REAL>& row = const_cast<vector<REAL>&>(alpha); // API interface requires non-const pointer
     if(!set_obj_fnex(_lp, row.size(), row.data(), colno.data())) {
         return 2; // objective function setting failed
     }
   }
 
   //
-  // generate equality constraints to abstract away basis functions
+  // generate equality constraints to abstract away basis (C) functions
   //
-  std::unordered_map<const _DiscreteFunction<Reward>*, int> var_offset; // store function -> lp variable offset
-  int var = alpha.size()+1; // insert more variables
+
+  // A mapping from function to lp-variable offset (used during variable elimination)
+  std::unordered_map<const _DiscreteFunction<Reward>*, int> var_offset;
+  int var = alpha.size()+1; // the offset at which to insert more variables
   int wi = 1; // corresponding to active w_i variable
-  int colno[2];
+  int colno[2]; // constraints take a particularly simple form and involve two variables each
   REAL row[2];
   for(const auto& f : C) {
-      const _FDiscreteFunction<Reward>* pf = static_cast<_FDiscreteFunction<Reward>*>(f.get()); // assumption: flat representation
+      const _FDiscreteFunction<Reward>* pf = static_cast<_FDiscreteFunction<Reward>*>(f.get());
       var_offset.insert({pf,var});
       const vector<Reward>& vals = pf->values(); // optimization: direct access of all values in subdomain
-//    _StateActionIncrementIterator saitr(f->getSubdomain());
       for(auto v : vals) {
-//          const std::tuple<State,Action>& z = saitr.next();
-//          // create new lp variable
-//          const State& s = std::get<0>(z);
-//          const Action& a = std::get<1>(z);
-//          string varname = "[f" + to_string(wi) + "@s:" + to_string(s.getIndex()) + ",a:" + to_string(a.getIndex()) + "]";
-//          set_col_name(_lp, var, &varname[0]);
-//          //cout << varname << ": " << v << endl;
           // add lpsolve constraint corresponding to w_i
-          int j = 0;
-          colno[j] = wi;
-          row[j++] = v;
-          colno[j] = var++;
-          row[j++] = -1;
-          if(!add_constraintex(_lp, j, row, colno, EQ, 0)) {
+          colno[0] = wi;
+          row[0] = v;
+          colno[1] = var++;
+          row[1] = -1.;
+          if(!add_constraintex(_lp, 2, row, colno, EQ, 0.)) {
               return 3; // adding of constraint failed
           }
       }
-      F.insert(std::move(f)); // TODO move ok here?
+      F.insert(std::move(f)); // store function in set for variable elimination
       wi++;
   }
 
   //
-  // generate equality constraints to abstract away target functions
+  // generate equality constraints to abstract away target (b) functions
   //
+
   for(const auto& f : b) {
-      const _FDiscreteFunction<Reward>* pf = static_cast<_FDiscreteFunction<Reward>*>(f.get()); // assumption: flat representation
+      const _FDiscreteFunction<Reward>* pf = static_cast<_FDiscreteFunction<Reward>*>(f.get());
       var_offset.insert({pf,var});
-      const vector<Reward>& vals = pf->values(); // optimization: direct access of all values in subdomain
-//    _StateActionIncrementIterator saitr(f->getSubdomain());
+      const vector<Reward>& vals = pf->values();
       for(auto v : vals) {
-//          const std::tuple<State,Action>& z = saitr.next();
-//          // create new lp variable
-//          const State& s = std::get<0>(z);
-//          const Action& a = std::get<1>(z);
-//          string varname = "b" + "@s:" + to_string(s.getIndex()) + ",a:" + to_string(a.getIndex());
-//          set_col_name(_lp, var, &varname[0]);
-//          // cout << varname << ": " << v << endl;
           // add lpsolve equality constraint
-          int j = 0;
-          colno[j] = var++;
-          row[j++] = 1;
-          if(!add_constraintex(_lp, j, row, colno, EQ, v)) {
+          colno[0] = var++;
+          row[0] = 1.;
+          if(!add_constraintex(_lp, 1, row, colno, EQ, v)) {
               return 4; // adding of constraint failed
           }
       }
@@ -138,23 +122,27 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       return 5; // not all lp variables have been added
   }
   if(var != lp_vars+1) {
-      return 6; // sanity check
+      return 6; // counting is incorrect
   }
 
   //
-  // Now F contains all the functions involved in the LP. Run variable elimination to generate constraints
+  // Run variable elimination to generate further variables/constraints
   //
 
-  std::cout << "number of unique factors (S,A): " << F.getNumFactors() << std::endl;
+  // TODO can I resize lp here (depending on observed performance)
 
-  // perhaps resize lp here (depending on performance)
-
-  std::vector<DiscreteFunction<Reward>> empty_fns;
-
-  using range = decltype(F)::range;
   const Size num_states = _domain->getNumStateFactors();
+  const Size num_factors = F.getNumFactors();
+  std::cout << "[DEBUG]: Number of unique factors (S,A) to eliminate: " << num_factors << std::endl;
+  if(elim_order.size() != num_factors) {
+    std::cout << "[WARNING]: Elimination order set has different size from available factors to eliminate" << std::endl;
+  }
+
+  std::vector<DiscreteFunction<Reward>> empty_fns; // store for functions that have reached empty scope (for last constraint)
+  using range = decltype(F)::range;
   for(Size v : elim_order) {
       assert(v < num_states + _domain->getNumActionFactors());
+      std::cout << "[DEBUG]: Eliminating variable " << v << std::endl;
 
       // 1. collect all functions that have dependence on v: E
       //      also obtain their offset into variable list
@@ -169,8 +157,9 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       // eliminate variable `v' (either state or action)
       range r = F.getFactor(v);
       EmptyFunction<Reward> E = boost::make_shared<_EmptyFunction<Reward>>(r); // construct new function merely for domain computations
+      var_offset.insert({E.get(),var}); // variable offset in LP
       E->computeSubdomain();
-      Domain prev_dom_E = E->getSubdomain(); // which still includes v
+      Domain prev_dom_E = E->getSubdomain(); // which still includes `v'
       const subdom_map s_dom(E->getStateFactors());
       const subdom_map a_dom(E->getActionFactors());
       if(v < num_states) {
@@ -179,20 +168,25 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       else {
         E->eraseActionFactor(v-num_states);
       }
-      std::cout << "eliminating " << v << std::endl;
-      E->computeSubdomain();
+      E->computeSubdomain(); // does not include `v' anymore
+
+      std::cout << "[DEBUG]: Newly constructed function E has factor scope: S{ ";
+      for(auto s : E->getStateFactors()) {
+          std::cout << s << ", ";
+      }
+      std::cout << "} A{ ";
+      for(auto a : E->getActionFactors()) {
+          std::cout << a << ", ";
+      }
+      std::cout << "};" << std::endl;
+
       if(!E->getSubdomain()->getNumStateFactors() && !E->getSubdomain()->getNumStateFactors()) {
-          std::cout << "function with empty scope!" << std::endl;
+          std::cout << "[DEBUG]: Found function with empty scope" << std::endl;
           empty_fns.push_back(E);
       }
 
-      std::cout << "new function E contains factor deps: " << std::endl;
-      for(auto s : E->getStateFactors()) { std::cout << s << " (state)" << std::endl; }
-      for(auto a : E->getActionFactors()) { std::cout << a + num_states << " (action)" << std::endl; }
-
       // generate constraints
       _StateActionIncrementIterator saitr(prev_dom_E);
-      var_offset.insert({E.get(),var}); // its variable offset
       while(saitr.hasNext()) {
           const std::tuple<State,Action>& z = saitr.next();
           const State& s = std::get<0>(z);
@@ -200,13 +194,13 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
           // reduced state in E
           State ms = E->mapState(s,s_dom);
           Action ma = E->mapAction(a,a_dom);
-          // translate this reduced (ms,ma) pair into an LP variable offset (laid out as s0,a0;s0,a1;...)
+          // translate this reduced (ms,ma) pair into an LP variable offset (laid out as <s0,a0>,<s0,a1>,...,<s1,a0>,...)
           const int offset_E = var + ms.getIndex() * E->getSubdomain()->getNumActions() + ma.getIndex();
           // build constraint
-          vector<REAL> row; // TODO: move up
+          vector<REAL> row; // TODO: move out of loop
           vector<int> colno; // 1-offset column numbering
           colno.push_back(offset_E);
-          row.push_back(-1);
+          row.push_back(-1.);
 
           r.reset();
           while(r.hasNext()) { // over all functions
@@ -216,32 +210,32 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
               // obtain reduced state
               ms = f->mapState(s,s_dom);
               ma = f->mapAction(a,a_dom);
-              // translate this reduced (ms,ma) pair into LP variable offset (laid out as s0,a0;s0,a1;...)
+              // translate this reduced (ms,ma) pair into LP variable offset
               const int f_offset = offset + ms.getIndex() * f->getSubdomain()->getNumActions() + ma.getIndex();
-
+              // add to constraint
               colno.push_back(f_offset);
-              row.push_back(1);
+              row.push_back(1.);
           }
           // add constraint (including new variables) to LP
-          if(!add_constraintex(_lp, row.size(), row.data(), colno.data(), LE, 0)) {
+          if(!add_constraintex(_lp, row.size(), row.data(), colno.data(), LE, 0.)) {
               return 7; // adding of constraint failed
           }
       }
 
-      std::cout << "before erase of factor: " << v << std::endl;
+      std::cout << "[DEBUG]: Function set F before erase of factor: " << v << std::endl;
       std::cout << F << std::endl;
 
       F.eraseFactor(v);
       // could erase from var_offset hash table too
-      F.insert(E);
-      // update var count
+      F.insert(E); // store new function (if not empty scope)
+      // update variable counter
       var = get_Ncolumns(_lp) + 1;
 
-      std::cout << "after erase and insert: " << std::endl;
+      std::cout << "[DEBUG] Function set F after erase and insertion of new function E: " << std::endl;
       std::cout << F << std::endl;
   }
 
-  std::cout << "number of unique factors (S,A) after elimination: " << F.getNumFactors() << " and size: " << F.size() << std::endl;
+  std::cout << "[DEBUG]: Number of unique factors (S,A) after elimination: " << F.getNumFactors() << " and size: " << F.size() << std::endl;
 
   // F does not store empty scope functions
   if(!F.empty()) {
@@ -249,16 +243,16 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   }
 
   // TODO verify var not off by 1
-  // add remaining constraints
+  // add remaining constraints (last row)
   // \f$\phi \geq \ldots\f$
   vector<REAL> lrow;
   vector<int> lcolno; // 1-offset column numbering
-  for(const DiscreteFunction<Reward>& e : empty_fns) {
+  for(const auto& e : empty_fns) {
       const int offset = var_offset.at(e.get());
       lcolno.push_back(offset);
       lrow.push_back(1);
   }
-  if(!add_constraintex(_lp, lrow.size(), lrow.data(), lcolno.data(), LE, 0)) {
+  if(!add_constraintex(_lp, lrow.size(), lrow.data(), lcolno.data(), LE, 0.)) {
       return 9; // adding of constraint failed
   }
 
@@ -267,7 +261,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
 
   // debug out
   set_add_rowmode(_lp, FALSE);
-//  write_LP(_lp, stdout);
+  write_LP(_lp, stdout);
 
   return 0;
 }

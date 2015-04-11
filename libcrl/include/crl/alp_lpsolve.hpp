@@ -25,9 +25,6 @@
 //   add_columnex gives the possibility to only supply the non-zero elements and that speeds up building the model considerably,
 //   especially if the matrix is sparse (a lot of zero elements).
 // Version 5 has a new API call set_add_rowmode that makes add_constraint, str_add_constraint spectacular faster
-//   If the model is build row by row, then it is strongly suggested to use add_constraintex instead of add_constraint because add_constraintex
-//   gives the possibility to only supply the non-zero elements and that speeds up building the model considerably, especially if the matrix
-//   is sparse (a lot of zero elements).
 // Also see http://cgi.csc.liv.ac.uk/~anshul/BIMatrix/lpsolve/leader.c for another example
 
 namespace crl {
