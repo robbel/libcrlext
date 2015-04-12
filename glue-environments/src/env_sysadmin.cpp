@@ -36,6 +36,76 @@ _Sysadmin::_Sysadmin(Domain domain, Topology network)
   buildFactoredMDP();
 }
 
+// Holds for both RING and STAR topologies
+void _Sysadmin::buildPlate(Size c, DBNFactor& fas, DBNFactor& fal, LRF& lrf) {
+    Domain fasdom = fas->getSubdomain();
+    Domain faldom = fal->getSubdomain();
+
+    // Define Status (note variable sorting in local scope!)
+    Size t = 1;  // index of this computer in subdomain
+    Size n = 0;  // index of neighbor in subdomain
+    if(c == 0) { // special case: first computer in network
+        if(_network == Topology::RING) {
+            t = 0;
+            n = 1;
+        }
+        else {   // in the STAR case, computer 0 (the `server') does not have any neighbors
+            t = n = 0;
+        }
+    }
+    _StateActionIncrementIterator saitr(fasdom);
+    while(saitr.hasNext()) {
+        const std::tuple<State,Action>& sa = saitr.next();
+        const State s  = std::get<0>(sa);
+        const Action a = std::get<1>(sa);
+        if(a.getIndex() == (Size)Admin::REBOOT) {
+            fas->setT(s, a, (Factor)Status::GOOD, 1.); // deterministically set to GOOD
+        }
+        else { // Admin::NOTHING
+            const Factor cur = s.getFactor(t); // current status of this computer
+            Probability failure = 0.1; // default failure likelihood of this machine
+            if(t != n) {
+                failure += 0.2 * s.getFactor(n); // increase failure likelihood with broken neighbor
+            }
+            switch(cur) {
+                case (Factor)Status::GOOD:
+                    fas->setT(s, a, (Factor)Status::GOOD, 1.0 - failure);
+                    fas->setT(s, a, (Factor)Status::FAULTY, failure);
+                    break;
+                case (Factor)Status::FAULTY:
+                    fas->setT(s, a, (Factor)Status::FAULTY, 1.0 - failure);
+                    fas->setT(s, a, (Factor)Status::DEAD, failure);
+                    break;
+                case (Factor)Status::DEAD:
+                    fas->setT(s, a, (Factor)Status::DEAD, 1.); // a DEAD machine remains DEAD
+                    break;
+            }
+        }
+    }
+
+    // Define Load
+    _StateActionIncrementIterator litr(faldom);
+    while(litr.hasNext()) {
+        const std::tuple<State,Action>& sa = litr.next();
+        const State s  = std::get<0>(sa);
+        const Action a = std::get<1>(sa);
+
+        if(a.getIndex() == (Size)Admin::REBOOT || s.getFactor(0) == (Factor)Status::DEAD) {
+            fal->setT(s, a, (Factor)Load::IDLE, 1.);
+        }
+        else { // deterministic load switches from IDLE->LOADED->SUCCESS->IDLE->...
+            const Factor cur = s.getFactor(1);                 // current load
+            const Load next  = static_cast<Load>((cur+1) % 3); // next load after deterministic increment
+            fal->setT(s, a, (Factor)next, 1.);
+        }
+    }
+
+    // Define LRF
+    State dummy_s; // we don't really need Domain here
+    dummy_s.setIndex(static_cast<Size>(Load::PROCESS_SUCCESS));
+    lrf->define(dummy_s, Action(), 1.);
+}
+
 void _Sysadmin::buildFactoredMDP() {
     _fmdp = boost::make_shared<_FactoredMDP>(_domain);
 
@@ -46,9 +116,9 @@ void _Sysadmin::buildFactoredMDP() {
         DBNFactor fal = boost::make_shared<_DBNFactor>(_domain, 2*i+1); // load
         LRF lrf = boost::make_shared<_LRF>(_domain); // those have equivalent scopes here
         // Status variable
-        fas->addDelayedDependency(2*i);
-        fas->addActionDependency(2*i);
-        if(_network == Topology::RING) {
+        fas->addDelayedDependency(2*i);  // self
+        fas->addActionDependency(i);
+        if(_network == Topology::RING) { // neighbor
             if(i>0) {
                 fas->addDelayedDependency(2*i-2);
             }
@@ -60,28 +130,18 @@ void _Sysadmin::buildFactoredMDP() {
             fas->addDelayedDependency(0); // all depend on the first computer (the `server');
         }
         // Load variable
-        fal->addDelayedDependency(2*i);
-        fal->addDelayedDependency(2*i+1);
-        fal->addActionDependency(2*i);
+        fal->addDelayedDependency(2*i);   // self status
+        fal->addDelayedDependency(2*i+1); // self
+        fal->addActionDependency(i);
         // LRF
-        lrf->addStateFactor(2*i);
+        lrf->addStateFactor(2*i+1);       // over load variable
         // allocate tabular storage
         fas->pack();
         fal->pack();
         lrf->pack();
 
-        // Transition function
-        Domain subdomain = fa->getSubdomain();
-
-
-
-
-
-
-
-
-
-
+        // Fill transition and reward function
+        buildPlate(i, fas, fal, lrf);
         // add factors for computer `i' to DBN
         _fmdp->addDBNFactor(std::move(fas));
         _fmdp->addDBNFactor(std::move(fal));
@@ -95,8 +155,8 @@ void _Sysadmin::buildFactoredMDP() {
 State _Sysadmin::begin() {
   _current = State(_domain);
   for(Size i = 0; i < _num_comps; i+=2) {
-      _current.setFactor(i,   static_cast<Factor>(Status::GOOD));
-      _current.setFactor(i+1, static_cast<Factor>(Load::IDLE));
+      _current.setFactor(i,   (Factor) Status::GOOD);
+      _current.setFactor(i+1, (Factor) Load::IDLE);
   }
   return _current;
 }
@@ -114,9 +174,10 @@ Observation _Sysadmin::getObservation(const Action& a) {
 
 Reward _Sysadmin::getReward(const State& s) const {
   Reward r = 0.;
+  // over all Load variables
   for(Size i = 1; i < s.size(); i+=2) {
       // increment for every successful task
-      r += static_cast<Reward>(s.getFactor(i) == static_cast<Factor>(Load::PROCESS_SUCCESS));
+      r += static_cast<Reward>(s.getFactor(i) == (Factor) Load::PROCESS_SUCCESS);
   }
   return r;
 }
@@ -138,7 +199,7 @@ Environment getCRLEnvironment(Domain domain) {
 Sysadmin buildSysadmin(string arch, Size num_comps) {
   Domain domain = boost::make_shared<_Domain>();
   // variables
-  const vector<Status> status {Status::DEAD,   Status::FAULTY, Status::GOOD};          // 0,1,2
+  const vector<Status> status {Status::GOOD,   Status::FAULTY, Status::DEAD};          // 0,1,2
   const vector<Load> load     {Load::IDLE,     Load::LOADED,   Load::PROCESS_SUCCESS}; // 0,1,2
   const vector<Admin> action  {Admin::NOTHING, Admin::REBOOT};                         // 0,1
 

@@ -186,7 +186,7 @@ public:
 		return (Factor)ret+(*_ranges)[index].getMin();
 	}
 
-	void setIndex(int index) {
+	void setIndex(Size index) {
 		_index = index;
 	}
 	Size getIndex() const {

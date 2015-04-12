@@ -21,26 +21,26 @@ namespace crl {
 namespace sysadmin {
 
 /// \brief Computer status in the network
-enum class Status {
+enum class Status : Factor {
     DEAD,
     FAULTY,
     GOOD
 };
 /// \brief The load variables
-enum class Load {
+enum class Load : Factor {
     IDLE,
     LOADED,
     PROCESS_SUCCESS
+};
+/// \brief Admin actions
+enum class Admin : Factor {
+    NOTHING,
+    REBOOT
 };
 /// \brief The type of architecture
 enum class Topology {
     RING,
     STAR
-};
-/// \brief Admin actions
-enum class Admin {
-    NOTHING,
-    REBOOT
 };
 
 /**
@@ -61,6 +61,8 @@ protected:
   virtual Reward getReward(const State& s) const;
   /// \brief Build the factored MDP associated with this SysAdmin problem
   virtual void buildFactoredMDP();
+  /// \brief Fill in transition and reward function for a single plate (i.e., computer `c') in the network
+  virtual void buildPlate(Size c, DBNFactor& fas, DBNFactor& fal, LRF& lrf);
 public:
   /// \brief Create a SysAdmin problem from the supplied domain.
   _Sysadmin(Domain domain, Topology network);
