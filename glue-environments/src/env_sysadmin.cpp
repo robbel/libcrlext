@@ -219,7 +219,7 @@ Sysadmin buildSysadmin(string arch, Size num_comps) {
       t = Topology::RING;
   }
   else {
-      throw InvalidException("Invalid network topology " + arch);
+      throw InvalidException("Invalid network topology: " + arch);
   }
 
   // instantiate sysadmin problem
@@ -251,8 +251,13 @@ int main(int argc, char** argv) {
             return EXIT_FAILURE;
     }
 
-    if(!(_sysadmin = buildSysadmin(argv[1], std::atoi(argv[2])))) {
-        cerr << "Instantiation of Multi-agent Sysadmin problem failed." << endl;
+    try {
+        if(!(_sysadmin = buildSysadmin(argv[1], std::atoi(argv[2])))) {
+            cerr << "Instantiation of Multi-agent Sysadmin problem failed." << endl;
+            return EXIT_FAILURE;
+        }
+    } catch(const cpputil::Exception& e) {
+        cerr << e << endl;
         return EXIT_FAILURE;
     }
 
