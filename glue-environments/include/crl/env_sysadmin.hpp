@@ -18,30 +18,61 @@
 
 namespace crl {
 
+namespace sysadmin {
+
+/// \brief Computer status in the network
+enum class Status {
+    DEAD,
+    FAULTY,
+    GOOD
+};
+/// \brief The load variables
+enum class Load {
+    IDLE,
+    LOADED,
+    PROCESS_SUCCESS
+};
+/// \brief The type of architecture
+enum class Topology {
+    RING,
+    STAR
+};
+/// \brief Admin actions
+enum class Admin {
+    NOTHING,
+    REBOOT
+};
+
 /**
- * \brief The (multi-agent) SysAdmin environment with a variable number of computers arranged in a ring.
- * Follows the factored MDP model in Guestrin's thesis, sec 8.1
+ * \brief The (multi-agent) SysAdmin environment with a variable number of computers arranged in a ring or star.
+ * Follows the factored MDP model in Guestrin's thesis, secs 8.1 and 13.5.1
  */
 class _Sysadmin : public _Environment {
 protected:
-  Domain _domain;
+  const Domain _domain;
+  const Topology _network;
+  FactoredMDP _fmdp;
   State _current;
   // problem parameters
   /// \brief The number of computers in this ring
-  Size _num_comps;
-  Size _num_agents;
+  const Size _num_comps;
+  const Size _num_agents;
   /// \brief The reward function for the sysadmin problem
   virtual Reward getReward(const State& s) const;
+  /// \brief Build the factored MDP associated with this SysAdmin problem
+  virtual void buildFactoredMDP();
 public:
   /// \brief Create a SysAdmin problem from the supplied domain.
-  _Sysadmin(Domain domain);
+  _Sysadmin(Domain domain, Topology network);
   virtual ~_Sysadmin() { }
   /// \brief Return domain associated with this SysAdmin instance
   virtual Domain getDomain() const {
     return _domain;
   }
   /// \brief Return the FactoredMDP representing this SysAdmin instance
-  virtual FactoredMDP getFactoredMDP() const;
+  virtual FactoredMDP getFactoredMDP() const {
+      return _fmdp;
+  }
 
   //
   // Environment interface
@@ -57,9 +88,13 @@ public:
 };
 typedef boost::shared_ptr<_Sysadmin> Sysadmin;
 
-/// \brief Build a sysadmin problem with the specified number of computers in the ring
-Sysadmin buildSysadmin(Size num_comps);
+} // namespace sysadmin
 
-}
+/// \brief Build a sysadmin problem with the specified number of computers in the ring
+/// \param arch The network topology, either "star" or "ring"
+/// \param num_comps The number of computers in the network
+sysadmin::Sysadmin buildSysadmin(std::string arch, Size num_comps);
+
+} // namespace crl
 
 #endif /*ENV_SYSADMIN_HPP_*/

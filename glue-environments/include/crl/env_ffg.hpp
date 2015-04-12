@@ -22,7 +22,7 @@ namespace crl {
  * \brief The FireFightingGraph (FFG) environment.
  * This corresponds to a fully-observable version of the FireFightingGraph problem described in:
  * "Value-Based Planning for Teams of Agents in Stochastic Partially Observable Environments", Frans A. Oliehoek, 2010
-  * \note This is a template that can be instantiated for different houses, firelevels, and agent numbers.
+ * \note This is a template that can be instantiated for different houses, firelevels, and agent numbers.
  * \todo Perhaps implement with crl::DBN
  */
 class _FireFightingGraph : public _Environment {
