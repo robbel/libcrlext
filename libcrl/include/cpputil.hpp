@@ -535,6 +535,14 @@ inline time_t time_in_milli() {
 }
 
 ///
+/// \brief An approximate comparison of two floating point numbers
+///
+template<class T>
+bool approxEq(const T& a, const T& b, T eps = std::numeric_limits<T>::epsilon()) {
+    return std::fabs(a - b) < eps;
+}
+
+///
 /// \brief True iff val in [min,max)
 ///
 template<class T>

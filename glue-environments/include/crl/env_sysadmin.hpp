@@ -52,6 +52,7 @@ protected:
   const Domain _domain;
   const Topology _network;
   FactoredMDP _fmdp;
+  /// \brief Current joint state
   State _current;
   // problem parameters
   /// \brief The number of computers in this ring
@@ -85,8 +86,8 @@ public:
   virtual bool isTerminated() override {
     return false;
   }
-  /// \brief Apply the \a Action and return the resulting \a Observation
-  virtual Observation getObservation(const Action& a) override;
+  /// \brief Apply the (joint) \a Action and return the resulting \a Observation
+  virtual Observation getObservation(const Action& ja) override;
 };
 typedef boost::shared_ptr<_Sysadmin> Sysadmin;
 

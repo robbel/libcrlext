@@ -162,12 +162,35 @@ State _Sysadmin::begin() {
 }
 
 // apply action, obtain resulting state n, update _current
-Observation _Sysadmin::getObservation(const Action& a) {
+// TODO make this a generic getObservation() for a `FactoredMDPEnvironment' (\see _MDPEnvironment)
+Observation _Sysadmin::getObservation(const Action& ja) {
     Reward r = getReward(_current); // reward function is defined over load at current state s
+    // prepare a new state
+    State new_current = _current;
 
-    // base on DBN...
+    const _DBN& T = _fmdp->T();
+    for(int f = 0; f < T.size(); f++) {
+        const DBNFactor& fa = T.factor(f);
+        const ProbabilityVec& pvec = fa->T(_current, ja);
+#if 0
+        Probability sum = std::accumulate(pvec.begin(), pvec.end(), 0.);
+        assert(approxEq(sum,1.));
+#endif
+        // determine a new bin (i.e., Factor value) according to transition function
+        const Probability r = randDouble();
+        Probability acc     = 0;
+        Factor bin          = 0;
+        do {
+            acc += pvec[bin++];
+        }
+        while(bin < pvec.size() && r > acc);
+        assert(r <= acc);
 
+        // update new state
+        new_current.setFactor(f, bin);
+    }
 
+    _current = std::move(new_current);
     Observation o = boost::make_shared<_Observation>(_current, r);
     return o;
 }
