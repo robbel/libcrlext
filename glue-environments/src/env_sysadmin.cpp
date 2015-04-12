@@ -275,7 +275,8 @@ int main(int argc, char** argv) {
     }
 
     try {
-        if(!(_sysadmin = buildSysadmin(argv[1], std::atoi(argv[2])))) {
+        long long comp_no = std::atoll(argv[2]);
+        if(comp_no <= 0 || !(_sysadmin = buildSysadmin(argv[1], static_cast<Size>(comp_no)))) {
             cerr << "Instantiation of Multi-agent Sysadmin problem failed." << endl;
             return EXIT_FAILURE;
         }
