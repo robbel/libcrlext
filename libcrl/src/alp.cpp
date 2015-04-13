@@ -77,11 +77,11 @@ int _ALPPlanner::plan() {
     SizeVec elim_order = cpputil::ordered_vec<Size>(_domain->getNumStateFactors() + _domain->getNumActionFactors());
 
     lpsolve::_LP lp(_domain);
-    if(!lp.generateLP(_C_set, _fmdp->getLRFs(), _alpha, elim_order)) {
+    if(lp.generateLP(_C_set, _fmdp->getLRFs(), _alpha, elim_order)) {
       return 1;
     }
 
-    if(!lp.solve(_value_fn.get())) {
+    if(lp.solve(_value_fn.get())) {
       return 2;
     }
 

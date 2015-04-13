@@ -156,6 +156,10 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
 
       // eliminate variable `v' (either state or action)
       range r = F.getFactor(v);
+      if(!r.hasNext()) {
+          std::cout << "[DEBUG]: Variable " << v << " not eliminated. It does not exist in FunctionSet." << std::endl;
+          continue;
+      }
       EmptyFunction<Reward> E = boost::make_shared<_EmptyFunction<Reward>>(r); // construct new function merely for domain computations
       var_offset.insert({E.get(),var}); // variable offset in LP
       E->computeSubdomain();
