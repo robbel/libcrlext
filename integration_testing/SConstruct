@@ -42,6 +42,7 @@ config = Configure(env)
 config.CheckCXXHeader('cpputil.hpp')
 config.CheckCXXHeader('boost/shared_ptr.hpp')
 config.CheckLibWithHeader('crl', 'crl/crl.hpp', 'cpp')
+config.CheckLibWithHeader('env', 'crl/env_ffg.hpp', 'cpp')
 config.CheckCXXHeader('rlglue/Agent_common.h')
 env = config.Finish()
 
@@ -51,7 +52,7 @@ bin_targets = []
 # Test programs with their individual dependencies
 example = env.Program(bin.Entry('example'), example_sources, LIBS=['crl','pthread','gtest','gtest_main'])
 bin_targets += [example]
-alp = env.Program(bin.Entry('alp'), alp_sources, LIBS=['crl','pthread','gtest','gtest_main'])
+alp = env.Program(bin.Entry('alp'), alp_sources, LIBS=['env','crl','pthread','gtest','gtest_main'])
 bin_targets += [alp]
 
 if prefix != Dir('.'):

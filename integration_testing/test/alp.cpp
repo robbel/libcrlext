@@ -13,6 +13,7 @@
 
 #include "crl/alp.hpp"
 #include "crl/alp_lpsolve.hpp"
+#include "crl/env_sysadmin.hpp"
 
 using namespace std;
 using namespace crl;
@@ -27,5 +28,40 @@ namespace {
 } // anonymous ns
 
 TEST(ALPIntegrationTest, TestSysadmin) {
-  SUCCEED();
+  srand(time(NULL));
+
+  sysadmin::Sysadmin thesys = buildSysadmin("ring", 4);
+  Domain domain = thesys->getDomain();
+
+  FactoredMDP fmdp = thesys->getFactoredMDP();
+  std::cout << fmdp->T() << std::endl;
+
+  // create a basis
+  // add the constant function
+//  auto C  = boost::make_shared<_ConstantFn<Reward>>(domain);
+//  C->computeSubdomain();
+  // add some indicators
+  auto I1 = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({0}), State(domain,0));
+  auto I2 = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({2}), State(domain,0));
+  auto I3 = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({4}), State(domain,0));
+  auto I4 = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({6}), State(domain,0));
+
+  // run the ALP planner
+  _ALPPlanner planner(fmdp, 0.99);
+  FactoredValueFunction fval = boost::make_shared<_FactoredValueFunction>(domain);
+//  fval->addBasisFunction(C,  0.);
+  fval->addBasisFunction(I1, 0.);
+  fval->addBasisFunction(I2, 0.);
+  fval->addBasisFunction(I3, 0.);
+  fval->addBasisFunction(I4, 0.);
+
+  long start_time = time_in_milli();
+  planner.setFactoredValueFunction(fval); // this will be computed
+  int res = planner.plan();
+  long end_time = time_in_milli();
+  std::cout << "[DEBUG]: FALP planner returned after " << end_time - start_time << "ms" << std::endl;
+
+  EXPECT_EQ(res, 0) << "ALP planner failed with error code " << res; // else: lp successfully generated
+
+  // cout w params...
 }

@@ -482,9 +482,9 @@ protected:
       if(other->getActionFactors().empty() &&
               std::includes(this->getStateFactors().begin(), this->getStateFactors().end(), // check if other domain is proper subset
                             other->getStateFactors().begin(), other->getStateFactors().end())) {
-          const Size num_actions = this->_domain->getNumActions();
+          const Size num_actions = this->_subdomain->getNumActions();
           const subdom_map s_dom(this->getStateFactors()); // assumed to subsume all states from function `other'
-          _StateIncrementIterator sitr(this->_domain);
+          _StateIncrementIterator sitr(this->_subdomain);
           while(sitr.hasNext()) {
               const State& s = sitr.next();
               State ms = other->mapState(s, s_dom);

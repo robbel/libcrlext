@@ -129,7 +129,7 @@ Action testFALP(FactoredMDP fmdp, Domain domain) {
 	cout << " V(" << s << ") = " << qtable->getV(s) << endl;
 	Action a = planner->getAction(s);
 	cout << " best action = " << a << endl;
-	cout << "FVI finished " << count << " iterations in " << end_time - start_time << endl;
+	cout << "FALP finished " << count << " iterations in " << end_time - start_time << endl;
 	return a;
 }
 #endif
