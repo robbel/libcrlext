@@ -40,7 +40,7 @@ void _Sysadmin::buildPlate(Size c, DBNFactor& fas, DBNFactor& fal, LRF& lrf) {
     Size t = 1;  // index of this computer in subdomain
     Size n = 0;  // index of neighbor in subdomain
     if(c == 0) { // special case: first computer in network
-        if(_network == Topology::RING) {
+        if(_network == Topology::RING && _num_comps > 1) {
             t = 0;
             n = 1;
         }
