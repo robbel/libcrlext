@@ -99,7 +99,7 @@ void _FStateDistribution::setP(const State& s, Probability p) {
 	else {
 	    _StateSet::iterator it = _known_states.find(s);
 	    if(it!=_known_states.end()) {
-		_known_states.erase(_known_states.find(s));
+		_known_states.erase(it);
 	    }
 	}
 }
