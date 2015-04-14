@@ -77,7 +77,9 @@ int _ALPPlanner::plan() {
     SizeVec elim_order = cpputil::ordered_vec<Size>(_domain->getNumStateFactors() + _domain->getNumActionFactors());
 
     lpsolve::_LP lp(_domain);
-    if(lp.generateLP(_C_set, _fmdp->getLRFs(), _alpha, elim_order)) {
+    int res = lp.generateLP(_C_set, _fmdp->getLRFs(), _alpha, elim_order);
+    if(res != 0) {
+      std::cout << "[DEBUG]: Error code: " << res << std::endl;
       return 1;
     }
 

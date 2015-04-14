@@ -46,6 +46,11 @@ namespace lpsolve {
  */
 class _LP {
 private:
+  /// \brief Default upper bound on variables in LP
+  static const int MAX_COL = 1000;
+  /// \brief Chosen upper bound on variables in LP
+  const int _colsize;
+  /// \brief The domain which includes all state and action factors
   const crl::Domain _domain;
   /// \brief Storage for functions generated during variable elimination
   crl::FunctionSet<crl::Reward> F;
@@ -53,8 +58,8 @@ private:
   lprec *_lp;
 public:
   /// \brief ctor
-  _LP(const crl::Domain& domain)
-  : _domain(domain), F(domain), _lp(nullptr) { }
+  _LP(const crl::Domain& domain, int colsize = MAX_COL)
+  : _colsize(colsize), _domain(domain), F(domain), _lp(nullptr) { }
   /// \brief dtor
   ~_LP();
 

@@ -45,7 +45,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   }
 
   // create LP with this number of variables (will require resizing later)
-  _lp = make_lp(0, lp_vars);
+  _lp = make_lp(0, _colsize);
   if(_lp == nullptr) {
     return 1; // couldn't construct a new model
   }
@@ -56,7 +56,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   }
 
   // make building the model faster if it is done row by row
-  set_add_rowmode(_lp, TRUE);
+  //set_add_rowmode(_lp, TRUE);
 
   //
   // Objective function (minimization is lpsolve default)
@@ -84,8 +84,10 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       const _FDiscreteFunction<Reward>* pf = static_cast<_FDiscreteFunction<Reward>*>(f.get());
       var_offset.insert({pf,var});
       const vector<Reward>& vals = pf->values(); // optimization: direct access of all values in subdomain
+      int cc = 0;
       for(auto v : vals) {
           // add lpsolve constraint corresponding to w_i
+          set_col_name(_lp, var, &string("C"+to_string(wi)+"_"+to_string(cc))[0]); // TODO: optional if performance becomes an issue
           colno[0] = wi;
           row[0] = v;
           colno[1] = var++;
@@ -93,6 +95,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
           if(!add_constraintex(_lp, 2, row, colno, EQ, 0.)) {
               return 3; // adding of constraint failed
           }
+          cc++;
       }
       F.insert(std::move(f)); // store function in set for variable elimination
       wi++;
@@ -102,28 +105,36 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   // generate equality constraints to abstract away target (b) functions
   //
 
+  int bb = 1;
   for(const auto& f : b) {
       const _FDiscreteFunction<Reward>* pf = static_cast<_FDiscreteFunction<Reward>*>(f.get());
       var_offset.insert({pf,var});
       const vector<Reward>& vals = pf->values();
+      int bv = 0;
       for(auto v : vals) {
           // add lpsolve equality constraint
+          set_col_name(_lp, var, &string("b"+to_string(bb)+"_"+to_string(bv))[0]); // TODO: optional if performance becomes an issue
           colno[0] = var++;
           row[0] = 1.;
           if(!add_constraintex(_lp, 1, row, colno, EQ, v)) {
               return 4; // adding of constraint failed
           }
+          bv++;
       }
       F.insert(std::move(f));
+      bb++;
   }
 
   // sanity check
-  if(get_Ncolumns(_lp) != lp_vars) {
-      return 5; // not all lp variables have been added
-  }
-  if(var != lp_vars+1) {
-      return 6; // counting is incorrect
-  }
+//  if(get_Ncolumns(_lp) != lp_vars) {
+//      return 5; // not all lp variables have been added
+//  }
+//  if(var != lp_vars+1) {
+//      return 6; // counting is incorrect
+//  }
+//  else {
+//    std::cout << "[DEBUG]: val: " << var << std::endl;
+//  }
 
   //
   // Run variable elimination to generate further variables/constraints
@@ -162,6 +173,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       }
       EmptyFunction<Reward> E = boost::make_shared<_EmptyFunction<Reward>>(r); // construct new function merely for domain computations
       var_offset.insert({E.get(),var}); // variable offset in LP
+      std::cout << "[DEBUG]: Storing offset: " << var << " for replacement fn." << std::endl;
       E->computeSubdomain();
       Domain prev_dom_E = E->getSubdomain(); // which still includes `v'
       const subdom_map s_dom(E->getStateFactors());
@@ -200,6 +212,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
           Action ma = E->mapAction(a,a_dom);
           // translate this reduced (ms,ma) pair into an LP variable offset (laid out as <s0,a0>,<s0,a1>,...,<s1,a0>,...)
           const int offset_E = var + ms.getIndex() * E->getSubdomain()->getNumActions() + ma.getIndex();
+          std::cout << "[DEBUG]: Current offset: " << offset_E  << std::endl;
           // build constraint
           vector<REAL> row; // TODO: move out of loop
           vector<int> colno; // 1-offset column numbering
@@ -224,19 +237,25 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
           if(!add_constraintex(_lp, row.size(), row.data(), colno.data(), LE, 0.)) {
               return 7; // adding of constraint failed
           }
+
+          std::cout << "[DEBUG]: Added constraint: ";
+          for(int i = 0; i < row.size(); i++) {
+            std::cout << get_col_name(_lp,colno[i]) << "*" << row[i] << " ";
+          }
+          std::cout << std::endl;
       }
 
       std::cout << "[DEBUG]: Function set F before erase of factor: " << v << std::endl;
-      std::cout << F << std::endl;
+      std::cout << "[DEBUG]: " << F << std::endl;
 
       F.eraseFactor(v);
       // could erase from var_offset hash table too
       F.insert(E); // store new function (if not empty scope)
       // update variable counter
-      var = get_Ncolumns(_lp) + 1;
+      var+=prev_dom_E->size();
 
-      std::cout << "[DEBUG] Function set F after erase and insertion of new function E: " << std::endl;
-      std::cout << F << std::endl;
+      std::cout << "[DEBUG]: Function set F after erase and insertion of new function E: " << std::endl;
+      std::cout << "[DEBUG]: " << F << std::endl;
   }
 
   std::cout << "[DEBUG]: Number of unique factors (S,A) after elimination: " << F.getNumFactors() << " and size: " << F.size() << std::endl;
@@ -264,7 +283,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   // \f$\phi=0\f$
 
   // debug out
-  set_add_rowmode(_lp, FALSE);
+  //set_add_rowmode(_lp, FALSE);
   write_LP(_lp, stdout);
 
   return 0;
@@ -285,6 +304,10 @@ int _LP::solve(_FactoredValueFunction* vfn) {
   // update w vector in vfn
   std::vector<double>& weights = vfn->getWeight();
   std::copy(ptr_var, ptr_var+weights.size(), weights.begin());
+
+  for(int i = 0; i < 6; i++) {
+      std::cout << "[DEBUG]: " << ptr_var[i] << std::endl;
+  }
 
   return 0;
 }
