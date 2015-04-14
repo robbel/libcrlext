@@ -96,8 +96,12 @@ void _FStateDistribution::setP(const State& s, Probability p) {
 	prob_vec[s.getIndex()] = p;
 	if (p)
 		_known_states.insert(s);
-	else
+	else {
+	    _StateSet::iterator it = _known_states.find(s);
+	    if(it!=_known_states.end()) {
 		_known_states.erase(_known_states.find(s));
+	    }
+	}
 }
 void _FStateDistribution::clear() {
 	prob_vec = std::vector<Probability>(_domain->getNumStates(), 0);
