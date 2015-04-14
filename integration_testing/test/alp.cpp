@@ -14,6 +14,7 @@
 #include "crl/alp.hpp"
 #include "crl/alp_lpsolve.hpp"
 #include "crl/env_sysadmin.hpp"
+#include "crl/vi.hpp"
 
 using namespace std;
 using namespace crl;
@@ -24,6 +25,42 @@ using namespace cpputil;
 //
 
 namespace {
+
+///
+/// \brief Run value-iteration on flat MDP
+///
+QTable testVI(MDP mdp, Domain domain, float gamma) {
+    long start_time = time_in_milli();
+    VIPlanner planner(new _FlatVIPlanner(domain, mdp, .0001, gamma));
+    planner->plan();
+    long end_time = time_in_milli();
+    std::cout << "[DEBUG]: VI planner returned after " << end_time - start_time << "ms" << std::endl;
+    QTable qtable = planner->getQTable();
+    return qtable;
+}
+
+///
+/// \brief Convert factored MDP to flat MDP (exhaustive joint S,A enumeration)
+///
+MDP convertToMDP(FactoredMDP fmdp) {
+  const Domain& domain = fmdp->getDomain();
+  _FMDP mdp(domain);
+
+  for (Size state_index=0; state_index<domain->getNumStates(); state_index++) {
+          State s(domain, state_index);
+          for (Size action_index=0; action_index<domain->getNumActions(); action_index++) {
+                  Action a(domain, action_index);
+                  mdp.setR(s, a, fmdp->R(s, a));
+                  for (Size next_index=0; next_index<domain->getNumStates(); next_index++) {
+                          State n(domain, next_index);
+                          Probability p = fmdp->T(s,a,n);
+                          mdp.setT(s, a, n, p);
+                  }
+          }
+  }
+
+  return boost::make_shared<_FMDP>(mdp);
+}
 
 } // anonymous ns
 
@@ -90,5 +127,15 @@ TEST(ALPIntegrationTest, TestSysadmin) {
     for(auto w : fval->getWeight()) {
         std::cout << "w: " << w << std::endl;
     }
+  }
+
+  // compare against value iteration in full MDP
+  MDP mdp = convertToMDP(fmdp);
+  QTable qt = testVI(mdp, domain, 0.9);
+
+  _StateIncrementIterator sitr(domain);
+  while(sitr.hasNext()) {
+    const State& s = sitr.next();
+    cout << " V(" << s << ")=" << qt->getV(s) << endl;
   }
 }
