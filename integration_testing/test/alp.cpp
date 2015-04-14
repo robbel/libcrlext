@@ -125,17 +125,27 @@ TEST(ALPIntegrationTest, TestSysadmin) {
   if(!res) { // success
     std::cout << "[DEBUG]: Results:" << std::endl;
     for(auto w : fval->getWeight()) {
-        std::cout << "w: " << w << std::endl;
+        std::cout << " W: " << w << std::endl;
     }
 
-    // compare against value iteration in full MDP
-    MDP mdp = convertToMDP(fmdp);
-    QTable qt = testVI(mdp, domain, 0.9);
+    // compare against value iteration solution if we have an exact LP solution (exhaustive basis function set)
+    if(fval->getBasis().size() == domain->getNumStates()) {
+        std::cout << "[DEBUG]: Comparing with flat VI solution:" << std::endl;
 
-    _StateIncrementIterator sitr(domain);
-    while(sitr.hasNext()) {
-      const State& s = sitr.next();
-      cout << " V(" << s << ")=" << qt->getV(s) << endl;
+        MDP mdp = convertToMDP(fmdp);
+        QTable qt = testVI(mdp, domain, 0.9);
+        const vector<double>& wvec = fval->getWeight();
+        vector<double>::size_type si = 0;
+
+        _StateIncrementIterator sitr(domain);
+        while(sitr.hasNext()) {
+          const State& s = sitr.next();
+          double r = qt->getV(s);
+
+          EXPECT_TRUE(cpputil::approxEq(r, wvec[si++], 0.1));
+          cout << " V(" << s << ")=" << qt->getV(s) << endl;
+        }
+
     }
   }
 }
