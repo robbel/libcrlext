@@ -88,7 +88,9 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   for(const auto& f : C) {
       const _FDiscreteFunction<Reward>* pf = static_cast<_FDiscreteFunction<Reward>*>(f.get());
       const auto& p = var_offset.insert({pf,var});
-      assert(p.second);
+      if(!p.second) {
+        assert(false);
+      }
       const vector<Reward>& vals = pf->values(); // optimization: direct access of all values in subdomain
       int cc = 0;
       for(auto v : vals) {
@@ -115,7 +117,9 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   for(const auto& f : b) {
       const _FDiscreteFunction<Reward>* pf = static_cast<_FDiscreteFunction<Reward>*>(f.get());
       const auto& p = var_offset.insert({pf,var});
-      assert(p.second);
+      if(!p.second) {
+          assert(false);
+      }
       const vector<Reward>& vals = pf->values();
       int bv = 0;
       for(auto v : vals) {
@@ -179,7 +183,9 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       EmptyFunction<Reward> E = boost::make_shared<_EmptyFunction<Reward>>(r); // construct new function merely for domain computations
       const auto& p = var_offset.insert({E.get(), var}); // variable offset in LP
       std::cout << "[DEBUG]: Storing offset: " << var << " for replacement fn." << std::endl;
-      assert(p.second);
+      if(!p.second) {
+          assert(false);
+      }
       E->computeSubdomain();
       Domain prev_dom_E = E->getSubdomain(); // which still includes `v'
       const subdom_map s_dom(E->getStateFactors());
@@ -258,7 +264,9 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       r.reset();
       while(r.hasNext()) {
           std::size_t k = var_offset.erase(r.next().get());
-          assert(k == 1);
+          if(k != 1) {
+              assert(false);
+          }
       }
       F.eraseFactor(v);
       F.insert(E); // store new function (if not empty scope)
