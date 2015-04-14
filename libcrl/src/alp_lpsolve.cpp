@@ -34,7 +34,7 @@ _LP::~_LP() {
 int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vector<double>& alpha, const SizeVec& elim_order) {
 //assert(C.size() == alpha.size());
   F.clear();
-
+#if 0
   // compute lower bound on lp size (before variable elimination algorithm)
   int lp_vars = alpha.size(); // corresponding to the w_i
   for(const auto& f : C) {
@@ -43,8 +43,8 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   for(const auto& f : b) {
       lp_vars += f->getSubdomain()->size(); // for each instantiation of b's subdomain
   }
-
-  // create LP with this number of variables (will require resizing later)
+#endif
+  // create LP with an upper bound on the variables specified here
   _lp = make_lp(0, _colsize);
   if(_lp == nullptr) {
     return 1; // couldn't construct a new model
@@ -82,7 +82,8 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   REAL row[2];
   for(const auto& f : C) {
       const _FDiscreteFunction<Reward>* pf = static_cast<_FDiscreteFunction<Reward>*>(f.get());
-      var_offset.insert({pf,var});
+      const auto& p = var_offset.insert({pf,var});
+      assert(p.second);
       const vector<Reward>& vals = pf->values(); // optimization: direct access of all values in subdomain
       int cc = 0;
       for(auto v : vals) {
@@ -108,7 +109,8 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   int bb = 1;
   for(const auto& f : b) {
       const _FDiscreteFunction<Reward>* pf = static_cast<_FDiscreteFunction<Reward>*>(f.get());
-      var_offset.insert({pf,var});
+      const auto& p = var_offset.insert({pf,var});
+      assert(p.second);
       const vector<Reward>& vals = pf->values();
       int bv = 0;
       for(auto v : vals) {
@@ -124,23 +126,21 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       F.insert(std::move(f));
       bb++;
   }
-
+#if 0
   // sanity check
-//  if(get_Ncolumns(_lp) != lp_vars) {
-//      return 5; // not all lp variables have been added
-//  }
-//  if(var != lp_vars+1) {
-//      return 6; // counting is incorrect
-//  }
-//  else {
-//    std::cout << "[DEBUG]: val: " << var << std::endl;
-//  }
-
+  if(get_Ncolumns(_lp) != lp_vars) {
+      return 5; // not all lp variables have been added
+  }
+  if(var != lp_vars+1) {
+      return 6; // counting is incorrect
+  }
+  else {
+    std::cout << "[DEBUG]: val: " << var << std::endl;
+  }
+#endif
   //
   // Run variable elimination to generate further variables/constraints
   //
-
-  // TODO can I resize lp here (depending on observed performance)
 
   const Size num_states = _domain->getNumStateFactors();
   const Size num_factors = F.getNumFactors();
@@ -172,8 +172,9 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
           continue;
       }
       EmptyFunction<Reward> E = boost::make_shared<_EmptyFunction<Reward>>(r); // construct new function merely for domain computations
-      var_offset.insert({E.get(),var}); // variable offset in LP
+      const auto& p = var_offset.insert({E.get(), var}); // variable offset in LP
       std::cout << "[DEBUG]: Storing offset: " << var << " for replacement fn." << std::endl;
+      assert(p.second);
       E->computeSubdomain();
       Domain prev_dom_E = E->getSubdomain(); // which still includes `v'
       const subdom_map s_dom(E->getStateFactors());
@@ -196,7 +197,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       }
       std::cout << "};" << std::endl;
 
-      if(!E->getSubdomain()->getNumStateFactors() && !E->getSubdomain()->getNumStateFactors()) {
+      if(E->getSubdomain()->getNumStateFactors() == 0 && E->getSubdomain()->getNumActionFactors() == 0) {
           std::cout << "[DEBUG]: Found function with empty scope" << std::endl;
           empty_fns.push_back(E);
       }
@@ -248,11 +249,16 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       std::cout << "[DEBUG]: Function set F before erase of factor: " << v << std::endl;
       std::cout << "[DEBUG]: " << F << std::endl;
 
+      // Erase from var_offset hash table (required to avoid collisions)
+      r.reset();
+      while(r.hasNext()) {
+          std::size_t k = var_offset.erase(r.next().get());
+          assert(k == 1);
+      }
       F.eraseFactor(v);
-      // could erase from var_offset hash table too
       F.insert(E); // store new function (if not empty scope)
       // update variable counter
-      var+=prev_dom_E->size();
+      var+=E->getSubdomain()->size();
 
       std::cout << "[DEBUG]: Function set F after erase and insertion of new function E: " << std::endl;
       std::cout << "[DEBUG]: " << F << std::endl;
