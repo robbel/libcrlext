@@ -76,6 +76,7 @@ TEST(ALPIntegrationTest, TestSysadmin) {
   EXPECT_EQ(res, 0) << "ALP planner failed with error code " << res; // else: lp successfully generated
 
   if(!res) { // success
+    std::cout << "[DEBUG]: Results:" << std::endl;
     for(auto w : fval->getWeight()) {
         std::cout << "w: " << w << std::endl;
     }

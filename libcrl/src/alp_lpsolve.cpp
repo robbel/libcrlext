@@ -51,7 +51,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   }
 
   // setting new lower bounds on variables
-  for(int i = 0; i < _colsize; i++) {
+  for(int i = 1; i <= _colsize; i++) {
       set_lowbo(_lp, i, -std::numeric_limits<REAL>::infinity());
   }
 
@@ -315,10 +315,6 @@ int _LP::solve(_FactoredValueFunction* vfn) {
   // update w vector in vfn
   std::vector<double>& weights = vfn->getWeight();
   std::copy(ptr_var, ptr_var+weights.size(), weights.begin());
-
-  for(int i = 0; i < 6; i++) {
-      std::cout << "[DEBUG]: " << ptr_var[i] << std::endl;
-  }
 
   return 0;
 }
