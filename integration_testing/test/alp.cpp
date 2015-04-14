@@ -39,6 +39,7 @@ TEST(ALPIntegrationTest, TestSysadmin) {
   // create a basis (one indicator per local state, i.e., corresponding to `single' basis in Guestrin thesis)
   FactoredValueFunction fval = boost::make_shared<_FactoredValueFunction>(domain);
   const RangeVec& ranges = domain->getStateRanges();
+#if 0
   for(Size fa = 0; fa < ranges.size(); fa++) { // assumption: DBN covers all domain variables
       // place one indicator basis on each possible factor value
       for(Factor fv=0; fv<=ranges[fa].getSpan(); fv++) {
@@ -47,6 +48,15 @@ TEST(ALPIntegrationTest, TestSysadmin) {
           auto I = boost::make_shared<_Indicator<Reward>>(domain);
           I->addStateFactor(fa);
           I->setState(dummy_s);
+          fval->addBasisFunction(I, 0.);
+      }
+  }
+#endif
+  for(Size fa = 0; fa < ranges.size(); fa+=2) { // assumption: DBN covers all domain variables
+      auto I_o = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa,fa+1}), State(domain,0));
+      _StateIncrementIterator sitr(I_o->getSubdomain());
+      while(sitr.hasNext()) {
+          auto I = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa,fa+1}), sitr.next());
           fval->addBasisFunction(I, 0.);
       }
   }
