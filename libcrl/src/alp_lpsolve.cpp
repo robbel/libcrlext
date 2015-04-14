@@ -50,6 +50,11 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
     return 1; // couldn't construct a new model
   }
 
+  // setting new lower bounds on variables
+  for(int i = 0; i < _colsize; i++) {
+      set_lowbo(_lp, i, -std::numeric_limits<REAL>::infinity());
+  }
+
   // note the 1-offset in lpsolve
   for(vector<double>::size_type w = 1; w <= alpha.size(); w++) {
     set_col_name(_lp, w, &string("w"+to_string(w))[0]); // TODO: optional if performance becomes an issue

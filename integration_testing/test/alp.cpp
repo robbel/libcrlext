@@ -36,7 +36,7 @@ TEST(ALPIntegrationTest, TestSysadmin) {
   FactoredMDP fmdp = thesys->getFactoredMDP();
   std::cout << fmdp->T() << std::endl;
 
-  // create a basis
+  // create a basis (one indicator per local state, i.e., corresponding to `single' basis in Guestrin thesis)
   FactoredValueFunction fval = boost::make_shared<_FactoredValueFunction>(domain);
   const RangeVec& ranges = domain->getStateRanges();
   for(Size fa = 0; fa < ranges.size(); fa++) { // assumption: DBN covers all domain variables
@@ -60,7 +60,7 @@ TEST(ALPIntegrationTest, TestSysadmin) {
 //  auto I4 = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({6}), State(domain,0));
 
   // run the ALP planner
-  _ALPPlanner planner(fmdp, 0.99);
+  _ALPPlanner planner(fmdp, 0.9);
 //  fval->addBasisFunction(C,  0.);
 //  fval->addBasisFunction(I1, 0.);
 //  fval->addBasisFunction(I2, 0.);
