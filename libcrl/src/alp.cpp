@@ -79,18 +79,17 @@ int _ALPPlanner::plan() {
     lpsolve::_LP lp(_domain);
     int res = lp.generateLP(_C_set, _fmdp->getLRFs(), _alpha, elim_order);
     if(res != 0) {
-      std::cout << "[DEBUG]: Error code: " << res << std::endl;
+      std::cout << "[DEBUG]: generateLP() error code: " << res << std::endl;
       return 1;
     }
 
-    if(lp.solve(_value_fn.get())) {
+    res = lp.solve(_value_fn.get());
+    if(res != 0) {
+      std::cout << "[DEBUG]: solve() error code: " << res << std::endl;
       return 2;
     }
 
-    // w values in FactoredValueFunction have been computed successfully
-    // todo..
-
-    return 0;
+    return 0; // success
 }
 
 } // namespace crl

@@ -61,7 +61,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   }
 
   // make building the model faster if it is done row by row
-  //set_add_rowmode(_lp, TRUE);
+  set_add_rowmode(_lp, TRUE);
 
   //
   // Objective function (minimization is lpsolve default)
@@ -135,18 +135,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       F.insert(std::move(f));
       bb++;
   }
-#if 0
-  // sanity check
-  if(get_Ncolumns(_lp) != lp_vars) {
-      return 5; // not all lp variables have been added
-  }
-  if(var != lp_vars+1) {
-      return 6; // counting is incorrect
-  }
-  else {
-    std::cout << "[DEBUG]: val: " << var << std::endl;
-  }
-#endif
+
   //
   // Run variable elimination to generate further variables/constraints
   //
@@ -225,6 +214,9 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
           // translate this reduced (ms,ma) pair into an LP variable offset (laid out as <s0,a0>,<s0,a1>,...,<s1,a0>,...)
           const int offset_E = var + ms.getIndex() * E->getSubdomain()->getNumActions() + ma.getIndex();
           std::cout << "[DEBUG]: Current offset: " << offset_E  << std::endl;
+          if(offset_E > _colsize) {
+              return 5; // variables exceed specified maximum bound
+          }
           // build constraint
           vector<REAL> row; // TODO: move out of loop
           vector<int> colno; // 1-offset column numbering
@@ -247,7 +239,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
           }
           // add constraint (including new variables) to LP
           if(!add_constraintex(_lp, row.size(), row.data(), colno.data(), LE, 0.)) {
-              return 7; // adding of constraint failed
+              return 6; // adding of constraint failed
           }
 
           std::cout << "[DEBUG]: Added constraint: ";
@@ -281,7 +273,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
 
   // F does not store empty scope functions
   if(!F.empty()) {
-      return 8; // functions remain in function set: variable elimination failed
+      return 7; // functions remain in function set: variable elimination failed
   }
 
   // TODO verify var not off by 1
@@ -295,15 +287,15 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       lrow.push_back(1);
   }
   if(!add_constraintex(_lp, lrow.size(), lrow.data(), lcolno.data(), LE, 0.)) {
-      return 9; // adding of constraint failed
+      return 8; // adding of constraint failed
   }
 
   // add one final constraint (not required for ALP as phi is no extra variable)
   // \f$\phi=0\f$
 
   // debug out
-  //set_add_rowmode(_lp, FALSE);
-  write_LP(_lp, stdout);
+  set_add_rowmode(_lp, FALSE);
+  //write_LP(_lp, stdout);
 
   return 0;
 }

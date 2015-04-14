@@ -120,22 +120,22 @@ TEST(ALPIntegrationTest, TestSysadmin) {
   long end_time = time_in_milli();
   std::cout << "[DEBUG]: FALP planner returned after " << end_time - start_time << "ms" << std::endl;
 
-  EXPECT_EQ(res, 0) << "ALP planner failed with error code " << res; // else: lp successfully generated
+  EXPECT_EQ(res, 0) << "ALP " << (res == 1 ? "generateLP()" : "solve()") << " failed"; // else: lp successfully generated
 
   if(!res) { // success
     std::cout << "[DEBUG]: Results:" << std::endl;
     for(auto w : fval->getWeight()) {
         std::cout << "w: " << w << std::endl;
     }
-  }
 
-  // compare against value iteration in full MDP
-  MDP mdp = convertToMDP(fmdp);
-  QTable qt = testVI(mdp, domain, 0.9);
+    // compare against value iteration in full MDP
+    MDP mdp = convertToMDP(fmdp);
+    QTable qt = testVI(mdp, domain, 0.9);
 
-  _StateIncrementIterator sitr(domain);
-  while(sitr.hasNext()) {
-    const State& s = sitr.next();
-    cout << " V(" << s << ")=" << qt->getV(s) << endl;
+    _StateIncrementIterator sitr(domain);
+    while(sitr.hasNext()) {
+      const State& s = sitr.next();
+      cout << " V(" << s << ")=" << qt->getV(s) << endl;
+    }
   }
 }
