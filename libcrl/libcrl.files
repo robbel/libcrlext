@@ -22,6 +22,7 @@ include/crl/uctdata.hpp
 include/crl/util.hpp
 include/crl/vi.hpp
 include/cpputil.hpp
+include/logger.hpp
 src/alp.cpp
 src/alp_cplex.cpp
 src/alp_lpsolve.cpp

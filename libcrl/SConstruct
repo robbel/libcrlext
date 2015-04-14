@@ -54,6 +54,7 @@ if os.uname()[0] == "Darwin":
 	
 config = Configure(env)
 config.CheckCXXHeader('cpputil.hpp')
+config.CheckCXXHeader('logger.hpp')
 config.CheckCXXHeader('boost/shared_ptr.hpp')
 has_lpsolve = config.CheckCXXHeader('lpsolve/lp_lib.h')
 env = config.Finish()
@@ -79,6 +80,7 @@ if prefix != Dir('.'):
 	for header in headers:
 		env.Alias('install', env.InstallPerm(prefix_inc.Dir('crl'), inc.Entry(header), 0644))
 	env.Alias('install', env.InstallPerm(prefix_inc, inc.Entry('cpputil.hpp'), 0644))
+	env.Alias('install', env.InstallPerm(prefix_inc, inc.Entry('logger.hpp'), 0644))
 	env.Alias('install', env.InstallPerm(prefix_lib, lib_targets, 0644))
 	env.Alias('install', env.InstallPerm(prefix_bin, bin_targets, 0755))
 
