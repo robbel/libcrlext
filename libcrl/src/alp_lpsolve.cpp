@@ -53,7 +53,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
 
   // setting new lower bounds on variables
   for(int i = 1; i <= _colsize; i++) {
-      set_lowbo(_lp, i, -std::numeric_limits<REAL>::infinity());
+      set_unbounded(_lp, i);
   }
 
   // note the 1-offset in lpsolve
@@ -82,29 +82,39 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
 
   // A mapping from function to lp-variable offset (used during variable elimination)
   std::unordered_map<const _DiscreteFunction<Reward>*, int> var_offset;
+  // store for functions that have reached empty scope (those are used in last constraint)
+  std::vector<DiscreteFunction<Reward>> empty_fns;
+
   int var = alpha.size()+1; // the offset at which to insert more variables
   int wi = 1; // corresponding to active w_i variable
   int colno[2]; // constraints take a particularly simple form and involve two variables each
   REAL row[2];
   for(const auto& f : C) {
-      const _FDiscreteFunction<Reward>* pf = static_cast<_FDiscreteFunction<Reward>*>(f.get());
-      const auto& p = var_offset.insert({pf,var});
+      const auto& p = var_offset.insert({f.get(),var});
       if(!p.second) {
         assert(false);
       }
-      const vector<Reward>& vals = pf->values(); // optimization: direct access of all values in subdomain
       int cc = 0;
-      for(auto v : vals) {
+      _StateActionIncrementIterator saitr(f->getSubdomain());
+      while(saitr.hasNext()) {
+          const std::tuple<State,Action>& sa = saitr.next();
+          const State& s = std::get<0>(sa);
+          const Action& a = std::get<1>(sa);
           // add lpsolve constraint corresponding to w_i
           set_col_name(_lp, var, &string("C"+to_string(wi)+"_"+to_string(cc))[0]); // TODO: optional if performance becomes an issue
           colno[0] = wi;
-          row[0] = v;
+          row[0] = (*f)(s,a);
           colno[1] = var++;
           row[1] = -1.;
           if(!add_constraintex(_lp, 2, row, colno, EQ, 0.)) {
               return 3; // adding of constraint failed
           }
           cc++;
+      }
+      // test for constant basis
+      if(f->getSubdomain()->getNumStateFactors() == 0 && f->getSubdomain()->getNumActionFactors() == 0) {
+          LOG_DEBUG("Found constant basis function with empty scope");
+          empty_fns.push_back(f);
       }
       F.insert(std::move(f)); // store function in set for variable elimination
       wi++;
@@ -116,19 +126,21 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
 
   int bb = 1;
   for(const auto& f : b) {
-      const _FDiscreteFunction<Reward>* pf = static_cast<_FDiscreteFunction<Reward>*>(f.get());
-      const auto& p = var_offset.insert({pf,var});
+      const auto& p = var_offset.insert({f.get(),var});
       if(!p.second) {
           assert(false);
       }
-      const vector<Reward>& vals = pf->values();
       int bv = 0;
-      for(auto v : vals) {
+      _StateActionIncrementIterator saitr(f->getSubdomain());
+      while(saitr.hasNext()) {
+          const std::tuple<State,Action>& sa = saitr.next();
+          const State& s = std::get<0>(sa);
+          const Action& a = std::get<1>(sa);
           // add lpsolve equality constraint
           set_col_name(_lp, var, &string("b"+to_string(bb)+"_"+to_string(bv))[0]); // TODO: optional if performance becomes an issue
           colno[0] = var++;
           row[0] = 1.;
-          if(!add_constraintex(_lp, 1, row, colno, EQ, v)) {
+          if(!add_constraintex(_lp, 1, row, colno, EQ, (*f)(s,a))) {
               return 4; // adding of constraint failed
           }
           bv++;
@@ -148,22 +160,10 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
     LOG_WARN("Elimination order set has different size from available factors to eliminate");
   }
 
-  std::vector<DiscreteFunction<Reward>> empty_fns; // store for functions that have reached empty scope (for last constraint)
   using range = decltype(F)::range;
   for(Size v : elim_order) {
       assert(v < num_states + _domain->getNumActionFactors());
       LOG_DEBUG("Eliminating variable " << v);
-
-      // 1. collect all functions that have dependence on v: E
-      //      also obtain their offset into variable list
-      // 2. create new function e with joint scope sc[E] \ {v}
-      // 3. add constraints:
-      //      for each dom[e], introduce variable u_z^e:
-      //          for each v add a constraint:
-      //          u_z^e >= \sum affected function instantiation variables..
-      //    store offset to beginning of those variables, as usual
-      //    store new function in FunctionSet
-
       // eliminate variable `v' (either state or action)
       range r = F.getFactor(v);
       if(!r.hasNext()) {
@@ -280,7 +280,6 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       return 7; // functions remain in function set: variable elimination failed
   }
 
-  // TODO verify var not off by 1
   // add remaining constraints (last row)
   // \f$\phi \geq \ldots\f$
   vector<REAL> lrow;

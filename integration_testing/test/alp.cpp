@@ -76,8 +76,13 @@ TEST(ALPIntegrationTest, TestSysadmin) {
 
   // create a basis (one indicator per local state, i.e., corresponding to `single' basis in Guestrin thesis)
   FactoredValueFunction fval = boost::make_shared<_FactoredValueFunction>(domain);
-  const RangeVec& ranges = domain->getStateRanges();
+  // add the constant basis (to guarantee LP feasibility)
+//  auto cfn = boost::make_shared<_ConstantFn<Reward>>(domain);
+//  fval->addBasisFunction(cfn, 0.);
 #if 0
+  // add more basis functions
+  const RangeVec& ranges = domain->getStateRanges();
+  // create a basis (one indicator per local state, i.e., corresponding to `single' basis in Guestrin thesis)
   for(Size fa = 0; fa < ranges.size(); fa++) { // assumption: DBN covers all domain variables
       // place one indicator basis on each possible factor value
       for(Factor fv=0; fv<=ranges[fa].getSpan(); fv++) {
@@ -90,6 +95,13 @@ TEST(ALPIntegrationTest, TestSysadmin) {
       }
   }
 #endif
+  // complete indicator basis
+  _StateIncrementIterator sitr(domain);
+  while(sitr.hasNext()) {
+      auto I = boost::make_shared<_Indicator<Reward>>(domain, cpputil::ordered_vec<Size>(domain->getNumStateFactors()), sitr.next());
+      fval->addBasisFunction(I, 0.);
+  }
+#if 0
   for(Size fa = 0; fa < ranges.size(); fa+=2) { // assumption: DBN covers all domain variables
       auto I_o = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa,fa+1}), State(domain,0));
       _StateIncrementIterator sitr(I_o->getSubdomain());
@@ -98,22 +110,10 @@ TEST(ALPIntegrationTest, TestSysadmin) {
           fval->addBasisFunction(I, 0.);
       }
   }
-
-  // add the constant function
-//  auto C  = boost::make_shared<_ConstantFn<Reward>>(domain); // TODO currently not supported, needs Backproj template specialization
-  // add some indicators
-//  auto I1 = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({0}), State(domain,0));
-//  auto I2 = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({2}), State(domain,0));
-//  auto I3 = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({4}), State(domain,0));
-//  auto I4 = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({6}), State(domain,0));
+#endif
 
   // run the ALP planner
   _ALPPlanner planner(fmdp, 0.9);
-//  fval->addBasisFunction(C,  0.);
-//  fval->addBasisFunction(I1, 0.);
-//  fval->addBasisFunction(I2, 0.);
-//  fval->addBasisFunction(I3, 0.);
-//  fval->addBasisFunction(I4, 0.);
 
   long start_time = time_in_milli();
   planner.setFactoredValueFunction(fval); // this will be computed

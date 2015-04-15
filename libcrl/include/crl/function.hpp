@@ -658,12 +658,29 @@ using Indicator = boost::shared_ptr<_Indicator<T>>;
  */
 template<class T = double>
 class _ConstantFn : public _DiscreteFunction<T> {
+protected:
+  T _val;
 public:
-  _ConstantFn(const Domain& domain, std::string name = "")
-  : _DiscreteFunction<T>(domain, name) { }
+  _ConstantFn(const Domain& domain, T val = T(1), std::string name = "")
+  : _DiscreteFunction<T>(domain, name), _val(val) {
+      _DiscreteFunction<T>::computeSubdomain();
+  }
   /// \brief Return 1 for any (s,a)
   virtual T eval(const State& s, const Action& a) const override {
-    return T(1);
+    return _val;
+  }
+  /// \brief Multiply all values with a scalar
+  _ConstantFn<T>& operator*=(T s) {
+    _val *= s;
+    return *this;
+  }
+  _ConstantFn<T>& operator+=(const _ConstantFn<T>& other) {
+    _val += other._val;
+    return *this;
+  }
+  _ConstantFn<T>& operator-=(const _ConstantFn<T>& other) {
+    _val -= other._val;
+    return *this;
   }
 };
 template<class T = double>

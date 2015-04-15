@@ -33,7 +33,7 @@ void _FactoredValueFunction::setWeight(Size i, double weight) {
   _weight[i] = weight;
 }
 
-Reward _FactoredValueFunction::getV(const State &s) const {
+Reward _FactoredValueFunction::getV(const State &js) const {
   assert(_weight.size() == _basis.size());
 
   // todo
@@ -62,11 +62,22 @@ Action _FactoredValueFunction::getBestAction(const State& js, const SizeVec& eli
 int _ALPPlanner::plan() {
     // compute backprojections and state relevance weights
     for(const DiscreteFunction<Reward>& h : _value_fn->getBasis()) {
-        Backprojection<Reward> B = boost::make_shared<_Backprojection<Reward>>(_domain, _fmdp->T(), h);
-        B->cache();
-        (*B) *= _gamma;
-        (*B) -= h.get(); // FIXME in indicator case, h is not a `flat' function, implement efficient sparse multiplication
-        _C_set.push_back(std::move(B));
+        const _ConstantFn<Reward>* cfn = dynamic_cast<const _ConstantFn<Reward>*>(h.get());
+        if(cfn) {
+            // Backprojection of a constant function is the identical function
+            ConstantFn<Reward> C = boost::make_shared<_ConstantFn<Reward>>(*cfn);
+            (*C) *= _gamma;
+            (*C) -= *cfn;
+            _C_set.push_back(std::move(C));
+        }
+        else {
+            // Full backprojection through DBN
+            Backprojection<Reward> B = boost::make_shared<_Backprojection<Reward>>(_domain, _fmdp->T(), h);
+            B->cache();
+            (*B) *= _gamma;
+            (*B) -= h.get(); // FIXME in indicator case, h is not a `flat' function, implement efficient sparse multiplication
+            _C_set.push_back(std::move(B));
+        }
         // compute factored state relevance weights assuming uniform state likelihoods
         const Size dom_size = h->getSubdomain()->getNumStates() * h->getSubdomain()->getNumActions();
         Reward r_sum = algorithm::sum_over_domain(h.get(), false);

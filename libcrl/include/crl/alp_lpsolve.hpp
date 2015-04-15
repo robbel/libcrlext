@@ -29,10 +29,10 @@
 
 namespace crl {
 
-/// \brief typedef for vectors of flat functions
+/// \brief typedef for vectors of discrete functions
 template<class T>
 using FunctionVec = std::vector<DiscreteFunction<T>>;
-/// \brief typedef for vectors of (flat) reward functions
+/// \brief typedef for vectors of Reward functions
 typedef FunctionVec<Reward> RFunctionVec;
 
 } // namespace crl
@@ -64,7 +64,6 @@ public:
   ~_LP();
 
   /// \brief Given targets \f$C\f$ and \f$\mathbf{b}\f$ compute polynomial set of constraints
-  /// \note This assumes that functions in \f$C\f$ and \f$\mathbf{b}\f$ are flat (and can be statically cast to that)
   /// \return 0 iff successful
   int generateLP(const crl::RFunctionVec& C, const crl::RFunctionVec& b, const std::vector<double>& alpha, const crl::SizeVec& elim_order);
   /// \brief Solve this LP
