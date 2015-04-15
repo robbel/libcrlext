@@ -66,6 +66,9 @@ public:
   /// \brief Given targets \f$C\f$ and \f$\mathbf{b}\f$ compute polynomial set of constraints
   /// \return 0 iff successful
   int generateLP(const crl::RFunctionVec& C, const crl::RFunctionVec& b, const std::vector<double>& alpha, const crl::SizeVec& elim_order);
+  /// \brief Given targets \f$C\f$ and \f$\mathbf{b}\f$ compute possibly exponential set of constraints
+  /// \return 0 iff successful
+  int generateBLP(const crl::RFunctionVec& C, const crl::RFunctionVec& b, const std::vector<double>& alpha);
   /// \brief Solve this LP
   /// \return 0 iff successful
   int solve(crl::_FactoredValueFunction* vfn);

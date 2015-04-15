@@ -80,7 +80,8 @@ typedef boost::shared_ptr<_FactoredValueFunction> FactoredValueFunction;
 
 
 /**
- * A planner that uses an approximate linear program (ALP) along with a factored value function
+ * A planner that uses an approximate linear program (ALP) along with a factored value function.
+ * Constraints are enumerated via variable elimination to avoid exponential LP size for large multi-agent problems.
  * \see Guestrin, Koller, Parr, and Venkatarman, 2003
  */
 class _ALPPlanner : public _Planner {
@@ -98,6 +99,8 @@ protected:
   float _gamma;
   /// \brief Whether all basis functions have been cached
   bool _cached;
+  /// \brief Compute backprojections and state relevance weights for LP
+  void precompute();
 public:
   _ALPPlanner(const FactoredMDP& fmdp, float gamma)
   : _domain(fmdp->getDomain()), _fmdp(fmdp), _gamma(gamma), _cached(false) { }
@@ -111,7 +114,7 @@ public:
   ///
   /// \brief run the FactoredALP algorithm: compute weights for \a FactoredValueFunction via approximate LP
   ///
-  int plan();
+  virtual int plan();
 
   ///
   /// \brief Input a factored value function that will be used for solving
@@ -127,6 +130,22 @@ public:
   }
 };
 typedef boost::shared_ptr<_ALPPlanner> ALPPlanner;
+
+/**
+ * The Brute force (B) approximate linear program (ALP) planner along with a factored value function.
+ * This planner is not smart about generating constraints with variable elimination but enumerates over all S, A
+ */
+class _BLPPlanner : public _ALPPlanner {
+public:
+  _BLPPlanner(const FactoredMDP& fmdp, float gamma)
+  : _ALPPlanner(fmdp, gamma) { }
+
+  ///
+  /// \brief run the FactoredALP algorithm without optimized constraint generation.
+  /// Compute weights for \a FactoredValueFunction via approximate LP after brute force constraint enumeration.
+  ///
+  virtual int plan() override;
+};
 
 } // namespace crl
 

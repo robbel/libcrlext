@@ -59,7 +59,7 @@ Action _FactoredValueFunction::getBestAction(const State& js, const SizeVec& eli
 // ALPPlanner implementation
 //
 
-int _ALPPlanner::plan() {
+void _ALPPlanner::precompute() {
     // compute backprojections and state relevance weights
     for(const DiscreteFunction<Reward>& h : _value_fn->getBasis()) {
         const _ConstantFn<Reward>* cfn = dynamic_cast<const _ConstantFn<Reward>*>(h.get());
@@ -83,6 +83,10 @@ int _ALPPlanner::plan() {
         Reward r_sum = algorithm::sum_over_domain(h.get(), false);
         _alpha.push_back(r_sum/dom_size);
     }
+}
+
+int _ALPPlanner::plan() {
+    precompute();
 
     // build the lp constraints from the target functions above
     // create a basic elimination order (sorted state variables, followed by sorted action variables)
@@ -92,6 +96,25 @@ int _ALPPlanner::plan() {
     int res = lp.generateLP(_C_set, _fmdp->getLRFs(), _alpha, elim_order);
     if(res != 0) {
       LOG_ERROR("generateLP() error code: " << res);
+      return 1;
+    }
+
+    res = lp.solve(_value_fn.get());
+    if(res != 0) {
+      LOG_ERROR("solve() error code: " << res);
+      return 2;
+    }
+
+    return 0; // success
+}
+
+int _BLPPlanner::plan() {
+    precompute();
+
+    lpsolve::_LP lp(_domain);
+    int res = lp.generateBLP(_C_set, _fmdp->getLRFs(), _alpha);
+    if(res != 0) {
+      LOG_ERROR("generateBLP() error code: " << res);
       return 1;
     }
 

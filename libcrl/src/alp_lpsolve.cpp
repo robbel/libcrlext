@@ -28,6 +28,78 @@ _LP::~_LP() {
   }
 }
 
+int _LP::generateBLP(const RFunctionVec& C, const RFunctionVec& b, const std::vector<double>& alpha) {
+  assert(C.size() == alpha.size());
+
+  const int lp_vars = alpha.size(); // corresponding to the w_i
+  // create LP with an upper bound on the variables specified here
+  _lp = make_lp(0, lp_vars);
+  if(_lp == nullptr) {
+    return 1; // couldn't construct a new model
+  }
+
+  // setting new lower bounds on variables
+  for(int i = 1; i <= lp_vars; i++) {
+      set_unbounded(_lp, i);
+  }
+
+  // note the 1-offset in lpsolve
+  for(vector<double>::size_type w = 1; w <= alpha.size(); w++) {
+    set_col_name(_lp, w, &string("w"+to_string(w))[0]); // TODO: optional if performance becomes an issue
+  }
+
+  // make building the model faster if it is done row by row
+  set_add_rowmode(_lp, TRUE);
+
+  //
+  // Objective function (minimization is lpsolve default)
+  //
+
+  {
+    vector<int> colno = cpputil::ordered_vec(alpha.size(), 1); // 1-offset column numbering
+    vector<REAL>& row = const_cast<vector<REAL>&>(alpha); // API interface requires non-const pointer
+    if(!set_obj_fnex(_lp, row.size(), row.data(), colno.data())) {
+        return 2; // objective function setting failed
+    }
+  }
+
+  //
+  // Brute force constraint generation
+  //
+  _StateActionIncrementIterator saitr(_domain);
+  while(saitr.hasNext()) {
+      const std::tuple<State,Action>& sa = saitr.next();
+      const State& s = std::get<0>(sa);
+      const Action& a = std::get<1>(sa);
+      // write out one constraint for those
+      int col = 1; // indicate w_i parameter
+      vector<int> colno;
+      vector<REAL> row;
+
+      for(const auto& f : C) {
+          State ms = f->mapState(s);
+          Action ma = f->mapAction(a);
+          row.push_back((*f)(ms,ma));
+          colno.push_back(col++);
+      }
+      Reward sum = 0.;
+      for(const auto& f : b) {
+          State ms = f->mapState(s);
+          Action ma = f->mapAction(a);
+          sum += (*f)(ms,ma);
+      }
+      if(!add_constraintex(_lp, row.size(), row.data(), colno.data(), LE, -1*sum)) {
+          return 3;
+      }
+  }
+
+  // debug out
+  set_add_rowmode(_lp, FALSE);
+  write_LP(_lp, stdout);
+
+  return 0;
+}
+
 //
 // Regarding LP variable ordering:
 // - First go the w_i variables, then the `scope variables' associated with each function in C, then those with b, then those from variable elimination.
