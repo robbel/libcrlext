@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include "crl/env_sysadmin.hpp"
+#include "logger.hpp"
 
 using namespace std;
 using namespace crl;
@@ -144,7 +145,7 @@ void _Sysadmin::buildFactoredMDP() {
     }
 
     time_t end_time = time_in_milli();
-    cout << "[DEBUG]: created factored MDP in " << end_time - start_time << "ms." << endl;
+    LOG_INFO("created factored MDP in " << end_time - start_time << "ms.");
 }
 
 State _Sysadmin::begin() {

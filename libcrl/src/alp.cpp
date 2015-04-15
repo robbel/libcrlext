@@ -11,6 +11,7 @@
 
 #include "crl/alp.hpp"
 #include "crl/alp_lpsolve.hpp"
+#include "logger.hpp"
 
 using namespace std;
 
@@ -79,13 +80,13 @@ int _ALPPlanner::plan() {
     lpsolve::_LP lp(_domain);
     int res = lp.generateLP(_C_set, _fmdp->getLRFs(), _alpha, elim_order);
     if(res != 0) {
-      std::cout << "[DEBUG]: generateLP() error code: " << res << std::endl;
+      LOG_ERROR("generateLP() error code: " << res);
       return 1;
     }
 
     res = lp.solve(_value_fn.get());
     if(res != 0) {
-      std::cout << "[DEBUG]: solve() error code: " << res << std::endl;
+      LOG_ERROR("solve() error code: " << res);
       return 2;
     }
 

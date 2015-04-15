@@ -15,6 +15,7 @@
 #include "crl/alp_lpsolve.hpp"
 #include "crl/env_sysadmin.hpp"
 #include "crl/vi.hpp"
+#include "logger.hpp"
 
 using namespace std;
 using namespace crl;
@@ -34,7 +35,7 @@ QTable testVI(MDP mdp, Domain domain, float gamma) {
     VIPlanner planner(new _FlatVIPlanner(domain, mdp, .0001, gamma));
     planner->plan();
     long end_time = time_in_milli();
-    std::cout << "[DEBUG]: VI planner returned after " << end_time - start_time << "ms" << std::endl;
+    LOG_INFO("VI planner returned after " << end_time - start_time << "ms");
     QTable qtable = planner->getQTable();
     return qtable;
 }
@@ -71,7 +72,7 @@ TEST(ALPIntegrationTest, TestSysadmin) {
   Domain domain = thesys->getDomain();
 
   FactoredMDP fmdp = thesys->getFactoredMDP();
-  std::cout << fmdp->T() << std::endl;
+  LOG_INFO(fmdp->T());
 
   // create a basis (one indicator per local state, i.e., corresponding to `single' basis in Guestrin thesis)
   FactoredValueFunction fval = boost::make_shared<_FactoredValueFunction>(domain);
@@ -118,19 +119,19 @@ TEST(ALPIntegrationTest, TestSysadmin) {
   planner.setFactoredValueFunction(fval); // this will be computed
   int res = planner.plan();
   long end_time = time_in_milli();
-  std::cout << "[DEBUG]: FALP planner returned after " << end_time - start_time << "ms" << std::endl;
+  LOG_INFO("FALP planner returned after " << end_time - start_time << "ms");
 
   EXPECT_EQ(res, 0) << "ALP " << (res == 1 ? "generateLP()" : "solve()") << " failed"; // else: lp successfully generated
 
   if(!res) { // success
-    std::cout << "[DEBUG]: Results:" << std::endl;
+    LOG_INFO("Results:");
     for(auto w : fval->getWeight()) {
-        std::cout << " W: " << w << std::endl;
+        LOG_INFO(" W: " << w);
     }
 
     // compare against value iteration solution if we have an exact LP solution (exhaustive basis function set)
     if(fval->getBasis().size() == domain->getNumStates()) {
-        std::cout << "[DEBUG]: Comparing with flat VI solution:" << std::endl;
+        LOG_INFO("Comparing with flat VI solution:");
 
         MDP mdp = convertToMDP(fmdp);
         QTable qt = testVI(mdp, domain, 0.9);
@@ -143,9 +144,8 @@ TEST(ALPIntegrationTest, TestSysadmin) {
           double r = qt->getV(s);
 
           EXPECT_TRUE(cpputil::approxEq(r, wvec[si++], 0.1));
-          cout << " V(" << s << ")=" << qt->getV(s) << endl;
+          LOG_INFO(" V(" << s << ")=" << qt->getV(s));
         }
-
     }
   }
 }

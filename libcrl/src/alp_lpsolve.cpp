@@ -10,6 +10,7 @@
  */
 
 #include "crl/alp_lpsolve.hpp"
+#include "logger.hpp"
 #include <unordered_map>
 
 using namespace crl;
@@ -142,16 +143,16 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
 
   const Size num_states = _domain->getNumStateFactors();
   const Size num_factors = F.getNumFactors();
-  std::cout << "[DEBUG]: Number of unique factors (S,A) to eliminate: " << num_factors << std::endl;
+  LOG_DEBUG("Number of unique factors (S,A) to eliminate: " << num_factors);
   if(elim_order.size() != num_factors) {
-    std::cout << "[WARNING]: Elimination order set has different size from available factors to eliminate" << std::endl;
+    LOG_WARN("Elimination order set has different size from available factors to eliminate");
   }
 
   std::vector<DiscreteFunction<Reward>> empty_fns; // store for functions that have reached empty scope (for last constraint)
   using range = decltype(F)::range;
   for(Size v : elim_order) {
       assert(v < num_states + _domain->getNumActionFactors());
-      std::cout << "[DEBUG]: Eliminating variable " << v << std::endl;
+      LOG_DEBUG("Eliminating variable " << v);
 
       // 1. collect all functions that have dependence on v: E
       //      also obtain their offset into variable list
@@ -166,12 +167,12 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       // eliminate variable `v' (either state or action)
       range r = F.getFactor(v);
       if(!r.hasNext()) {
-          std::cout << "[DEBUG]: Variable " << v << " not eliminated. It does not exist in FunctionSet." << std::endl;
+          LOG_DEBUG("Variable " << v << " not eliminated. It does not exist in FunctionSet.");
           continue;
       }
       EmptyFunction<Reward> E = boost::make_shared<_EmptyFunction<Reward>>(r); // construct new function merely for domain computations
       const auto& p = var_offset.insert({E.get(), var}); // variable offset in LP
-      std::cout << "[DEBUG]: Storing offset: " << var << " for replacement fn." << std::endl;
+      LOG_DEBUG("Storing offset: " << var << " for replacement function");
       if(!p.second) {
           assert(false);
       }
@@ -186,19 +187,21 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
         E->eraseActionFactor(v-num_states);
       }
       E->computeSubdomain(); // does not include `v' anymore
-
-      std::cout << "[DEBUG]: Newly constructed function E has factor scope: S{ ";
+#if !NDEBUG
+      std::stringstream ss;
+      ss << "Newly constructed function E has factor scope: S{ ";
       for(auto s : E->getStateFactors()) {
-          std::cout << s << ", ";
+          ss << s << ", ";
       }
-      std::cout << "} A{ ";
+      ss << "} A{ ";
       for(auto a : E->getActionFactors()) {
-          std::cout << a << ", ";
+          ss << a << ", ";
       }
-      std::cout << "};" << std::endl;
-
+      ss << "};";
+      LOG_DEBUG(ss.str());
+#endif
       if(E->getSubdomain()->getNumStateFactors() == 0 && E->getSubdomain()->getNumActionFactors() == 0) {
-          std::cout << "[DEBUG]: Found function with empty scope" << std::endl;
+          LOG_DEBUG("Found function with empty scope");
           empty_fns.push_back(E);
       }
 
@@ -213,7 +216,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
           Action ma = E->mapAction(a,a_dom);
           // translate this reduced (ms,ma) pair into an LP variable offset (laid out as <s0,a0>,<s0,a1>,...,<s1,a0>,...)
           const int offset_E = var + ms.getIndex() * E->getSubdomain()->getNumActions() + ma.getIndex();
-          std::cout << "[DEBUG]: Current offset: " << offset_E  << std::endl;
+          LOG_DEBUG("Current offset: " << offset_E);
           if(offset_E > _colsize) {
               return 5; // variables exceed specified maximum bound
           }
@@ -241,16 +244,17 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
           if(!add_constraintex(_lp, row.size(), row.data(), colno.data(), LE, 0.)) {
               return 6; // adding of constraint failed
           }
-
-          std::cout << "[DEBUG]: Added constraint: ";
+#if !NDEBUG
+          LOG_DEBUG("Added constraint:");
+          std::stringstream ss;
           for(int i = 0; i < row.size(); i++) {
-            std::cout << get_col_name(_lp,colno[i]) << "*" << row[i] << " ";
+            ss << get_col_name(_lp,colno[i]) << "*" << row[i] << " ";
           }
-          std::cout << std::endl;
+          LOG_DEBUG(ss.str());
+#endif
       }
-
-      std::cout << "[DEBUG]: Function set F before erase of factor: " << v << std::endl;
-      std::cout << "[DEBUG]: " << F << std::endl;
+      LOG_DEBUG("Function set F before erase of factor: " << v);
+      LOG_DEBUG(F);
 
       // Erase from var_offset hash table (required to avoid collisions)
       r.reset();
@@ -265,11 +269,11 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       // update variable counter
       var+=E->getSubdomain()->size();
 
-      std::cout << "[DEBUG]: Function set F after erase and insertion of new function E: " << std::endl;
-      std::cout << "[DEBUG]: " << F << std::endl;
+      LOG_DEBUG("Function set F after erase and insertion of new function E: ");
+      LOG_DEBUG(F);
   }
 
-  std::cout << "[DEBUG]: Number of unique factors (S,A) after elimination: " << F.getNumFactors() << " and size: " << F.size() << std::endl;
+  LOG_DEBUG("Number of unique factors (S,A) after elimination: " << F.getNumFactors() << " and size: " << F.size());
 
   // F does not store empty scope functions
   if(!F.empty()) {
