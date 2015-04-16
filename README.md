@@ -6,7 +6,8 @@ It is currently maintained as a private repository at https://bitbucket.org/robb
 
 ### How do I get set up? ###
 
-* Note: in addition to the libcrl requirements, lpsolve (5.5) is required to support the ALP solver.
+* Install the external dependencies from `external`
+* lpsolve (5.5) is required to support the ALP solver.
 * For unit tests, the [Google Test](http://code.google.com/p/googletest) framework is used.
 * todo...
 

@@ -1,0 +1,110 @@
+lib = Dir('lib')
+build = Dir('build')
+src = Dir('src')
+inc = Dir('include')
+bin = Dir('bin')
+
+prefix = Dir(ARGUMENTS.get('prefix', '.'))
+prefix_lib = prefix.Dir('lib')
+prefix_inc = prefix.Dir('include')
+prefix_bin = prefix.Dir('bin')
+
+import os
+cpath = os.environ.get('CPATH', "")
+ld_library_path = os.environ.get('LD_LIBRARY_PATH', "")
+cpp_paths = [cp for cp in cpath.split(':')]+[inc, prefix_inc]
+lib_paths = [lp for lp in ld_library_path.split(':')]+[lib, prefix_lib]
+
+ccflags = ['-Wall', '-Werror', '-Wno-deprecated', '-std=c++11']
+
+if 'debug' in COMMAND_LINE_TARGETS:
+	ccflags += ['-g', '-O0']
+else:
+	ccflags += ['-DBOOST_DISABLE_ASSERTS', '-DNDEBUG', '-O2']
+
+BuildDir(build, src, duplicate=0)
+
+gzstream_sources = [build.File(source) for source in """
+gzstream.cpp
+""".split()]
+strxml_sources = [build.File(source) for source in """
+strxml.cpp
+""".split()]
+diastream_sources = [build.File(source) for source in """
+diastream.cpp
+""".split()]
+
+headers = """
+diastream.hpp gzstream.h strxml.hpp
+""".split()
+
+gzstream_sources = [build.File(source) for source in gzstream_sources]
+strxml_sources = [build.File(source) for source in strxml_sources]
+diastream_sources = [build.File(source) for source in diastream_sources]
+
+diastream_test_sources = [build.File('test_diastream.cpp')]
+gunzip_test_sources = [build.File('test_gunzip.cpp')]
+gzip_test_sources = [build.File('test_gzip.cpp')]
+
+env = Environment(tools = ["default", "tools"], toolpath = '.',
+                  CXX='clang++-3.5',
+                  CPPPATH=cpp_paths, CCFLAGS=ccflags, LIBPATH=lib_paths)
+
+shared_lib_suffix = ".so"
+static_lib_suffix = ".a"
+if os.uname()[0] == "Darwin":
+	shared_lib_suffix = ".dylib"
+	env.Append(SHLINKFLAGS='-undefined dynamic_lookup')
+	
+config = Configure(env)
+config.CheckCXXHeader('boost/shared_ptr.hpp')
+config.CheckCXXHeader('zlib.h')
+env = config.Finish()
+
+lib_targets = []
+bin_targets = []
+
+# compile libgzstram as static library as per their Makefile
+libgzstream = env.Library(lib.File('libgzstream'+static_lib_suffix), gzstream_sources)
+lib_targets += [libgzstream]
+
+test_gunzip = env.Program(bin.Entry('test_gunzip'), gunzip_test_sources, LIBS=[libgzstream, 'z'])
+bin_targets += [test_gunzip]
+
+test_gzip = env.Program(bin.Entry('test_gzip'), gzip_test_sources, LIBS=[libgzstream, 'z'])
+bin_targets += [test_gzip]
+
+# compile strxml as dynamic library
+libstrxml = env.SharedLibrary(lib.File('libstrxml'+shared_lib_suffix), strxml_sources)
+lib_targets += [libstrxml]
+
+# compile diastream as dynamic library
+libdiastream = env.SharedLibrary(lib.File('libdiastream'+shared_lib_suffix), diastream_sources)
+lib_targets += [libdiastream]
+
+test_diastream = env.Program(bin.Entry('test_diastream'), diastream_test_sources, LIBS=[libdiastream, libgzstream, 'z'])
+bin_targets += [test_diastream]
+
+
+if prefix != Dir('.'):
+	for header in headers:
+		env.Alias('install', env.InstallPerm(prefix_inc, inc.Entry(header), 0644))
+	env.Alias('install', env.InstallPerm(prefix_lib, lib_targets, 0644))
+	env.Alias('install', env.InstallPerm(prefix_bin, bin_targets, 0755))
+
+for target in lib_targets+bin_targets:
+	Default(target)
+	env.Alias('debug', target)
+
+dist_files = [File(x) for x in """
+COPYING COPYING.LESSER README.md SConstruct tools.py
+""".split()]
+dist_files += [inc.Entry(header) for header in headers]
+dist_files += [src.Entry(build_source) for build_source in gzstream_sources] 
+dist_files += [src.Entry(build_source) for build_source in strxml_sources] 
+dist_files += [src.Entry(build_source) for build_source in diastream_sources] 
+dist_files += [src.Entry(test_source) for test_source in diastream_test_sources] 
+dist_files += [src.Entry(test_source) for test_source in gunzip_test_sources] 
+dist_files += [src.Entry(test_source) for test_source in gzip_test_sources] 
+
+env.Alias('dist', env.DistTar('external.tar.gz', dist_files))
