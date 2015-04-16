@@ -61,7 +61,7 @@ FactoredMDP makeFactoredMDP(Domain domain) {
 //    cout << "created DBNFactor in " << end_time - start_time << "ms" << endl;
 
       // add random factor to dbn
-      fmdp->addDBNFactor(fa);
+      fmdp->addDBNFactor(std::move(fa));
   }
 
   return fmdp;

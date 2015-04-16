@@ -17,103 +17,124 @@ using namespace std;
 using namespace crl;
 using namespace cpputil;
 
+//
+// Test fixtures
+//
+
+class FunctionSetTest : public ::testing::Test {
+protected:
+    FunctionSetTest() { }
+//  virtual ~DBNText() { }
+    virtual void SetUp() override;
+//  virtual void TearDown() override;
+
+    /// \brief Insert some functions into a \a FunctionSet
+    boost::shared_ptr<FunctionSet<double>> insertFunctionTest();
+
+    Domain _domain;
+    State  _s;
+    State  _s2;
+    Action _a;
+    Indicator<> I1;
+    Indicator<> I2;
+};
+
+void FunctionSetTest::SetUp() {
+    // set up common domain
+    _domain = boost::make_shared<_Domain>();
+    _domain->addStateFactor(0, 3, "sf0"); // 4 states
+    _domain->addStateFactor(0, 2, "sf1"); // 3 states
+    _domain->addActionFactor(0, 1, "agent1");  // 2 actions
+    _domain->setRewardRange(-1, 0);
+
+    _s = State(_domain, 1);
+    _s2 = State(_domain, 2);
+    _a = Action(_domain, 0);
+}
+
+boost::shared_ptr<FunctionSet<double>> FunctionSetTest::insertFunctionTest() {
+    boost::shared_ptr<FunctionSet<double>> f_set = boost::make_shared<FunctionSet<double>>(_domain);
+
+    // Note: we can effectively ignore that s is not in I's domain: only its index (= 2) will be used by the indicator.
+    Indicator<> I = boost::make_shared<_Indicator<>>(_domain, SizeVec({1}), _s2);
+    EXPECT_TRUE(!(*I)(_s) && (*I)(_s2));
+    EXPECT_DOUBLE_EQ(algorithm::sum_over_domain(I.get(),false), 1.);
+
+    EXPECT_EQ(f_set->getNumFactors(), 0);
+    f_set->insert(I);
+    EXPECT_EQ(f_set->size(), 1);
+    EXPECT_EQ(f_set->getNumFactors(), 1);
+
+    // add another function
+    I = boost::make_shared<_Indicator<>>(_domain);
+    I->addStateFactor(0); // exercise some other code paths
+    I->addStateFactor(1);
+    I->setState(_s2);
+    f_set->insert(I);
+    EXPECT_EQ(f_set->size(), 3);
+    EXPECT_EQ(f_set->getNumFactors(), 2);
+
+    // add another function (only one action dependency)
+    EmptyFunction<double> D = boost::make_shared<_EmptyFunction<double>>(_domain);
+    D->addActionFactor(0);
+    f_set->insert(D);
+    EXPECT_EQ(f_set->size(), 4);
+    EXPECT_EQ(f_set->getNumFactors(), 3);
+
+    return f_set;
+}
+
 ///
-/// \brief Placeholder for some initial experiments
+/// \brief Test \a FunctionSet with a couple of functions
 ///
-TEST(FunctionSetTest, BasicTest) {
-  srand(time(NULL));
+TEST_F(FunctionSetTest, BasicInsertionTests) {
+    // fill FunctionSet
+    ASSERT_TRUE(insertFunctionTest() != nullptr);
+}
 
-  Domain domain = boost::make_shared<_Domain>();
-  domain->addStateFactor(0, 3, "sf0"); // 4 states
-  domain->addStateFactor(0, 2, "sf1"); // 3 states
-  domain->addActionFactor(0, 1, "agent1");  // 2 actions
-  domain->setRewardRange(-1, 0);
-
-  const State s(domain, 1);
-  const State s2(domain,2);
-  const Action a(domain, 0);
-
-  //
-  // Test FunctionSet with a couple of functions
-  //
-
-  // Note: we can effectively ignore that s is not in I's domain: only its index (= 2) will be used by the indicator.
-  Indicator<> I = boost::make_shared<_Indicator<>>(domain, SizeVec({1}), s2);
-  EXPECT_TRUE(!(*I)(s) && (*I)(s2));
-  EXPECT_DOUBLE_EQ(algorithm::sum_over_domain(I.get(),false), 1.);
-
-  FunctionSet<double> f_set(domain);
-  EXPECT_EQ(f_set.getNumFactors(), 0);
-  f_set.insert(I);
-  EXPECT_EQ(f_set.size(), 1);
-  EXPECT_EQ(f_set.getNumFactors(), 1);
-
-  // add another function
-  I = boost::make_shared<_Indicator<>>(domain);
-  I->addStateFactor(0); // exercise some other code paths
-  I->addStateFactor(1);
-  I->setState(s2);
-  f_set.insert(I);
-  EXPECT_EQ(f_set.size(), 3);
-  EXPECT_EQ(f_set.getNumFactors(), 2);
-
-  // add another function (only one action dependency)
-  EmptyFunction<double> D = boost::make_shared<_EmptyFunction<double>>(domain);
-  D->addActionFactor(0);
-  f_set.insert(D);
-  EXPECT_EQ(f_set.size(), 4);
-  EXPECT_EQ(f_set.getNumFactors(), 3);
-
-  //
-  // Test FunctionSet retrieval
-  //
-
+///
+/// \brief Test \a FunctionSet retrieval
+///
+TEST_F(FunctionSetTest, BasicRetrievalTests) {
+  // fill FunctionSet again
+  const auto& f_set = insertFunctionTest();
   using range = FunctionSet<double>::range;
-  range r = f_set.getStateFactor(0);
+
+  range r = f_set->getStateFactor(0);
   ASSERT_TRUE(r.hasNext()); // found sth
   r.next();
   EXPECT_TRUE(!r.hasNext()); // exactly one element
 
-  r = f_set.getStateFactor(1);
+  r = f_set->getStateFactor(1);
   ASSERT_TRUE(r.hasNext()); // found sth
   r.next();
   EXPECT_TRUE(r.hasNext());
   r.next();
   EXPECT_TRUE(!r.hasNext()); // exactly two elements
 
-  r = f_set.getActionFactor(0);
+  r = f_set->getActionFactor(0);
   ASSERT_TRUE(r.hasNext()); // found sth
   const DiscreteFunction<double>& f = r.next();
-  EXPECT_THROW(f->eval(s,a), cpputil::InvalidException); // should have returned EmptyFunction
+  EXPECT_THROW(f->eval(_s,_a), cpputil::InvalidException); // should have returned EmptyFunction
   EXPECT_TRUE(!r.hasNext()); // exactly one element
 
-  r = f_set.getActionFactor(1);
+  r = f_set->getActionFactor(1);
   EXPECT_TRUE(!r.hasNext()); // found nothing
 
-  f_set.eraseActionFactor(0);
-  r = f_set.getActionFactor(0);
+  f_set->eraseActionFactor(0);
+  r = f_set->getActionFactor(0);
   EXPECT_TRUE(!r.hasNext()); // found nothing
 }
 
 ///
 /// \brief Some basic operations on functions
 ///
-TEST(FunctionSetTest, FunctionAdditionTest) {
-  Domain domain = boost::make_shared<_Domain>();
-  domain->addStateFactor(0, 3, "sf0"); // 4 states
-  domain->addStateFactor(0, 2, "sf1"); // 3 states
-  domain->addActionFactor(0, 1, "agent1");  // 2 actions
-  domain->setRewardRange(-1, 0);
-
-  const State s(domain, 1);
-  const State s2(domain,2);
-  const Action a(domain,0);
-
-  _FDiscreteFunction<double> f(domain, "test_name");
+TEST_F(FunctionSetTest, FunctionAdditionTest) {
+  _FDiscreteFunction<double> f(_domain, "test_name");
   f.addStateFactor(0);
   f.addStateFactor(1);
   f.addActionFactor(0);
-  _FDiscreteFunction<double> f2(domain, "test_name");
+  _FDiscreteFunction<double> f2(_domain, "test_name");
   f2.addStateFactor(0);
   f2.addStateFactor(1);
   f2.addActionFactor(0);
@@ -121,24 +142,24 @@ TEST(FunctionSetTest, FunctionAdditionTest) {
   f.pack();
   f2.pack();
 
-  f.define(s,a, 3);
-  EXPECT_EQ(f.eval(s,a), 3);
+  f.define(_s,_a, 3);
+  EXPECT_EQ(f.eval(_s,_a), 3);
   EXPECT_DOUBLE_EQ(algorithm::sum_over_domain(&f,false), 3.);
   EXPECT_DOUBLE_EQ(algorithm::sum_over_domain(&f,true), 3.);
-  f2.define(s2,a,4);
-  EXPECT_EQ(f2.eval(s2,a), 4);
+  f2.define(_s2,_a,4);
+  EXPECT_EQ(f2.eval(_s2,_a), 4);
 
   f += f2;
-  EXPECT_EQ(f.eval(s,a), 3);
-  EXPECT_EQ(f.eval(s2,a), 4);
+  EXPECT_EQ(f.eval(_s,_a), 3);
+  EXPECT_EQ(f.eval(_s2,_a), 4);
 
   f -= f2;
-  EXPECT_EQ(f.eval(s,a), 3);
-  EXPECT_EQ(f.eval(s2,a), 0);
+  EXPECT_EQ(f.eval(_s,_a), 3);
+  EXPECT_EQ(f.eval(_s2,_a), 0);
 
   f *= 2;
-  EXPECT_EQ(f.eval(s,a), 6);
-  EXPECT_EQ(f.eval(s2,a), 0);
+  EXPECT_EQ(f.eval(_s,_a), 6);
+  EXPECT_EQ(f.eval(_s2,_a), 0);
   EXPECT_DOUBLE_EQ(algorithm::sum_over_domain(&f,false), 6.);
   EXPECT_DOUBLE_EQ(algorithm::sum_over_domain(&f,true), 6.);
 
@@ -152,8 +173,8 @@ TEST(FunctionSetTest, FunctionAdditionTest) {
 
   f2.eraseActionFactor(0);
   f2.pack();
-  f2.define(s,Action(),5);
-  f2.define(s2,Action(),3);
+  f2.define(_s,Action(),5);
+  f2.define(_s2,Action(),3);
   // print before
   std::cout << "Before: " << std::endl;
   _StateIncrementIterator sitr(f.getSubdomain());
