@@ -13,6 +13,7 @@
 
 #include "crl/factor_learner.hpp"
 #include "crl/alp.hpp"
+#include "logger.hpp"
 
 using namespace std;
 using namespace crl;
@@ -20,10 +21,57 @@ using namespace cpputil;
 
 namespace {
 
-///
-/// \brief Create a rather random simple DBN
-///
-DBN makeSimpleDBN(Domain domain) {
+//
+// Test fixtures
+//
+
+class DBNTest : public ::testing::Test {
+protected:
+    DBNTest() { }
+//  virtual ~DBNText() { }
+    virtual void SetUp() override;
+//  virtual void TearDown() override;
+
+    /// \brief Create a rather random simple DBN
+    DBN makeSimpleDBN(Domain domain);
+
+    Domain _domain;
+    State  _s;
+    State  _s2;
+    Action _a;
+    DBN    _dbn;
+    Indicator<> I1;
+    Indicator<> I2;
+};
+
+void DBNTest::SetUp() {
+    // set up common domain
+    _domain = boost::make_shared<_Domain>();
+    _domain->addStateFactor(0, 3, "sf0"); // 4 states
+    _domain->addStateFactor(0, 2, "sf1"); // 3 states
+    _domain->addActionFactor(0, 1, "agent1");  // 2 actions
+    _domain->setRewardRange(-1, 0);
+
+    _s = State(_domain, 1);
+    _s2 = State(_domain, 2);
+    _a = Action(_domain, 0);
+    // two indicator functions in domain
+    // Note: we can effectively ignore that s2 is not in I's domain: only its index (= 2) will be used by the indicator.
+    I1 = boost::make_shared<_Indicator<>>(_domain, SizeVec({1}), _s2); // centered on variable `1' at `s2'
+    ASSERT_TRUE(!(*I1)(_s) && (*I1)(_s2));
+    I2 = boost::make_shared<_Indicator<>>(_domain);
+    I2->addStateFactor(0); // exercise some other code paths
+    I2->addStateFactor(1); // an indicator over the complete state factor set
+    I2->setState(_s2);
+    ASSERT_TRUE(I2->getSubdomain()->getNumStateFactors() == _domain->getNumStateFactors());
+    ASSERT_TRUE(!(*I2)(_s) && (*I2)(_s2));
+
+    // set up common DBN
+    _dbn = makeSimpleDBN(_domain);
+    LOG_INFO(*_dbn);
+}
+
+DBN DBNTest::makeSimpleDBN(Domain domain) {
   DBN dbn = boost::make_shared<_DBN>();
 
   const RangeVec& ranges = domain->getStateRanges();
@@ -68,69 +116,44 @@ DBN makeSimpleDBN(Domain domain) {
 } // anonymous ns
 
 ///
-/// \brief Placeholder for some initial experiments
+/// \brief Checks whether 2-TBN is properly normalized
 ///
-TEST(DBNTest, BasicTest) {
-  srand(time(NULL));
-
-  Domain domain = boost::make_shared<_Domain>();
-  domain->addStateFactor(0, 3, "sf0"); // 4 states
-  domain->addStateFactor(0, 2, "sf1"); // 3 states
-  domain->addActionFactor(0, 1, "agent1");  // 2 actions
-  domain->setRewardRange(-1, 0);
-
-  const State s(domain, 1);
-  const State s2(domain,2);
-  const Action a(domain, 0);
-
-  //
-  // Generate indicator function on sf1 = 1
-  //
-
-  // Note: we can effectively ignore that s is not in I's domain: only its index (= 2) will be used by the indicator.
-  Indicator<> I = boost::make_shared<_Indicator<>>(domain, SizeVec({1}), s2);
-  EXPECT_TRUE(!(*I)(s) && (*I)(s2));
-
-  //
-  // Basic DBN checks
-  //
-
-  DBN dbn = makeSimpleDBN(domain);
-  std::cout << *dbn << std::endl;
+TEST_F(DBNTest, DBNNormalizationTest) {
+  //srand(time(NULL));
 
   // normalized?
   Probability total = 0.;
-  _StateIncrementIterator si(domain);
+  _StateIncrementIterator si(_domain);
   while(si.hasNext()) {
-      total += dbn->T(s,a,si.next());
+      total += _dbn->T(_s,_a,si.next());
   }
-  EXPECT_DOUBLE_EQ(1.,total);
+  EXPECT_DOUBLE_EQ(1., total);
 
   // alternative invokation 1 (template specialization)
   total = 0.;
   si.reset();
   while(si.hasNext()) {
-      total += dbn->T(s,a,si.next(),identity_map,identity_map,identity_map);
+      total += _dbn->T(_s,_a,si.next(),identity_map,identity_map,identity_map);
   }
-  EXPECT_DOUBLE_EQ(1.,total);
+  EXPECT_DOUBLE_EQ(1., total);
 
   // alternative invokation 2 (with mapping)
   total = 0.;
-  const subdom_map mapping(cpputil::ordered_vec<Size>(domain->getNumStateFactors()));
+  const subdom_map mapping(cpputil::ordered_vec<Size>(_domain->getNumStateFactors()));
   si.reset();
   while(si.hasNext()) {
-      total += dbn->T(s,a,si.next(),mapping,mapping,mapping);
+      total += _dbn->T(_s,_a,si.next(),mapping,mapping,mapping);
   }
   EXPECT_DOUBLE_EQ(1.,total);
+}
 
-  //
-  // Test backprojection of indicator through DBN
-  //
-
-  // TODO test with invalid functions too (and expect exception)
-  // TODO increase complexity of another DBN2 (perhaps even randomize parent dependencies in (s,a))
-
-  _Backprojection<double> B(domain, *dbn, I, "backproject_thru_dbn");
+///
+/// \brief Some backprojection tests of the indicator functions
+/// \see the integration_testing package for more complex backprojection tests
+/// \todo Test with invalid functions too (and expect exception)
+///
+TEST_F(DBNTest, DBNBackprojectionTests) {
+  _Backprojection<double> B(_domain, *_dbn, I1, "bp1");
   EXPECT_TRUE(B.getStateFactors().size() == 1 && B.getActionFactors().size() == 1); // based on DBN structure above
   EXPECT_TRUE(B.getStateFactors()[0] == 1);
 
@@ -139,9 +162,9 @@ TEST(DBNTest, BasicTest) {
   EXPECT_TRUE(B.getSubdomain()->getNumStateFactors() == 1 && B.getSubdomain()->getNumActionFactors() == 1); // based on DBN structure above
 
   // test whether backprojection resulted in some meaningful values, given DBN structure above
-  DBNFactor fa = dbn->factor(1);
+  DBNFactor fa = _dbn->factor(1);
   const State empty_s;
-  const Size indicated_state = I->getStateIndex();
+  const Size indicated_state = I1->getStateIndex();
   Domain subdomain = fa->getSubdomain(); // TODO enable StateActionIncrementIterator here too!
   for (Size state_index=0; state_index<subdomain->getNumStates(); state_index++) {
           State s(subdomain, state_index);
@@ -152,18 +175,8 @@ TEST(DBNTest, BasicTest) {
           }
   }
 
-  //
-  // Test with indicator over complete state factor scope (2 state factors)
-  //
-
-  Indicator<> I2 = boost::make_shared<_Indicator<>>(domain);
-  I2->addStateFactor(0); // exercise some other code paths
-  I2->addStateFactor(1);
-  I2->setState(s2);
-  ASSERT_TRUE(I2->getSubdomain()->getNumStateFactors() == domain->getNumStateFactors()); // over complete domain
-  EXPECT_TRUE(!(*I2)(s) && (*I2)(s2));
-
-  _Backprojection<double> B2(domain, *dbn, I2, "backproject_thru_dbn_2");
+  // A backprojection with an indicator over complete state factor scope (2 state factors)
+  _Backprojection<double> B2(_domain, *_dbn, I2, "bp2");
   EXPECT_TRUE(B2.getStateFactors().size() == 2 && B2.getActionFactors().size() == 1); // based on DBN structure above
   EXPECT_TRUE(B2.getStateFactors()[0] == 0 && B2.getStateFactors()[1] == 1);
 
@@ -171,14 +184,15 @@ TEST(DBNTest, BasicTest) {
   EXPECT_TRUE(B2.getSubdomain()->getNumStateFactors() == 2 && B2.getSubdomain()->getNumActionFactors() == 1); // based on DBN structure above
 
   // Backprojection is now the complete dbn
-  for (Size state_index=0; state_index<domain->getNumStates(); state_index++) {
-          State s(domain, state_index);
-          for (Size action_index=0; action_index<domain->getNumActions(); action_index++) {
-                  Action a(domain, action_index);
-                  double v_dbn = dbn->T(s, a, s2);
+  const subdom_map mapping(cpputil::ordered_vec<Size>(_domain->getNumStateFactors()));
+  for (Size state_index=0; state_index<_domain->getNumStates(); state_index++) {
+          State s(_domain, state_index);
+          for (Size action_index=0; action_index<_domain->getNumActions(); action_index++) {
+                  Action a(_domain, action_index);
+                  double v_dbn = _dbn->T(s, a, _s2);
                   EXPECT_DOUBLE_EQ(v_dbn, B2(s,a));
                   // alternative means of computing the same thing
-                  v_dbn = dbn->T(s, a, s2, mapping, mapping, subdom_map(cpputil::ordered_vec<Size>(domain->getNumActionFactors())));
+                  v_dbn = _dbn->T(s, a, _s2, mapping, mapping, subdom_map(cpputil::ordered_vec<Size>(_domain->getNumActionFactors())));
                   EXPECT_DOUBLE_EQ(v_dbn, B2(s,a));
           }
   }
@@ -189,20 +203,20 @@ TEST(DBNTest, BasicTest) {
 
   // compute expectation over all successor states in domain
   double sum = 0.;
-  const State s0(domain, 0);
-  const Action a0(domain,0);
-  _StateIncrementIterator sitr(domain);
-  while(sitr.hasNext()) {
+  const State s0(_domain, 0); // an arbitrary starting state
+  const Action a0(_domain,0);
+  _StateIncrementIterator sitr(_domain);
+  while(sitr.hasNext()) {     // over all successor states
       const State& s = sitr.next();
-      double p_dbn = dbn->T(s0,a0,s);
-      State ms = I->mapState(s);
-      const double v1 = (*I)(ms,Action());
+      double p_dbn = _dbn->T(s0,a0,s);
+      State ms = I1->mapState(s);
+      const double v1 = (*I1)(ms,Action());
       ms = I2->mapState(s);
       const double v2 = (*I2)(ms,Action());
       sum += p_dbn * (v1+v2);
   }
 
-  // compare with sum over backprojections
+  // compare to sum over backprojections
   double bsum = 0.;
   State ms = B.mapState(s0);
   Action ma = B.mapAction(a0);
@@ -211,22 +225,24 @@ TEST(DBNTest, BasicTest) {
   ma = B2.mapAction(a0);
   bsum += B2(ms,ma);
   EXPECT_DOUBLE_EQ(sum, bsum);
+}
 
-  //
-  // Some "logic" tests
-  //
-
+///
+/// \brief Some basic ``logic'' tests
+///
+TEST_F(DBNTest, BasicLogicTests) {
   _Domain orig = *(I2->getSubdomain());
   I2->addStateFactor(1); // insert an existing one again
   _Domain mod = *(I2->getSubdomain());
-  EXPECT_EQ(orig.getStateIndexComponents(), mod.getStateIndexComponents());
+  bool var = orig.getStateIndexComponents() == mod.getStateIndexComponents();
+  EXPECT_TRUE(var);
 
   I2->eraseStateFactor(0);
   I2->computeSubdomain(); // compute new subdomain
   mod = *(I2->getSubdomain());
-  EXPECT_NE(orig.getStateIndexComponents(), mod.getStateIndexComponents()); // subdomain changed
-  const RangeVec& domReg = domain->getStateRanges();
-  EXPECT_EQ(mod.getNumStates(), domReg[1].getSpan()+1); // number of states in new subdomain is correct
-
-
+  var = orig.getStateIndexComponents() == mod.getStateIndexComponents(); // subdomain changed
+  EXPECT_FALSE(var);
+  const RangeVec& domReg = _domain->getStateRanges();
+  var = mod.getNumStates() == domReg[1].getSpan()+1; // number of states in new subdomain is correct
+  EXPECT_TRUE(var);
 }
