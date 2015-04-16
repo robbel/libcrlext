@@ -30,6 +30,7 @@ typedef boost::shared_ptr<_SAFRewardTable> SAFRewardTable;
  * \note All dependencies (delayed, concurrent, action) are sorted internally in ascending order.
  */
 class _DBNFactor : public _FDiscreteFunction<ProbabilityVec> {
+    friend std::ostream& operator<<(std::ostream &os, const _DBNFactor& dbn);
 private:
   // trick to change visibility to private -- for DBN factors we need to be explicit about delayed (t-1) and concurrent (t) dependencies
   using _FDiscreteFunction::addStateFactor;
@@ -189,6 +190,9 @@ typedef cpputil::Iterator<DBNFactor> _FactorIterator;
 typedef boost::shared_ptr<_FactorIterator> FactorIterator;
 typedef cpputil::VectorIterator<DBNFactor> _FactorVecIterator;
 typedef boost::shared_ptr<_FactorIterator> FactorVecIterator;
+
+/// \brief Stream output of a \a DBNFactor
+std::ostream& operator<<(std::ostream &os, const _DBNFactor& fa);
 
 /**
  * \brief A Local Reward Function (LRF) is just a function that returns rewards

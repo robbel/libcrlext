@@ -22,9 +22,9 @@ namespace sysadmin {
 
 /// \brief Computer status in the network
 enum class Status : Factor {
-    DEAD,
+    GOOD,
     FAULTY,
-    GOOD
+    DEAD
 };
 /// \brief The load variables
 enum class Load : Factor {

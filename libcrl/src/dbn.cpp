@@ -92,7 +92,7 @@ Reward _LRF::R(const State &s, const Action &a) const {
 void _LRF::setR(const State& s, const Action& a, Reward r) {
    State ms = mapState(s);
    Action ma = mapAction(a);
-   // check if value in valid reward range
+   // check if value in valid reward range FIXME reward range is checked per LRF factor here, not as intended!
    _domain->getRewardRange().checkThrow(r);
    // FIXME: currently no maintaining of _known_states, _known_actions (as in _FMDP)
    _sa_table->setValue(ms, ma, r);
@@ -131,21 +131,25 @@ std::ostream& operator<<(std::ostream &os, const _DBN& dbn) {
   Size i = 0;
   os << "DBN:" << std::endl;
   for(const DBNFactor& fa : dbn._dbn_factors) {
-      os << "  [" << i << "] Target " << fa->getTarget() << " with parents { ";
-      for(Size px : fa->getDelayedDependencies()) {
-          os << "X_d" << px << ", ";
-      }
-      for(Size px : fa->getConcurrentDependencies()) {
-          os << "X_c" << px << ", ";
-      }
-      for(Size pa : fa->getActionDependencies()) {
-          os << "A" << pa << ", ";
-      }
-      os << "}" << std::endl;
+      os << "  [" << i << "] " << *fa << std::endl;
       i++;
   }
   return os;
+}
 
+std::ostream& operator<<(std::ostream &os, const _DBNFactor& fa) {
+    os << "Target " << fa.getTarget() << " with parents { ";
+    for(Size px : fa.getDelayedDependencies()) {
+        os << "X_d" << px << ", ";
+    }
+    for(Size px : fa.getConcurrentDependencies()) {
+        os << "X_c" << px << ", ";
+    }
+    for(Size pa : fa.getActionDependencies()) {
+        os << "A" << pa << ", ";
+    }
+    os << "}";
+    return os;
 }
 
 } // namespace crl

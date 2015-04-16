@@ -89,10 +89,17 @@ void _Sysadmin::buildPlate(Size c, DBNFactor& fas, DBNFactor& fal, LRF& lrf) {
         if(a.getIndex() == (Size)Admin::REBOOT || s.getFactor(0) == (Factor)Status::DEAD) {
             fal->setT(s, a, (Factor)Load::IDLE, 1.);
         }
-        else { // deterministic load switches from IDLE->LOADED->SUCCESS->IDLE->...
+        else { // deterministic load switches from IDLE->LOADED->SUCCESS->IDLE->... unless status is faulty
             const Factor cur = s.getFactor(1);                 // current load
             const Load next  = static_cast<Load>((cur+1) % 3); // next load after deterministic increment
-            fal->setT(s, a, (Factor)next, 1.);
+            if(cur == (Factor)Load::LOADED) {
+                Probability failure = s.getFactor(0) * 0.2;    // if status is faulty, less likelihood of success
+                fal->setT(s, a, (Factor)next, 1.0 - failure);
+                fal->setT(s, a, (Factor)cur, failure);
+            }
+            else {
+                fal->setT(s, a, (Factor)next, 1.);             // deterministic progress
+            }
         }
     }
 
@@ -205,15 +212,15 @@ Sysadmin buildSysadmin(string arch, Size num_comps) {
   Domain domain = boost::make_shared<_Domain>();
   // variables
   const vector<Status> status {Status::GOOD,   Status::FAULTY, Status::DEAD};          // 0,1,2
-  const vector<Load> load     {Load::IDLE,     Load::LOADED,   Load::PROCESS_SUCCESS}; // 0,1,2
-  const vector<Admin> action  {Admin::NOTHING, Admin::REBOOT};                         // 0,1
+  const vector<Load>   load   {Load::IDLE,     Load::LOADED,   Load::PROCESS_SUCCESS}; // 0,1,2
+  const vector<Admin>  action {Admin::NOTHING, Admin::REBOOT};                         // 0,1
 
   for(Size i = 0; i < num_comps; i++) {
       domain->addStateFactor(0, status.size()-1, "status_"+to_string(i));
       domain->addStateFactor(0, load.size()-1,   "load_"+to_string(i));
       domain->addActionFactor(0, action.size()-1);
   }
-  domain->setRewardRange(0,1);
+  domain->setRewardRange(0,num_comps);
 
   Topology t;
   std::transform(arch.begin(), arch.end(), arch.begin(), ::tolower);

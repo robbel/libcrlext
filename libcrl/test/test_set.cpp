@@ -12,6 +12,7 @@
 #include <gtest/gtest.h>
 
 #include "crl/function.hpp"
+#include "logger.hpp"
 
 using namespace std;
 using namespace crl;
@@ -171,12 +172,16 @@ TEST_F(FunctionSetTest, FunctionAdditionTest) {
   f2.pack();
   EXPECT_THROW(f += f2, cpputil::InvalidException); // f2 still contains action scope, not allowed as per current implementation
 
-  f2.eraseActionFactor(0);
+  f2.eraseActionFactor(0); // new scope is just over state factor `1'
   f2.pack();
-  f2.define(_s,Action(),5);
-  f2.define(_s2,Action(),3);
+  f2.define(_s,Action(),5);  // sf1(1) = 5
+  f2.define(_s2,Action(),3); // sf1(2) = 3
+  // change function f to see results of operation
+  State t(f.getSubdomain());
+  t.setFactor(1,2);
+  f.define(t,_a,20.);
   // print before
-  std::cout << "Before: " << std::endl;
+  LOG_INFO("Function f before f-=f2: ");
   _StateIncrementIterator sitr(f.getSubdomain());
   _ActionIncrementIterator aitr(f.getSubdomain());
   while(sitr.hasNext()) {
@@ -184,20 +189,21 @@ TEST_F(FunctionSetTest, FunctionAdditionTest) {
       aitr.reset();
       while(aitr.hasNext()) {
           const Action& a = aitr.next();
-          std::cout << s << "," << a << ": " << f(s,a) << std::endl;
+          LOG_INFO(" " << s << "," << a << ": " << f(s,a));
       }
   }
   EXPECT_NO_THROW(f -= f2); // f2's domain is proper subset
-  std::cout << "After: " << std::endl;
+  LOG_INFO("Function f after f-=f2: ");
   sitr.reset();
   while(sitr.hasNext()) {
       const State& s = sitr.next();
       aitr.reset();
       while(aitr.hasNext()) {
           const Action& a = aitr.next();
-          std::cout << s << "," << a << ": " << f(s,a) << std::endl;
+          LOG_INFO(" " << s << "," << a << ": " << f(s,a));
       }
   }
+  EXPECT_DOUBLE_EQ(f(t,_a), 20.-3.);
 
   f.eraseStateFactor(1);
   f.pack();
