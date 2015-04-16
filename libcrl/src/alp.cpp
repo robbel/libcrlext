@@ -79,7 +79,7 @@ void _ALPPlanner::precompute() {
             _C_set.push_back(std::move(B));
         }
         // compute factored state relevance weights assuming uniform state likelihoods
-        const Size dom_size = h->getSubdomain()->getNumStates() * h->getSubdomain()->getNumActions();
+        const Size dom_size = h->getSubdomain()->size();
         Reward r_sum = algorithm::sum_over_domain(h.get(), false);
         _alpha.push_back(r_sum/dom_size);
     }

@@ -1,4 +1,5 @@
 test/alp.cpp
+test/dbn.cpp
 test/example.cpp
 README
 SConstruct

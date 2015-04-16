@@ -156,19 +156,19 @@ TEST(DBNTest, BasicTest) {
   // Test with indicator over complete state factor scope (2 state factors)
   //
 
-  I = boost::make_shared<_Indicator<>>(domain);
-  I->addStateFactor(0); // exercise some other code paths
-  I->addStateFactor(1);
-  I->setState(s2);
-  ASSERT_TRUE(I->getSubdomain()->getNumStateFactors() == domain->getNumStateFactors()); // over complete domain
-  EXPECT_TRUE(!(*I)(s) && (*I)(s2));
+  Indicator<> I2 = boost::make_shared<_Indicator<>>(domain);
+  I2->addStateFactor(0); // exercise some other code paths
+  I2->addStateFactor(1);
+  I2->setState(s2);
+  ASSERT_TRUE(I2->getSubdomain()->getNumStateFactors() == domain->getNumStateFactors()); // over complete domain
+  EXPECT_TRUE(!(*I2)(s) && (*I2)(s2));
 
-  _Backprojection<double> BB(domain, *dbn, I, "backproject_thru_dbn_2");
-  EXPECT_TRUE(BB.getStateFactors().size() == 2 && BB.getActionFactors().size() == 1); // based on DBN structure above
-  EXPECT_TRUE(BB.getStateFactors()[0] == 0 && BB.getStateFactors()[1] == 1);
+  _Backprojection<double> B2(domain, *dbn, I2, "backproject_thru_dbn_2");
+  EXPECT_TRUE(B2.getStateFactors().size() == 2 && B2.getActionFactors().size() == 1); // based on DBN structure above
+  EXPECT_TRUE(B2.getStateFactors()[0] == 0 && B2.getStateFactors()[1] == 1);
 
-  BB.cache();
-  EXPECT_TRUE(BB.getSubdomain()->getNumStateFactors() == 2 && BB.getSubdomain()->getNumActionFactors() == 1); // based on DBN structure above
+  B2.cache();
+  EXPECT_TRUE(B2.getSubdomain()->getNumStateFactors() == 2 && B2.getSubdomain()->getNumActionFactors() == 1); // based on DBN structure above
 
   // Backprojection is now the complete dbn
   for (Size state_index=0; state_index<domain->getNumStates(); state_index++) {
@@ -176,25 +176,54 @@ TEST(DBNTest, BasicTest) {
           for (Size action_index=0; action_index<domain->getNumActions(); action_index++) {
                   Action a(domain, action_index);
                   double v_dbn = dbn->T(s, a, s2);
-                  EXPECT_DOUBLE_EQ(v_dbn, BB(s,a));
+                  EXPECT_DOUBLE_EQ(v_dbn, B2(s,a));
                   // alternative means of computing the same thing
                   v_dbn = dbn->T(s, a, s2, mapping, mapping, subdom_map(cpputil::ordered_vec<Size>(domain->getNumActionFactors())));
-                  EXPECT_DOUBLE_EQ(v_dbn, BB(s,a));
+                  EXPECT_DOUBLE_EQ(v_dbn, B2(s,a));
           }
   }
+
+  //
+  // Now two functions have been backprojected through DBN. Verify whether expectations are computed correctly.
+  //
+
+  // compute expectation over all successor states in domain
+  double sum = 0.;
+  const State s0(domain, 0);
+  const Action a0(domain,0);
+  _StateIncrementIterator sitr(domain);
+  while(sitr.hasNext()) {
+      const State& s = sitr.next();
+      double p_dbn = dbn->T(s0,a0,s);
+      State ms = I->mapState(s);
+      const double v1 = (*I)(ms,Action());
+      ms = I2->mapState(s);
+      const double v2 = (*I2)(ms,Action());
+      sum += p_dbn * (v1+v2);
+  }
+
+  // compare with sum over backprojections
+  double bsum = 0.;
+  State ms = B.mapState(s0);
+  Action ma = B.mapAction(a0);
+  bsum += B(ms,ma);
+  ms = B2.mapState(s0);
+  ma = B2.mapAction(a0);
+  bsum += B2(ms,ma);
+  EXPECT_DOUBLE_EQ(sum, bsum);
 
   //
   // Some "logic" tests
   //
 
-  _Domain orig = *(I->getSubdomain());
-  I->addStateFactor(1); // insert an existing one again
-  _Domain mod = *(I->getSubdomain());
+  _Domain orig = *(I2->getSubdomain());
+  I2->addStateFactor(1); // insert an existing one again
+  _Domain mod = *(I2->getSubdomain());
   EXPECT_EQ(orig.getStateIndexComponents(), mod.getStateIndexComponents());
 
-  I->eraseStateFactor(0);
-  I->computeSubdomain(); // compute new subdomain
-  mod = *(I->getSubdomain());
+  I2->eraseStateFactor(0);
+  I2->computeSubdomain(); // compute new subdomain
+  mod = *(I2->getSubdomain());
   EXPECT_NE(orig.getStateIndexComponents(), mod.getStateIndexComponents()); // subdomain changed
   const RangeVec& domReg = domain->getStateRanges();
   EXPECT_EQ(mod.getNumStates(), domReg[1].getSpan()+1); // number of states in new subdomain is correct
