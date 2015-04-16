@@ -68,7 +68,7 @@ void DBNTest::SetUp() {
 
     // set up common DBN
     _dbn = makeSimpleDBN(_domain);
-    LOG_INFO(*_dbn);
+    LOG_DEBUG(*_dbn);
 }
 
 DBN DBNTest::makeSimpleDBN(Domain domain) {
@@ -234,15 +234,12 @@ TEST_F(DBNTest, BasicLogicTests) {
   _Domain orig = *(I2->getSubdomain());
   I2->addStateFactor(1); // insert an existing one again
   _Domain mod = *(I2->getSubdomain());
-  bool var = orig.getStateIndexComponents() == mod.getStateIndexComponents();
-  EXPECT_TRUE(var);
+  EXPECT_EQ(orig.getStateIndexComponents(), mod.getStateIndexComponents());
 
   I2->eraseStateFactor(0);
   I2->computeSubdomain(); // compute new subdomain
   mod = *(I2->getSubdomain());
-  var = orig.getStateIndexComponents() == mod.getStateIndexComponents(); // subdomain changed
-  EXPECT_FALSE(var);
+  EXPECT_NE(orig.getStateIndexComponents(), mod.getStateIndexComponents()); // subdomain changed
   const RangeVec& domReg = _domain->getStateRanges();
-  var = mod.getNumStates() == domReg[1].getSpan()+1; // number of states in new subdomain is correct
-  EXPECT_TRUE(var);
+  EXPECT_EQ(mod.getNumStates(), domReg[1].getSpan()+1); // number of states in new subdomain is correct
 }
