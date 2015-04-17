@@ -63,11 +63,11 @@ tuple<Size,vector<bool>> count_unique(const Domain& dom, const FactorVec& a, con
 
 namespace crl {
 
-/// \brief This prints out a specific function (i.e., DBNFactor or LRF) in SPUDD format
+/// \brief Print out a specific function (i.e., DBNFactor or LRF) in full to SPUDD format
 /// \param fp The file to write to
-/// \param sf The specific function (e.g., either DBNFactor or LRF)
+/// \param sf The specific function (i.e, either DBNFactor or LRF)
 /// \param a The relevant (local) part of the considered joint action
-/// \param printer A custom printer function for this function
+/// \param printer A custom printer function object for the considered factor
 template<class T, class F>
 void writeFunction(ofstream& fp, const _DiscreteFunction<T>* sf, const Action& a, F printer) {
   Domain subdomain = sf->getSubdomain();
@@ -183,7 +183,6 @@ int exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& pr
 
       // write generic cost term
       fp << "cost [+" << endl;
-
       for(const auto& lrf : fmdp->getLRFs()) {
           // determine relevant action subset for current lrf
           const Action& a = lrf->mapAction(ja);

@@ -218,7 +218,7 @@ Sysadmin buildSysadmin(string arch, Size num_comps) {
   for(Size i = 0; i < num_comps; i++) {
       domain->addStateFactor(0, status.size()-1, "status_"+to_string(i));
       domain->addStateFactor(0, load.size()-1,   "load_"+to_string(i));
-      domain->addActionFactor(0, action.size()-1);
+      domain->addActionFactor(0, action.size()-1,"reboot"+to_string(i));
   }
   domain->setRewardRange(0,num_comps);
 

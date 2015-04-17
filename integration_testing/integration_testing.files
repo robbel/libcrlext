@@ -1,5 +1,6 @@
 test/alp.cpp
 test/dbn.cpp
 test/example.cpp
+test/spudd.cpp
 README
 SConstruct
