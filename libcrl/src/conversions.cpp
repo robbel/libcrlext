@@ -27,7 +27,7 @@ namespace {
 /// \brief Return the array representation of a \a State
 FactorVec resolve(const Domain& dom, const State& s) {
   FactorVec fvec;
-  //fvec.reserve(dom->getNumStateFactors());
+  fvec.reserve(dom->getNumStateFactors());
   for(Size i = 0; i < dom->getNumStateFactors(); i++) {
       fvec.push_back(s.getFactor(i));
   }
@@ -37,7 +37,7 @@ FactorVec resolve(const Domain& dom, const State& s) {
 /// \brief Return the array representation of an \a Action
 FactorVec resolve(const Domain& dom, const Action& a) {
   FactorVec fvec;
-  //fvec.reserve(dom->getNumActionFactors());
+  fvec.reserve(dom->getNumActionFactors());
   for(Size i = 0; i < dom->getNumActionFactors(); i++) {
       fvec.push_back(a.getFactor(i));
   }
@@ -62,15 +62,6 @@ tuple<Size,vector<bool>> count_unique(const Domain& dom, const FactorVec& a, con
 } // anonymous ns
 
 namespace crl {
-
-string concat(const RLType& jt, const StrVec& names) {
-  stringstream ss;
-  for (Size i=0; i<jt.size(); i++) {
-      ss << names[i] << "_" << jt.getFactor(i) << "__";
-  }
-  string tname = ss.str();
-  return tname.substr(0, tname.length()-2);
-}
 
 int exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& problemName, const string& filename)
 {
@@ -133,8 +124,7 @@ int exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& pr
           // loop over instantiations of state variables inside scope of this factor
           _StateIncrementIterator sitr(subdomain);
           const Size sdom_no = subdomain->getNumStateFactors();
-          State prevS(subdomain);
-          FactorVec pvec(subdomain->getNumStateFactors(), 1);
+          FactorVec pvec(sdom_no, 1); // vector representation of previous state
           bool firstIter = true;
 
           do { // for each permutation
@@ -170,7 +160,6 @@ int exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& pr
                   fp << pr << " ";
               }
 
-              prevS = s;
               pvec = svec;
 
           } while(sitr.hasNext());
@@ -180,15 +169,52 @@ int exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& pr
 
       // write generic cost term
       fp << "cost [+" << endl;
-      _StateIncrementIterator jsitr(domain);
-      while(jsitr.hasNext()) {
-          const State& js = jsitr.next();
 
-          // close previously opened variable blocks
-          // TODO
+      for(const auto& lrf : fmdp->getLRFs()) {
+          Domain subdomain = lrf->getSubdomain();
+          const Action& a = lrf->mapAction(ja);
 
-          double reward = fmdp->R(js,ja);
-          fp << " (" << -reward;
+          _StateIncrementIterator sitr(subdomain);
+          const Size sdom_no = subdomain->getNumStateFactors();
+          FactorVec pvec(sdom_no, 1); // vector representation of previous state
+          bool firstIter = true;
+
+          do {
+              const State& s = sitr.next();
+              const FactorVec svec = resolve(subdomain, s);
+
+              // close previously opened variable blocks
+              auto count = count_unique(subdomain, svec, pvec);
+              if(!firstIter) {
+                fp << string(2*std::get<0>(count),')') << endl;
+              }
+              else {
+                firstIter = false;
+              }
+
+              // check where indices changed from previous iteration
+              const vector<bool>& mask = std::get<1>(count);
+              const RangeVec& r = subdomain->getStateRanges();
+              const StrVec& s_names = subdomain->getStateNames();
+              for(int i = 0; i < mask.size(); i++) {
+                  if(mask[i]) { // there was a change at `i'
+                      if(svec[i] == r[i].getMin()) { // a transition into the first factor value
+                          fp << " (" << s_names[i];
+                      }
+                      fp << " (" << svec[i]; // print value
+                  }
+              }
+
+              // write reward as cost for this instantiation
+              double reward = (*lrf)(s,a);
+              fp << " (" << -reward;
+
+              pvec = svec;
+          }
+          while(sitr.hasNext());
+          // write out last closing braces
+          fp << string(sdom_no*2+1,')') << endl << endl;
+
       }
       fp << "     ]" << endl
          << "endaction" << endl << endl;
@@ -203,6 +229,15 @@ int exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& pr
        << "tolerance 0.1" << endl;
 
     return 0;
+}
+
+string concat(const RLType& jt, const StrVec& names) {
+  stringstream ss;
+  for (Size i=0; i<jt.size(); i++) {
+      ss << names[i] << "_" << jt.getFactor(i) << "__";
+  }
+  string tname = ss.str();
+  return tname.substr(0, tname.length()-2);
 }
 
 }
