@@ -63,6 +63,57 @@ tuple<Size,vector<bool>> count_unique(const Domain& dom, const FactorVec& a, con
 
 namespace crl {
 
+/// \brief This prints out a specific function (i.e., DBNFactor or LRF) in SPUDD format
+/// \param fp The file to write to
+/// \param sf The specific function (e.g., either DBNFactor or LRF)
+/// \param a The relevant (local) part of the considered joint action
+/// \param printer A custom printer function for this function
+template<class T, class F>
+void writeFunction(ofstream& fp, const _DiscreteFunction<T>* sf, const Action& a, F printer) {
+  Domain subdomain = sf->getSubdomain();
+
+  // loop over instantiations of state variables inside scope of this factor
+  _StateIncrementIterator sitr(subdomain);
+  const Size sdom_no = subdomain->getNumStateFactors();
+  FactorVec pvec(sdom_no, 1); // vector representation of previous state
+  bool firstIter = true;
+
+  do { // for each permutation
+      const State& s = sitr.next();
+      const FactorVec svec = resolve(subdomain, s);
+
+      // close previously opened variable blocks
+      auto count = count_unique(subdomain, svec, pvec);
+      if(!firstIter) {
+        fp << string(2*std::get<0>(count),')') << endl;
+      }
+      else {
+        firstIter = false;
+      }
+
+      // check where indices changed from previous iteration
+      const vector<bool>& mask = std::get<1>(count);
+      const RangeVec& r = subdomain->getStateRanges();
+      const StrVec& s_names = subdomain->getStateNames();
+      for(int i = 0; i < mask.size(); i++) {
+          if(mask[i]) { // there was a change at `i'
+              if(svec[i] == r[i].getMin()) { // a transition into the first factor value
+                  fp << " (" << s_names[i];
+              }
+              fp << " (" << svec[i]; // print value
+          }
+      }
+
+      // call custom print for this function
+      printer(s);
+
+      pvec = svec;
+
+  } while(sitr.hasNext());
+  // write out last closing braces
+  fp << string(sdom_no*2+1,')') << endl << endl;
+}
+
 int exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& problemName, const string& filename)
 {
   // input checking
@@ -115,106 +166,34 @@ int exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& pr
       fitr->reset();
       while(fitr->hasNext()) {
           fp << s_str_vec[fidx++] << endl;
-
-          // figure out action subset for current state factor
+          // determine relevant action subset for current state factor
           const DBNFactor& sf = fitr->next();
-          Domain subdomain = sf->getSubdomain();
           const Action& a = sf->mapAction(ja);
 
-          // loop over instantiations of state variables inside scope of this factor
-          _StateIncrementIterator sitr(subdomain);
-          const Size sdom_no = subdomain->getNumStateFactors();
-          FactorVec pvec(sdom_no, 1); // vector representation of previous state
-          bool firstIter = true;
-
-          do { // for each permutation
-              const State& s = sitr.next();
-              const FactorVec svec = resolve(subdomain, s);
-
-              // close previously opened variable blocks
-              auto count = count_unique(subdomain, svec, pvec);
-              if(!firstIter) {
-                fp << string(2*std::get<0>(count),')') << endl;
-              }
-              else {
-                firstIter = false;
-              }
-
-              // check where indices changed from previous iteration
-              const vector<bool>& mask = std::get<1>(count);
-              const RangeVec& r = subdomain->getStateRanges();
-              const StrVec& s_names = subdomain->getStateNames();
-              for(int i = 0; i < mask.size(); i++) {
-                  if(mask[i]) { // there was a change at `i'
-                      if(svec[i] == r[i].getMin()) { // a transition into the first factor value
-                          fp << " (" << s_names[i];
-                      }
-                      fp << " (" << svec[i]; // print value
-                  }
-              }
-
+          // print out a probability distribution
+          writeFunction(fp, sf.get(), a, [&](const State& ls) {
               // write distribution as vector
-              const ProbabilityVec& dist = sf->T(s, a);
+              const ProbabilityVec& dist = sf->T(ls, a);
               fp << " (";
               for(auto pr : dist) {
                   fp << pr << " ";
               }
-
-              pvec = svec;
-
-          } while(sitr.hasNext());
-          // write out last closing braces
-          fp << string(sdom_no*2+1,')') << endl << endl;
+          });
       }
 
       // write generic cost term
       fp << "cost [+" << endl;
 
       for(const auto& lrf : fmdp->getLRFs()) {
-          Domain subdomain = lrf->getSubdomain();
+          // determine relevant action subset for current lrf
           const Action& a = lrf->mapAction(ja);
 
-          _StateIncrementIterator sitr(subdomain);
-          const Size sdom_no = subdomain->getNumStateFactors();
-          FactorVec pvec(sdom_no, 1); // vector representation of previous state
-          bool firstIter = true;
-
-          do {
-              const State& s = sitr.next();
-              const FactorVec svec = resolve(subdomain, s);
-
-              // close previously opened variable blocks
-              auto count = count_unique(subdomain, svec, pvec);
-              if(!firstIter) {
-                fp << string(2*std::get<0>(count),')') << endl;
-              }
-              else {
-                firstIter = false;
-              }
-
-              // check where indices changed from previous iteration
-              const vector<bool>& mask = std::get<1>(count);
-              const RangeVec& r = subdomain->getStateRanges();
-              const StrVec& s_names = subdomain->getStateNames();
-              for(int i = 0; i < mask.size(); i++) {
-                  if(mask[i]) { // there was a change at `i'
-                      if(svec[i] == r[i].getMin()) { // a transition into the first factor value
-                          fp << " (" << s_names[i];
-                      }
-                      fp << " (" << svec[i]; // print value
-                  }
-              }
-
+          // print out a reward function
+          writeFunction(fp, lrf.get(), a, [&](const State& ls) {
               // write reward as cost for this instantiation
-              double reward = (*lrf)(s,a);
+              double reward = (*lrf)(ls,a);
               fp << " (" << -reward;
-
-              pvec = svec;
-          }
-          while(sitr.hasNext());
-          // write out last closing braces
-          fp << string(sdom_no*2+1,')') << endl << endl;
-
+          });
       }
       fp << "     ]" << endl
          << "endaction" << endl << endl;
