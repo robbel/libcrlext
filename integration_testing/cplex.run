@@ -1,6 +1,6 @@
 read model.lp
-display problem all
-set timelimit 20
+#display problem all
+#set timelimit 20
 optimize
 display solution objective
 display solution variables -

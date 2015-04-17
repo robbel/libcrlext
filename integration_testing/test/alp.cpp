@@ -74,7 +74,21 @@ TEST(ALPIntegrationTest, TestSysadmin) {
   FactoredMDP fmdp = thesys->getFactoredMDP();
   LOG_INFO(fmdp->T());
 
-  // create a basis (one indicator per local state, i.e., corresponding to `single' basis in Guestrin thesis)
+#if 0
+  // debug print the CPTs
+  for(Size i = 0; i < fmdp->T().size(); i++) {
+      const auto& fa = fmdp->T().factor(i);
+      LOG_DEBUG(*fa << " CPT: ");
+      _StateActionIncrementIterator saitr(fa->getSubdomain());
+      while(saitr.hasNext()) {
+          const std::tuple<State,Action>& sa = saitr.next();
+          const State& s = std::get<0>(sa);
+          const Action& a = std::get<1>(sa);
+          LOG_DEBUG(" " << s << " " << a << ": " << (*fa)(s,a));
+      }
+  }
+#endif
+
   FactoredValueFunction fval = boost::make_shared<_FactoredValueFunction>(domain);
   // add the constant basis (to guarantee LP feasibility)
 //  auto cfn = boost::make_shared<_ConstantFn<Reward>>(domain);
@@ -95,12 +109,24 @@ TEST(ALPIntegrationTest, TestSysadmin) {
       }
   }
 #endif
-  // complete indicator basis
+#if 0
+  for(Size fa = 0; fa < ranges.size(); fa+=2) { // over all status variables
+    auto I = boost::make_shared<_Indicator<Reward>>(domain);
+    I->addStateFactor(fa);
+    State dummy_s; // we don't care about actual domain here
+    dummy_s.setIndex((Factor)sysadmin::Status::GOOD);
+    I->setState(dummy_s);
+    fval->addBasisFunction(I, 0.);
+  }
+#endif
+#if 0
+  // exhaustive indicator basis
   _StateIncrementIterator sitr(domain);
   while(sitr.hasNext()) {
       auto I = boost::make_shared<_Indicator<Reward>>(domain, cpputil::ordered_vec<Size>(domain->getNumStateFactors()), sitr.next());
       fval->addBasisFunction(I, 0.);
   }
+#endif
 #if 0
   for(Size fa = 0; fa < ranges.size(); fa+=2) { // assumption: DBN covers all domain variables
       auto I_o = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa,fa+1}), State(domain,0));
