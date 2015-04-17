@@ -21,13 +21,18 @@ namespace crl {
 
 ///
 /// \brief write the \a FactoredMDP representing a specific problem to a file in SPUDD format.
+/// \return 0 iff successful
+/// \note This function is ported over from a personal contribution to the Multiagent decision process (MADP) Toolbox and re-released under the LGPL
 ///
-void exportToSpudd(FactoredMDP mdp,
+int exportToSpudd(FactoredMDP mdp,
                    Domain domain,
                    float gamma,
                    const std::string& problemName,
                    const std::string& filename
                    );
+
+/// \brief Convert the supplied (joint) \a RLType into a string, given variable names from a \a Domain.
+std::string concat(const crl::RLType& jt, const StrVec& names);
 
 }
 

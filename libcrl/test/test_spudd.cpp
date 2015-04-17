@@ -66,7 +66,7 @@ FactoredMDP makeFactoredMDP(Domain domain) {
 
   return fmdp;
 }
-
+#if 0
 ///
 /// \brief Convert factored MDP to flat MDP (exhaustive joint S,A enumeration)
 /// FIXME Empty rewards for now..
@@ -90,7 +90,7 @@ MDP convertToMDP(FactoredMDP fmdp) {
 
   return boost::make_shared<_FMDP>(mdp);
 }
-
+#endif
 } // anonymous ns
 
 ///
@@ -107,9 +107,10 @@ TEST(SPUDDTest, BasicTest) {
 
     FactoredMDP fmdp = makeFactoredMDP(domain);
 
-    exportToSpudd(fmdp, domain, 0.99, "test", "test.spudd");
-
+    EXPECT_EQ(exportToSpudd(fmdp, domain, 0.99, "test", "test.spudd"), 0);
+#if 0
     MDP mdp = convertToMDP(fmdp);
+#endif
   }
   catch(const cpputil::Exception& e) {
     cerr << e << endl;

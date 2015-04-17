@@ -20,37 +20,74 @@ using namespace crl;
 
 namespace {
 
-/// \brief Convert supplied (joint) action into a string, given the action_names from the \a Domain.
-string concat(const Action& ja, const StrVec& action_names) {
-  stringstream ss;
-  for (Size i=0; i<ja.size(); i++) {
-      ss << action_names[i] << "_" << ja.getFactor(i) << "__";
+//
+// Helper functions
+//
+
+/// \brief Return the array representation of a \a State
+FactorVec resolve(const Domain& dom, const State& s) {
+  FactorVec fvec;
+  //fvec.reserve(dom->getNumStateFactors());
+  for(Size i = 0; i < dom->getNumStateFactors(); i++) {
+      fvec.push_back(s.getFactor(i));
   }
-  string aname = ss.str();
-  return aname.substr(0, aname.length()-2);
+  return fvec;
+}
+#if 0
+/// \brief Return the array representation of an \a Action
+FactorVec resolve(const Domain& dom, const Action& a) {
+  FactorVec fvec;
+  //fvec.reserve(dom->getNumActionFactors());
+  for(Size i = 0; i < dom->getNumActionFactors(); i++) {
+      fvec.push_back(a.getFactor(i));
+  }
+  return fvec;
+}
+#endif
+/// \brief Count the number of different factors between a, b (from the same domain)
+/// \return The number of different elements and a bit-mask (0,1) where a and b differ
+tuple<Size,vector<bool>> count_unique(const Domain& dom, const FactorVec& a, const FactorVec& b) {
+  assert(a.size() == b.size());
+  Size count = 0;
+  vector<bool> mask(a.size(),0);
+  for(Size i = 0; i < a.size(); i++) {
+      if(a[i] != b[i]) {
+          count++;
+          mask[i] = 1;
+      }
+  }
+  return make_tuple(count,mask);
 }
 
-} // anonymous namespace
-
+} // anonymous ns
 
 namespace crl {
 
-void exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& problemName, const string& filename)
+string concat(const RLType& jt, const StrVec& names) {
+  stringstream ss;
+  for (Size i=0; i<jt.size(); i++) {
+      ss << names[i] << "_" << jt.getFactor(i) << "__";
+  }
+  string tname = ss.str();
+  return tname.substr(0, tname.length()-2);
+}
+
+int exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& problemName, const string& filename)
 {
   // input checking
   if(fmdp == nullptr || filename.empty()) {
       cerr << "libcrl::exportToSpudd: invalid parameters" << endl;
-      return;
+      return 1;
   }
   ofstream fp(filename.c_str());
   if(!fp.is_open()) {
       cerr << "libcrl::exportToSpudd: failed to open file " << filename << endl;
-      return;
+      return 2;
   }
   const _DBN& dbn = fmdp->T();
   if(dbn.hasConcurrentDependency()) {
       cerr << "libcrl::exportToSpudd: spudd does not currently support concurrent dependencies in transition function" << endl;
-      return;
+      return 3;
   }
 
   // write spudd format header
@@ -72,7 +109,7 @@ void exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& p
   }
   fp << ")" << endl << endl;
 
-  // write actions
+  // write actions (unfactored)
   const StrVec& a_str_vec = domain->getActionNames();
   _ActionIncrementIterator jaitr(domain);
   FactorIterator fitr = dbn.factors();
@@ -91,20 +128,40 @@ void exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& p
           // figure out action subset for current state factor
           const DBNFactor& sf = fitr->next();
           Domain subdomain = sf->getSubdomain();
-          const Action a = sf->mapAction(ja);
+          const Action& a = sf->mapAction(ja);
 
           // loop over instantiations of state variables inside scope of this factor
           _StateIncrementIterator sitr(subdomain);
-          //bool firstIter = true;
+          const Size sdom_no = subdomain->getNumStateFactors();
+          State prevS(subdomain);
+          FactorVec pvec(subdomain->getNumStateFactors(), 1);
+          bool firstIter = true;
 
           do { // for each permutation
               const State& s = sitr.next();
+              const FactorVec svec = resolve(subdomain, s);
 
               // close previously opened variable blocks
-              // TODO
+              auto count = count_unique(subdomain, svec, pvec);
+              if(!firstIter) {
+                fp << string(2*std::get<0>(count),')') << endl;
+              }
+              else {
+                firstIter = false;
+              }
 
               // check where indices changed from previous iteration
-              // TODO
+              const vector<bool>& mask = std::get<1>(count);
+              const RangeVec& r = subdomain->getStateRanges();
+              const StrVec& s_names = subdomain->getStateNames();
+              for(int i = 0; i < mask.size(); i++) {
+                  if(mask[i]) { // there was a change at `i'
+                      if(svec[i] == r[i].getMin()) { // a transition into the first factor value
+                          fp << " (" << s_names[i];
+                      }
+                      fp << " (" << svec[i]; // print value
+                  }
+              }
 
               // write distribution as vector
               const ProbabilityVec& dist = sf->T(s, a);
@@ -113,11 +170,12 @@ void exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& p
                   fp << pr << " ";
               }
 
-              // TODO
+              prevS = s;
+              pvec = svec;
 
           } while(sitr.hasNext());
           // write out last closing braces
-          fp << string(subdomain->getNumStateFactors()*2+1,')') << endl << endl;
+          fp << string(sdom_no*2+1,')') << endl << endl;
       }
 
       // write generic cost term
@@ -143,6 +201,8 @@ void exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& p
     fp << "discount " << gamma << endl //XXX add warning
        << "//horizon 10" << endl
        << "tolerance 0.1" << endl;
+
+    return 0;
 }
 
 }
