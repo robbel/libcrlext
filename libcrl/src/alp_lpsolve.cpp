@@ -105,7 +105,7 @@ int _LP::generateBLP(const RFunctionVec& C, const RFunctionVec& b, const std::ve
       LOG_ERROR("CPLEX xli not found.");
   }
   else {
-      write_XLI(_lp, &string("model.mod")[0], &string("")[0], FALSE);
+      write_XLI(_lp, &string("model.lp")[0], &string("")[0], FALSE);
   }
 
   return 0;
@@ -394,7 +394,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       LOG_ERROR("CPLEX xli not found.");
   }
   else {
-      write_XLI(_lp, &string("model.mod")[0], &string("")[0], FALSE);
+      write_XLI(_lp, &string("model.lp")[0], &string("")[0], FALSE);
   }
 
   return 0;
