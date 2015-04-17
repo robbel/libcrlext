@@ -43,6 +43,11 @@ int _LP::generateBLP(const RFunctionVec& C, const RFunctionVec& b, const std::ve
       set_unbounded(_lp, i);
   }
 
+  // enable scaling
+  //set_scaling(_lp, SCALE_CURTISREID);
+  //set_scaling(_lp, SCALE_GEOMETRIC | SCALE_EQUILIBRATE | SCALE_INTEGERS);
+  set_scaling(_lp, SCALE_NONE);
+
   // note the 1-offset in lpsolve
   for(vector<double>::size_type w = 1; w <= alpha.size(); w++) {
     set_col_name(_lp, w, &string("w"+to_string(w))[0]); // TODO: optional if performance becomes an issue
@@ -54,9 +59,8 @@ int _LP::generateBLP(const RFunctionVec& C, const RFunctionVec& b, const std::ve
   //
   // Objective function (minimization is lpsolve default)
   //
-
+  vector<int> colno = cpputil::ordered_vec(alpha.size(), 1); // 1-offset column numbering
   {
-    vector<int> colno = cpputil::ordered_vec(alpha.size(), 1); // 1-offset column numbering
     vector<REAL>& row = const_cast<vector<REAL>&>(alpha); // API interface requires non-const pointer
     if(!set_obj_fnex(_lp, row.size(), row.data(), colno.data())) {
         return 2; // objective function setting failed
@@ -72,15 +76,13 @@ int _LP::generateBLP(const RFunctionVec& C, const RFunctionVec& b, const std::ve
       const State& s = std::get<0>(sa);
       const Action& a = std::get<1>(sa);
       // write out one constraint for those
-      int col = 1; // indicate w_i parameter
-      vector<int> colno;
       vector<REAL> row;
+      row.reserve(alpha.size());
 
       for(const auto& f : C) {
           State ms = f->mapState(s);
           Action ma = f->mapAction(a);
           row.push_back((*f)(ms,ma));
-          colno.push_back(col++);
       }
       Reward sum = 0.;
       for(const auto& f : b) {
@@ -95,7 +97,16 @@ int _LP::generateBLP(const RFunctionVec& C, const RFunctionVec& b, const std::ve
 
   // debug out
   set_add_rowmode(_lp, FALSE);
-  write_LP(_lp, stdout);
+
+  //write_LP(_lp, stdout);
+  LOG_INFO("Generated LP with " << get_Ncolumns(_lp) << " variables and " << get_Nrows(_lp) << " constraints.");
+
+  if(!set_XLI(_lp, &string("libxli_CPLEX")[0])) {
+      LOG_ERROR("CPLEX xli not found.");
+  }
+  else {
+      write_XLI(_lp, &string("model.mod")[0], &string("")[0], FALSE);
+  }
 
   return 0;
 }
@@ -127,6 +138,11 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   for(int i = 1; i <= _colsize; i++) {
       set_unbounded(_lp, i);
   }
+
+  // enable scaling
+  //set_scaling(_lp, SCALE_CURTISREID);
+  //set_scaling(_lp, SCALE_GEOMETRIC | SCALE_EQUILIBRATE | SCALE_INTEGERS);
+  set_scaling(_lp, SCALE_NONE);
 
   // note the 1-offset in lpsolve
   for(vector<double>::size_type w = 1; w <= alpha.size(); w++) {
@@ -370,7 +386,16 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
 
   // debug out
   set_add_rowmode(_lp, FALSE);
+
   //write_LP(_lp, stdout);
+  LOG_INFO("Generated LP with " << get_Ncolumns(_lp) << " variables and " << get_Nrows(_lp) << " constraints.");
+
+  if(!set_XLI(_lp, &string("libxli_CPLEX")[0])) {
+      LOG_ERROR("CPLEX xli not found.");
+  }
+  else {
+      write_XLI(_lp, &string("model.mod")[0], &string("")[0], FALSE);
+  }
 
   return 0;
 }
@@ -379,6 +404,27 @@ int _LP::solve(_FactoredValueFunction* vfn) {
   // solve minimization
   set_verbose(_lp, IMPORTANT);
 
+  //set_presolve(_lp, PRESOLVE_ROWS | PRESOLVE_COLS | PRESOLVE_LINDEP, get_presolveloops(_lp)); // PRESOLVE_ROWS appears broken
+  set_presolve(_lp, PRESOLVE_NONE, 1);
+#if 0
+  LOG_INFO("Basis guessing");
+  vector<REAL> guessvector(1+get_Ncolumns(_lp));
+  vector<int> basis(1+get_Ncolumns(_lp)+get_Nrows(_lp));
+  guessvector[1] = Rmax./(1-gamma); // if constant basis is included, this is a feasible solution
+
+  int ret = guess_basis(_lp, guessvector.data(), basis.data());
+  if(!ret) {
+      LOG_ERROR("No basis found.");
+      return ret;
+  }
+
+  ret = set_basis(_lp, basis.data(), TRUE);
+  if(!ret) {
+      LOG_ERROR("Basis invalid.");
+      return ret;
+  }
+  LOG_INFO("Initialized with valid basis: " << guessvector[1]);
+#endif
   // Let lpsolve calculate a solution
   int ret = ::solve(_lp);
   if(ret != OPTIMAL)
@@ -389,6 +435,7 @@ int _LP::solve(_FactoredValueFunction* vfn) {
 
   // update w vector in vfn
   std::vector<double>& weights = vfn->getWeight();
+  assert(get_Ncolumns(_lp) == weights.size());
   std::copy(ptr_var, ptr_var+weights.size(), weights.begin());
 
   return 0;
