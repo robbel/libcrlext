@@ -95,12 +95,12 @@ void writeFunction(ofstream& fp, const _DiscreteFunction<T>* sf, const Action& a
       const vector<bool>& mask = std::get<1>(count);
       const RangeVec& r = subdomain->getStateRanges();
       const StrVec& s_names = subdomain->getStateNames();
-      for(int i = 0; i < mask.size(); i++) {
+      for(int i = mask.size()-1; i >= 0; i--) { // fastest changing element is at beginning of list
           if(mask[i]) { // there was a change at `i'
               if(svec[i] == r[i].getMin()) { // a transition into the first factor value
                   fp << " (" << s_names[i];
               }
-              fp << " (" << svec[i]; // print value
+              fp << " (" << s_names[i] << "_" << svec[i]; // print value
           }
       }
 
@@ -145,7 +145,7 @@ int exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& pr
       fp << " (" << s_str_vec[i];
       const FactorRange& v = s_range_vec[i];
       for(Factor f = v.getMin(); f <= v.getMax(); f++) { // Note: it's a closed interval
-        fp << " " << f;
+        fp << " " << s_str_vec[i] << "_" << f;
       }
       fp << ")" << endl;
   }
