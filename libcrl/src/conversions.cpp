@@ -75,6 +75,8 @@ void writeFunction(ofstream& fp, const _DiscreteFunction<T>* sf, const Action& a
   // loop over instantiations of state variables inside scope of this factor
   _StateIncrementIterator sitr(subdomain);
   const Size sdom_no = subdomain->getNumStateFactors();
+  const RangeVec& r = subdomain->getStateRanges();
+  const StrVec& s_names = subdomain->getStateNames();
   FactorVec pvec(sdom_no, 1); // vector representation of previous state
   bool firstIter = true;
 
@@ -93,8 +95,6 @@ void writeFunction(ofstream& fp, const _DiscreteFunction<T>* sf, const Action& a
 
       // check where indices changed from previous iteration
       const vector<bool>& mask = std::get<1>(count);
-      const RangeVec& r = subdomain->getStateRanges();
-      const StrVec& s_names = subdomain->getStateNames();
       for(int i = mask.size()-1; i >= 0; i--) { // fastest changing element is at beginning of list
           if(mask[i]) { // there was a change at `i'
               if(svec[i] == r[i].getMin()) { // a transition into the first factor value
