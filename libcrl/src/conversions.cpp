@@ -100,7 +100,7 @@ void writeFunction(ofstream& fp, const _DiscreteFunction<T>* sf, const Action& a
               if(svec[i] == r[i].getMin()) { // a transition into the first factor value
                   fp << " (" << s_names[i];
               }
-              fp << " (" << s_names[i] << "_" << svec[i]; // print value
+              fp << " (" << s_names[i] << svec[i]; // print value
           }
       }
 
@@ -145,7 +145,7 @@ int exportToSpudd(FactoredMDP fmdp, Domain domain, float gamma, const string& pr
       fp << " (" << s_str_vec[i];
       const FactorRange& v = s_range_vec[i];
       for(Factor f = v.getMin(); f <= v.getMax(); f++) { // Note: it's a closed interval
-        fp << " " << s_str_vec[i] << "_" << f;
+        fp << " " << s_str_vec[i] << f;
       }
       fp << ")" << endl;
   }
