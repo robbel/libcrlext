@@ -435,7 +435,7 @@ int _LP::solve(_FactoredValueFunction* vfn) {
 
   // update w vector in vfn
   std::vector<double>& weights = vfn->getWeight();
-  assert(get_Ncolumns(_lp) == weights.size());
+  assert(get_Ncolumns(_lp) >= weights.size());
   std::copy(ptr_var, ptr_var+weights.size(), weights.begin());
 
   return 0;

@@ -69,7 +69,10 @@ public:
   }
   /// \brief Return the best action in (global) \a State js
   /// \note Runs distributed action selection via variable elimination in the coordination graph
-  Action getBestAction(const State& js) const;
+  Action getBestAction(const State& js) const {
+      const SizeVec elim_order = cpputil::ordered_vec<Size>(_domain->getNumStateFactors() + _domain->getNumActionFactors());
+      return getBestAction(js, elim_order);
+  }
   /// \brief Return the best action in (global) \a State js
   /// \note Runs distributed action selection via variable elimination (given an \a elimination order) in the coordination graph
   /// \note The elimination order is over states and actions, {v1, v2, ..., vZ}, where a value vJ = |num_state_factors|+K denotes action factor K.

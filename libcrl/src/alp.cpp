@@ -9,6 +9,7 @@
     GNU Lesser General Public License for more details.
  */
 
+#include <numeric>
 #include "crl/alp.hpp"
 #include "crl/alp_lpsolve.hpp"
 #include "logger.hpp"
@@ -35,21 +36,14 @@ void _FactoredValueFunction::setWeight(Size i, double weight) {
 
 Reward _FactoredValueFunction::getV(const State &js) const {
   assert(_weight.size() == _basis.size());
-
-  // todo
-
-  return 0.;
-}
-
-Action _FactoredValueFunction::getBestAction(const State& js) const {
-
-  // todo
-
-  return Action();
+  double res = std::inner_product(_weight.begin(), _weight.end(), _basis.begin(), 0., std::plus<double>(),
+      [&js](double w, const DiscreteFunction<Reward>& b) {
+          return w * b->eval(b->mapState(js));
+  });
+  return res;
 }
 
 Action _FactoredValueFunction::getBestAction(const State& js, const SizeVec& elimination_order) const {
-
   // todo
 
   return Action();

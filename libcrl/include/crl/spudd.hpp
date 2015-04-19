@@ -49,6 +49,7 @@ public:
     /// \brief Return the action encoded in the pre-computed policy
     virtual Action getAction(const State& s) override;
 };
+typedef boost::shared_ptr<_SpuddPolicy> SpuddPolicy;
 
 } // namespace crl
 

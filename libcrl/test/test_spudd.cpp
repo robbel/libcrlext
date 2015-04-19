@@ -114,9 +114,11 @@ TEST(SPUDDTest, PolicyQueryTest) {
     sysdomain->addStateFactor(0, 2);
     sysdomain->addStateFactor(0, 2);
     sysdomain->addActionFactor(0, 1, "a4");
-    _SpuddPolicy sp(sysdomain, "SPUDD-OPTDual.ADD");
 
-    Action aopt = sp.getAction(State(sysdomain,74));
+    SpuddPolicy sp;
+    ASSERT_NO_THROW(sp = boost::make_shared<_SpuddPolicy>(sysdomain, "SPUDD-OPTDual.ADD"));
+
+    Action aopt = sp->getAction(State(sysdomain,74));
     LOG_DEBUG(aopt);
 
     EXPECT_EQ(aopt.getIndex(), 3);

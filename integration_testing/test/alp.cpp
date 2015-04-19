@@ -119,14 +119,12 @@ TEST(ALPIntegrationTest, TestSysadmin) {
     fval->addBasisFunction(I, 0.);
   }
 #endif
-#if 0
   // exhaustive indicator basis
   _StateIncrementIterator sitr(domain);
   while(sitr.hasNext()) {
       auto I = boost::make_shared<_Indicator<Reward>>(domain, cpputil::ordered_vec<Size>(domain->getNumStateFactors()), sitr.next());
       fval->addBasisFunction(I, 0.);
   }
-#endif
 #if 0
   for(Size fa = 0; fa < ranges.size(); fa+=2) { // assumption: DBN covers all domain variables
       auto I_o = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa,fa+1}), State(domain,0));
@@ -170,6 +168,7 @@ TEST(ALPIntegrationTest, TestSysadmin) {
           double r = qt->getV(s);
 
           EXPECT_TRUE(cpputil::approxEq(r, wvec[si++], 0.1));
+          EXPECT_TRUE(cpputil::approxEq(r, (double)fval->getV(s), 0.1));
           LOG_INFO(" V(" << s << ")=" << qt->getV(s));
         }
     }
