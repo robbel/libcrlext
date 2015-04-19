@@ -96,7 +96,7 @@ for target in lib_targets+bin_targets:
 	env.Alias('debug', target)
 
 env.PrependENVPath('LD_LIBRARY_PATH', lib_paths)
-gtest_alias = env.Alias('test', gtest, gtest[0].abspath)
+gtest_alias = env.Alias('test', gtest, "cd "+Dir('#').abspath+"/test;"+gtest[0].abspath)
 env.AlwaysBuild(gtest_alias)
 
 dist_files = [File(x) for x in """
