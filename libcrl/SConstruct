@@ -57,14 +57,21 @@ config.CheckCXXHeader('cpputil.hpp')
 config.CheckCXXHeader('logger.hpp')
 config.CheckCXXHeader('boost/shared_ptr.hpp')
 has_lpsolve = config.CheckCXXHeader('lpsolve/lp_lib.h')
+has_spudd = config.CheckLib('spudd', language='C++')
 env = config.Finish()
 
 lib_targets = []
 bin_targets = []
+libcrl_libs = ['dl', 'lpsolve55_pic', 'colamd']
+
+if has_spudd:
+	build_sources += [build.File('spudd.cpp')]
+	headers += ['crl/spudd.hpp']
+	libcrl_libs += ['spudd']
 
 if has_lpsolve:
-        libcrl = env.SharedLibrary(lib.File('libcrl'+shared_lib_suffix), build_sources,
-				   LIBS=['dl', 'lpsolve55_pic', 'colamd'])
+        libcrl = env.SharedLibrary(lib.File('libcrl'+shared_lib_suffix), 
+				   build_sources, LIBS=libcrl_libs)
         lib_targets += [libcrl]
 
         test = env.Program(bin.Entry('test'), test_sources, LIBS=['crl'])

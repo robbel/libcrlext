@@ -121,6 +121,7 @@ public:
 	virtual bool observe(const Observation& o);
 };
 typedef boost::shared_ptr<_VIPlannerAgent> VIPlannerAgent;
-}
+
+} // namespace crl
 
 #endif /*VI_H_*/

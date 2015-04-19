@@ -29,8 +29,8 @@ using namespace crl;
 
 Agent crl::getCRLAgent(Domain domain) {
 	Learner learner;
-	Planner planner(new _RandomPlanner(domain));
-	Agent agent(new _Agent(planner, learner));
+	Policy policy(new _RandomPolicy(domain));
+	Agent agent(new _Agent(policy, learner));
 	return agent;
 }
 

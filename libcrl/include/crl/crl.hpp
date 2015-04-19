@@ -147,17 +147,22 @@ public:
 	virtual Action getAction(const State& s) = 0;
 };
 typedef boost::shared_ptr<_Planner> Planner;
+/**
+ * A policy has the same interface as the \a Planner above
+ */
+typedef _Planner _Policy;
+typedef boost::shared_ptr<_Policy> Policy;
 
 /**
- * A simple planner for testing data throughput
+ * A simple policy (no planning) for testing data throughput
  */
-class _RandomPlanner : public _Planner {
+class _RandomPolicy : public _Policy {
 protected:
 	Domain _domain;
 public:
-	_RandomPlanner(const Domain& domain)
+	_RandomPolicy(const Domain& domain)
 	: _domain(domain) { }
-	virtual ~_RandomPlanner() { }
+	virtual ~_RandomPolicy() { }
 	virtual Action getAction(const State& s) override {
 		Size numActions = _domain->getNumActions();
 		Index actionIndex = random()%numActions;
@@ -165,7 +170,7 @@ public:
 		return a;
 	}
 };
-typedef boost::shared_ptr<_RandomPlanner> RandomPlanner;
+typedef boost::shared_ptr<_RandomPolicy> RandomPolicy;
 
 /**
  * Interface for something that learns from experience.
@@ -209,6 +214,19 @@ public:
 	virtual Action getAction(const State& s);
 };
 typedef boost::shared_ptr<_Agent> Agent;
+
+/**
+ * An agent that uses a given (pre-computed) policy to act, no learning or planning happens.
+ */
+class _PolicyAgent : public _Agent {
+public:
+    _PolicyAgent(Policy policy)
+    : _Agent(policy) { }
+    virtual ~_PolicyAgent() { }
+    virtual bool observe(const Observation& o) override {
+        return false;
+    }
+};
 
 /**
  * Interface for an RL environment that starts in one state and generates successor observations

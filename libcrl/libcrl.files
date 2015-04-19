@@ -15,6 +15,7 @@ include/crl/ram.hpp
 include/crl/rmax.hpp
 include/crl/rtdp.hpp
 include/crl/sparse_sampling.hpp
+include/crl/spudd.hpp
 include/crl/tables.hpp
 include/crl/types.hpp
 include/crl/uct.hpp
@@ -38,6 +39,7 @@ src/ram.cpp
 src/rmax.cpp
 src/rtdp.cpp
 src/sparse_sampling.cpp
+src/spudd.cpp
 src/test.cpp
 src/uct.cpp
 src/uctdata.cpp
