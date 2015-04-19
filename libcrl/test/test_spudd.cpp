@@ -13,7 +13,9 @@
 
 #include "crl/conversions.hpp"
 #include "crl/factor_learner.hpp"
+#include "crl/spudd.hpp"
 #include "cpputil.hpp"
+#include "logger.hpp"
 
 using namespace std;
 using namespace crl;
@@ -93,3 +95,31 @@ TEST(SPUDDTest, BasicTest) {
 
   SUCCEED();
 }
+
+///
+/// \brief Simple Policy Querying Agent test
+///
+TEST(SPUDDTest, PolicyQueryTest) {
+    // sysadmin_ring_4 domain
+    Domain sysdomain = boost::make_shared<_Domain>();
+    sysdomain->addStateFactor(0, 2);
+    sysdomain->addStateFactor(0, 2);
+    sysdomain->addActionFactor(0, 1, "a1");
+    sysdomain->addStateFactor(0, 2);
+    sysdomain->addStateFactor(0, 2);
+    sysdomain->addActionFactor(0, 1, "a2");
+    sysdomain->addStateFactor(0, 2);
+    sysdomain->addStateFactor(0, 2);
+    sysdomain->addActionFactor(0, 1, "a3");
+    sysdomain->addStateFactor(0, 2);
+    sysdomain->addStateFactor(0, 2);
+    sysdomain->addActionFactor(0, 1, "a4");
+    _SpuddPolicy sp(sysdomain, "SPUDD-OPTDual.ADD");
+
+    Action aopt = sp.getAction(State(sysdomain,74));
+    LOG_DEBUG(aopt);
+
+    EXPECT_EQ(aopt.getIndex(), 3);
+}
+
+

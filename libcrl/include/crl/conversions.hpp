@@ -33,7 +33,11 @@ int exportToSpudd(FactoredMDP mdp,
 
 /// \brief Convert the supplied (joint) \a RLType into a string, given variable names from a \a Domain.
 std::string concat(const crl::RLType& jt, const StrVec& names);
+/// \brief Return the array representation of a \a State
+FactorVec resolve(const Domain& dom, const State& s);
+/// \brief Return the array representation of an \a Action
+FactorVec resolve(const Domain& dom, const Action& a);
 
-}
+} // namespace crl
 
 #endif /*CONVERSIONS_HPP_*/

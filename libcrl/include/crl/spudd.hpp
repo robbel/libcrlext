@@ -14,14 +14,28 @@
 
 #include "crl/crl.hpp"
 
+#include "MDP.h" // main SPUDD header
+
 namespace crl {
 
 /**
  * A wrapper for a pre-computed SPUDD policy
  */
 class _SpuddPolicy : public _Policy {
+protected:
+    Domain _domain;
+    /// \brief The SPUDD mdp/policy representation
+    /// \warning The dtor for ::MDP in the SPUDD 3.6.2 library is currently broken and will segfault
+    /// FIXME work-around
+    boost::shared_ptr<::MDP>  _mdp;
+    DdNode* _act;
+    DdNode* _val;
 public:
-    _SpuddPolicy();
+    /// \brief Load a SPUDD policy from a dual ADD file
+    _SpuddPolicy(const Domain& domain, const char* filename);
+    /// \brief dtor
+    /// \warning The dtor for ::MDP in the SPUDD library is currently broken and will segfault
+    /// FIXME work-around
     virtual ~_SpuddPolicy() { }
 
     /// \brief Return the action encoded in the pre-computed policy

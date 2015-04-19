@@ -24,26 +24,6 @@ namespace {
 // Helper functions
 //
 
-/// \brief Return the array representation of a \a State
-FactorVec resolve(const Domain& dom, const State& s) {
-  FactorVec fvec;
-  fvec.reserve(dom->getNumStateFactors());
-  for(Size i = 0; i < dom->getNumStateFactors(); i++) {
-      fvec.push_back(s.getFactor(i));
-  }
-  return fvec;
-}
-#if 0
-/// \brief Return the array representation of an \a Action
-FactorVec resolve(const Domain& dom, const Action& a) {
-  FactorVec fvec;
-  fvec.reserve(dom->getNumActionFactors());
-  for(Size i = 0; i < dom->getNumActionFactors(); i++) {
-      fvec.push_back(a.getFactor(i));
-  }
-  return fvec;
-}
-#endif
 /// \brief Count the number of different factors between a, b (from the same domain)
 /// \return The number of different elements and a bit-mask (0,1) where a and b differ
 tuple<Size,vector<bool>> count_unique(const Domain& dom, const FactorVec& a, const FactorVec& b) {
@@ -218,4 +198,22 @@ string concat(const RLType& jt, const StrVec& names) {
   return tname.substr(0, tname.length()-2);
 }
 
+FactorVec resolve(const Domain& dom, const State& s) {
+  FactorVec fvec;
+  fvec.reserve(dom->getNumStateFactors());
+  for(Size i = 0; i < dom->getNumStateFactors(); i++) {
+      fvec.push_back(s.getFactor(i));
+  }
+  return fvec;
 }
+
+FactorVec resolve(const Domain& dom, const Action& a) {
+  FactorVec fvec;
+  fvec.reserve(dom->getNumActionFactors());
+  for(Size i = 0; i < dom->getNumActionFactors(); i++) {
+      fvec.push_back(a.getFactor(i));
+  }
+  return fvec;
+}
+
+} // namespace crl
