@@ -19,9 +19,29 @@
 using namespace std;
 using namespace crl;
 
-namespace {
-
-} // anonymous ns
+SPUDDMDP::~SPUDDMDP() {
+    ::MDP::mvinput = true;
+    ::MDP::allocateMemory();
+    // `forgotten' in Spudd's ::MDP::init()
+    Pair reward;
+    reward.set(0.);
+    RewardD = Cudd_addConst(gbm,&reward);
+    Cudd_Ref(RewardD);
+    Pair d;
+    d.set(0.);
+    discount = Cudd_addConst(gbm,&d);
+    Cudd_Ref(discount);
+    // work around broken dtor
+    if (actionnames) {
+      for (int i = 0; i < numactions; i++) {
+        free(actionnames[i]);
+        free(actionlist[i].name);
+      }
+      free(actionnames);
+    }
+    actionnames = nullptr;
+    ::MDP::numactions = 0;
+}
 
 namespace crl {
 
@@ -34,11 +54,13 @@ _SpuddPolicy::_SpuddPolicy(const Domain& domain, const char* filename)
     }
 
     // allocate memory
-    _mdp = boost::make_shared<::MDP>();
+    _mdp = boost::make_shared<SPUDDMDP>();
     DdNode **list = new DdNode*[2];
 
     // load policy file
-    _mdp->readDualOptimal(gbm, &string(filename)[0], &list);
+    if(!_mdp->readDualOptimal(gbm, &string(filename)[0], &list)) {
+        throw cpputil::InvalidException("SPUDD's readDualOptimal() failed.");
+    }
     _act = list[0];
     Cudd_Ref(_act);
     _val = list[1];

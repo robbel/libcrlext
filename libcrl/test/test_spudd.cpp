@@ -95,7 +95,7 @@ TEST(SPUDDTest, BasicTest) {
 
   SUCCEED();
 }
-#if 0
+
 ///
 /// \brief Simple Policy Querying Agent test
 ///
@@ -121,4 +121,3 @@ TEST(SPUDDTest, PolicyQueryTest) {
 
     EXPECT_EQ(aopt.getIndex(), 3);
 }
-#endif

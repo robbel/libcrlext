@@ -16,6 +16,14 @@
 
 #include "MDP.h" // main SPUDD header
 
+/// \brief Overrides SPUDD's version to make sure memory is dealt with correctly
+/// Ensures that base class dtor goes through correctly
+class SPUDDMDP : public ::MDP {
+public:
+    /// \brief patched dtor
+    ~SPUDDMDP();
+};
+
 namespace crl {
 
 /**
@@ -27,7 +35,7 @@ protected:
     /// \brief The SPUDD mdp/policy representation
     /// \warning The dtor for ::MDP in the SPUDD 3.6.2 library is currently broken and will segfault
     /// FIXME work-around
-    boost::shared_ptr<::MDP>  _mdp;
+    boost::shared_ptr<SPUDDMDP>  _mdp;
     DdNode* _act;
     DdNode* _val;
 public:
