@@ -524,8 +524,9 @@ public:
     _FDiscreteFunction(const _FDiscreteFunction<T>& rhs)
     : _DiscreteFunction<T>(rhs), _sa_table(boost::make_shared<_FStateActionTable<T>>(*rhs._sa_table)), _packed(rhs._packed) { }
     /// \brief copy assignment
-    _FDiscreteFunction& operator=(_FDiscreteFunction rhs) {
-      *this = std::move(rhs); // note: moves from copy (passed by value)
+    _FDiscreteFunction& operator=(const _FDiscreteFunction& rhs) {
+      _FDiscreteFunction<T> tmp(rhs);
+      *this = std::move(tmp);
       return *this;
     }
     /// \brief move ctor

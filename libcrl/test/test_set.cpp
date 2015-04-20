@@ -209,3 +209,29 @@ TEST_F(FunctionSetTest, FunctionAdditionTest) {
   f.pack();
   EXPECT_THROW(f += f2, cpputil::InvalidException); // f2's domain is not a proper subset anymore
 }
+
+///
+/// \brief Function copying
+///
+TEST_F(FunctionSetTest, FunctionCopyTest) {
+  _FDiscreteFunction<double> f(_domain);
+  f.addStateFactor(0);
+  f.addStateFactor(1);
+  f.addActionFactor(0);
+  _FDiscreteFunction<double> f2(_domain);
+
+  f.pack();
+
+  f.define(_s,_a, 3);
+
+  // copy assignment
+  f2 = f;
+  EXPECT_EQ(f(_s,_a), f2(_s,_a));
+
+  f2 += f2;
+  ASSERT_NE(f(_s,_a), f2(_s,_a)); // we are working with a copy
+  EXPECT_DOUBLE_EQ(f2(_s,_a), 2*f(_s,_a));
+
+  _FDiscreteFunction<double> f3(std::move(f2));
+  EXPECT_DOUBLE_EQ(f3(_s,_a), 2*f(_s,_a));
+}
