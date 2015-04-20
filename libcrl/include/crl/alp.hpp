@@ -87,14 +87,14 @@ public:
   }
   /// \brief Return the best action in (global) \a State js along with the optimum value
   /// \note Runs distributed action selection via variable elimination in the coordination graph
-  std::tuple<Action,Reward> getBestAction(const State& js) const {
-      const SizeVec elim_order = cpputil::ordered_vec<Size>(_domain->getNumStateFactors() + _domain->getNumActionFactors());
+  std::tuple<Action,Reward> getBestAction(const State& js) {
+      const SizeVec elim_order = cpputil::ordered_vec<Size>(_domain->getNumActionFactors());
       return getBestAction(js, elim_order);
   }
   /// \brief Return the best action in (global) \a State js along with the optimum value
   /// Runs distributed action selection via variable elimination (given an \a elimination order) in the coordination graph
   /// \note The elimination order is over action factors only
-  std::tuple<Action,Reward> getBestAction(const State& js, const SizeVec& elimination_order) const;
+  std::tuple<Action,Reward> getBestAction(const State& js, const SizeVec& elimination_order);
 
 };
 typedef boost::shared_ptr<_FactoredValueFunction> FactoredValueFunction;
