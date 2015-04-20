@@ -20,8 +20,8 @@ namespace crl {
 
 /**
  * \brief A factored (linear) value function
- * Consists of locally-scoped basis functions along with their weights. Additionally supports localized Q-function
- * computations via variable elimination.
+ * Consists of locally-scoped basis functions along with their weights.
+ * Additionally supports localized Q-function computations via variable elimination.
  * FIXME maybe move into factor_learner.hpp
  */
 class _FactoredValueFunction {

@@ -235,3 +235,33 @@ TEST_F(FunctionSetTest, FunctionCopyTest) {
   _FDiscreteFunction<double> f3(std::move(f2));
   EXPECT_DOUBLE_EQ(f3(_s,_a), 2*f(_s,_a));
 }
+
+///
+/// \brief Function instantiation in a particular state
+///
+TEST_F(FunctionSetTest, FunctionInstantiationTest) {
+  // test with FDiscreteFunction
+  _FDiscreteFunction<double> f(_domain);
+  f.addStateFactor(0);
+  f.addStateFactor(1);
+  f.addActionFactor(0);
+  f.pack();
+  f.define(_s,_a, 3);
+  f.define(_s2,_a, 4);
+
+  // the resulting function only depends on action factors
+  const DiscreteFunction<double>& rf = algorithm::instantiate(&f, _s, false);
+  EXPECT_DOUBLE_EQ(rf->eval(_a), 3.);
+
+  // test with an Indicator, should yield empty scope
+  Indicator<> I = boost::make_shared<_Indicator<>>(_domain, SizeVec({1}), _s2);
+  const DiscreteFunction<double>& rf2 = algorithm::instantiate(I.get(), _s2, false);
+  EXPECT_TRUE(rf2->getSubdomain()->getNumStateFactors() == 0 && rf2->getSubdomain()->getNumActionFactors() == 0);
+  // if instantiated at _s2, the value should be 1
+  EXPECT_EQ(rf2->eval(Action()), 1);
+
+  // instantiate same indicator on a different state, should yield 0
+  const DiscreteFunction<double>& rf3 = algorithm::instantiate(I.get(), _s, false);
+  EXPECT_TRUE(rf3->getSubdomain()->getNumStateFactors() == 0 && rf3->getSubdomain()->getNumActionFactors() == 0);
+  EXPECT_EQ(rf3->eval(Action()), 0);
+}

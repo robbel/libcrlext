@@ -45,6 +45,7 @@ Reward _FactoredValueFunction::getV(const State &js) const {
 
 std::tuple<Action,Reward> _FactoredValueFunction::getBestAction(const State& js, const SizeVec& elimination_order) {
     assert(_backprojection.size() == _basis.size());
+    assert(!_lrfs.empty());
 
     // Discount stored backprojections once to form local Q functions
     if(!_bp_discounted) {
