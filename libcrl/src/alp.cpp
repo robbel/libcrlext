@@ -43,10 +43,29 @@ Reward _FactoredValueFunction::getV(const State &js) const {
   return res;
 }
 
-Action _FactoredValueFunction::getBestAction(const State& js, const SizeVec& elimination_order) const {
+std::tuple<Action,Reward> _FactoredValueFunction::getBestAction(const State& js, const SizeVec& elimination_order) const {
+    assert(_backprojection.size() == _basis.size());
+#if 0
+    // Discount stored backprojections once to form local Q functions
+    if(!_bp_discounted) {
+        std::vector<double>::size_type i = 0;
+        for(auto& bp : _backprojection) {
+            _ConstantFn<Reward>* cfn = dynamic_cast<_ConstantFn<Reward>*>(bp.get());
+            if(cfn) {
+                (*cfn) *= _weight[i++];
+            }
+            else {
+                _FDiscreteFunction<Reward>* fd = static_cast<_FDiscreteFunction<Reward>*>(bp.get());
+                (*fd) *= _weight[i++];
+            }
+        }
+        _bp_discounted = true;
+    }
+#endif
+
   // todo
 
-  return Action();
+    return make_tuple(Action(), 0.);
 }
 
 //
@@ -54,6 +73,9 @@ Action _FactoredValueFunction::getBestAction(const State& js, const SizeVec& eli
 //
 
 void _ALPPlanner::precompute() {
+    // clear previously computed ones
+    _alpha.clear();
+    _C_set.clear();
     // compute backprojections and state relevance weights
     for(const DiscreteFunction<Reward>& h : _value_fn->getBasis()) {
         const _ConstantFn<Reward>* cfn = dynamic_cast<const _ConstantFn<Reward>*>(h.get());
@@ -61,6 +83,8 @@ void _ALPPlanner::precompute() {
             // Backprojection of a constant function is the identical function
             ConstantFn<Reward> C = boost::make_shared<_ConstantFn<Reward>>(*cfn);
             (*C) *= _gamma;
+            // store a copy of the backprojected basis in the factored value function
+            _value_fn->addBackprojection(boost::make_shared<_ConstantFn<Reward>>(*C));
             (*C) -= *cfn;
             _C_set.push_back(std::move(C));
         }
@@ -69,6 +93,8 @@ void _ALPPlanner::precompute() {
             Backprojection<Reward> B = boost::make_shared<_Backprojection<Reward>>(_domain, _fmdp->T(), h);
             B->cache();
             (*B) *= _gamma;
+            // store a copy of the backprojected basis in the factored value function
+            _value_fn->addBackprojection(boost::make_shared<_Backprojection<Reward>>(*B));
             (*B) -= h.get(); // FIXME in indicator case, h is not a `flat' function, implement efficient sparse multiplication
             _C_set.push_back(std::move(B));
         }
@@ -77,6 +103,8 @@ void _ALPPlanner::precompute() {
         Reward r_sum = algorithm::sum_over_domain(h.get(), false);
         _alpha.push_back(r_sum/dom_size);
     }
+    // make lrfs available for local Q-function computations in factored value function
+    _value_fn->setLRFs(_fmdp->getLRFs());
 }
 
 int _ALPPlanner::plan() {

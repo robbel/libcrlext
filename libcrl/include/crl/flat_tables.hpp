@@ -73,6 +73,8 @@ public:
 	: _FlatTable<T>(domain->getNumActions()), _set_actions(new _ActionSet()) { }
 	_FActionTable(const Domain& domain, T initial)
 	: _FlatTable<T>(domain->getNumActions(), initial), _set_actions(new _ActionSet()) { }
+	_FActionTable(const _FActionTable&) = default;
+	_FActionTable(_FActionTable&&) = default;
 	virtual ~_FActionTable() { }
 
 	// ActionTable interface
@@ -109,6 +111,8 @@ public:
 	: _FlatTable<T>(domain->getNumStates()), _set_states(new _StateSet()) { }
 	_FStateTable(const Domain& domain, T initial)
 	: _FlatTable<T>(domain->getNumStates(), initial), _set_states(new _StateSet()) { }
+	_FStateTable(const _FStateTable&) = default;
+	_FStateTable(_FStateTable&&) = default;
 	virtual ~_FStateTable() { }
 
 	// StateTable interface
@@ -150,6 +154,12 @@ public:
 	: _domain(domain), _sa_values(domain->getNumStates() * domain->getNumActions(), initial), _num_actions(domain->getNumActions()) {
 	  static_assert(sizeof(decltype(_sa_values.size())) >= 8, "vector size_t must be at least 64-bits");
 	}
+	/// \brief copy ctor
+	_FStateActionTable(const _FStateActionTable& rhs)
+	: _domain(boost::make_shared<_Domain>(*rhs._domain)), _sa_values(rhs._sa_values), _num_actions(rhs._num_actions) { }
+	/// \brief move ctor
+	_FStateActionTable(_FStateActionTable&&) = default;
+	/// \brief dtor
 	virtual ~_FStateActionTable() { }
 
 	virtual void clear() {
@@ -237,6 +247,8 @@ public:
 	_FQTable(const Domain& domain, Reward initial);
 	/// \brief ctor which supports a \a Heuristic for estimating q-values of each state
 	_FQTable(const Domain& domain, Heuristic potential);
+	_FQTable(const _FQTable&) = default;
+	_FQTable(_FQTable&&) = default;
 	virtual ~_FQTable() { }
 
 	// QTable interface
@@ -265,19 +277,22 @@ typedef boost::shared_ptr<_FQTable> FQTable;
 ///
 class _FStateDistribution : public _Distribution<State> {
 	const Domain _domain;
-	std::vector<Probability> prob_vec;
+	std::vector<Probability> _prob_vec;
 	/// \brief The set of states from the \a Domain that have their probability set to something other than 0
 	/// FIXME Not really used...
 	_StateSet _known_states;
 public:
 	_FStateDistribution(const Domain& domain);
+	_FStateDistribution(const _FStateDistribution& rhs)
+	: _domain(boost::make_shared<_Domain>(*rhs._domain)), _prob_vec(rhs._prob_vec), _known_states(rhs._known_states) { }
+	_FStateDistribution(_FStateDistribution&&) = default;
 	virtual ~_FStateDistribution() { }
 	virtual StateIterator iterator() override {
 		StateIterator itr = boost::make_shared<_StateSetIterator>(_known_states);
 		return itr;
 	}
 	virtual Probability P(const State& s) override {
-		return prob_vec[s.getIndex()];
+		return _prob_vec[s.getIndex()];
 	}
 	virtual State sample() override;
 	void setP(const State& s, Probability p);

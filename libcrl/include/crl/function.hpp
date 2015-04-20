@@ -93,6 +93,16 @@ public:
         join(*funcs.next());
     }
   }
+  /// \brief copy ctor
+  _DiscreteFunction(const _DiscreteFunction& rhs)
+  : _domain(boost::make_shared<_Domain>(*rhs._domain)), _state_dom(rhs._state_dom), _action_dom(rhs._action_dom),
+    _name(rhs._name), _computed(rhs._computed) {
+      if(rhs._subdomain) {
+          _subdomain = boost::make_shared<_Domain>(*rhs._subdomain);
+      }
+  }
+  /// \brief move ctor
+  _DiscreteFunction(_DiscreteFunction&&) = default;
   /// \brief dtor
   virtual ~_DiscreteFunction() { }
 
@@ -428,6 +438,9 @@ public:
   : _DiscreteFunction<T>(std::move(funcs), name) { }
   _EmptyFunction(cpputil::Iterator<DiscreteFunction<T>>& funcs, std::string name = "")
   : _DiscreteFunction<T>(funcs, name) { }
+  _EmptyFunction(const _EmptyFunction&) = default;
+  _EmptyFunction(_EmptyFunction&& rhs) noexcept
+  : _DiscreteFunction<T>(std::move(rhs)) { }
 
   virtual T eval(const State& s, const Action& a) const override {
       throw cpputil::InvalidException("calling eval on an empty function");
@@ -502,6 +515,12 @@ public:
     /// \brief ctor
     _FDiscreteFunction(const Domain& domain, std::string name = "")
     : _DiscreteFunction<T>(domain, name), _packed(false) { }
+    /// \brief copy ctor
+    _FDiscreteFunction(const _FDiscreteFunction<T>& rhs)
+    : _DiscreteFunction<T>(rhs), _sa_table(boost::make_shared<_FStateActionTable<T>>(*rhs._sa_table)), _packed(rhs._packed) { }
+    /// \brief move ctor
+    _FDiscreteFunction(_FDiscreteFunction<T>&& rhs) noexcept
+    : _DiscreteFunction<T>(std::move(rhs)), _sa_table(std::move(rhs._sa_table)), _packed(std::move(rhs._packed)) { }
 
     ///
     /// \brief Assemble the flat table corresponding to this function
@@ -633,6 +652,12 @@ public:
     _DiscreteFunction<T>::join(factors, this->getActionFactors());
     setState(s);
   }
+  /// \brief copy ctor
+  _Indicator(const _Indicator& rhs)
+  : _DiscreteFunction<T>(rhs), _s_index(rhs._s_index) { }
+  /// \brief move ctor
+  _Indicator(_Indicator&& rhs) noexcept
+  : _DiscreteFunction<T>(std::move(rhs)), _s_index(std::move(rhs._s_index)) { }
 
   /// \brief Define the State for which this Indicator is set
   void setState(const State& s) {
@@ -665,6 +690,13 @@ public:
   : _DiscreteFunction<T>(domain, name), _val(val) {
       _DiscreteFunction<T>::computeSubdomain();
   }
+  /// \brief copy ctor
+  _ConstantFn(const _ConstantFn& rhs)
+  : _DiscreteFunction<T>(rhs), _val(rhs._val) { }
+  /// \brief move ctor
+  _ConstantFn(_ConstantFn&& rhs) noexcept
+  : _DiscreteFunction<T>(std::move(rhs)), _val(std::move(rhs._val)) { }
+
   /// \brief Return 1 for any (s,a)
   virtual T eval(const State& s, const Action& a) const override {
     return _val;
@@ -723,7 +755,7 @@ T sum_over_domain(const _DiscreteFunction<T>* pf, bool known_flat) {
     }
 }
 
-}
+} // namespace algorithm
 
 } // namespace crl
 

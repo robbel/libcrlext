@@ -65,7 +65,7 @@ MDP convertToMDP(FactoredMDP fmdp) {
 
 } // anonymous ns
 
-TEST(ALPIntegrationTest, TestSysadmin) {
+TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
   srand(time(NULL));
 
   sysadmin::Sysadmin thesys = buildSysadmin("ring", 1);
@@ -92,7 +92,7 @@ TEST(ALPIntegrationTest, TestSysadmin) {
   FactoredValueFunction fval = boost::make_shared<_FactoredValueFunction>(domain);
   // add the constant basis (to guarantee LP feasibility)
 //  auto cfn = boost::make_shared<_ConstantFn<Reward>>(domain);
-//  fval->addBasisFunction(cfn, 0.);
+//  fval->addBasisFunction(std::move(cfn), 0.);
 #if 0
   // add more basis functions
   const RangeVec& ranges = domain->getStateRanges();
@@ -105,7 +105,7 @@ TEST(ALPIntegrationTest, TestSysadmin) {
           auto I = boost::make_shared<_Indicator<Reward>>(domain);
           I->addStateFactor(fa);
           I->setState(dummy_s);
-          fval->addBasisFunction(I, 0.);
+          fval->addBasisFunction(std::move(I), 0.);
       }
   }
 #endif
@@ -116,14 +116,14 @@ TEST(ALPIntegrationTest, TestSysadmin) {
     State dummy_s; // we don't care about actual domain here
     dummy_s.setIndex((Factor)sysadmin::Status::GOOD);
     I->setState(dummy_s);
-    fval->addBasisFunction(I, 0.);
+    fval->addBasisFunction(std::move(I), 0.);
   }
 #endif
   // exhaustive indicator basis
   _StateIncrementIterator sitr(domain);
   while(sitr.hasNext()) {
       auto I = boost::make_shared<_Indicator<Reward>>(domain, cpputil::ordered_vec<Size>(domain->getNumStateFactors()), sitr.next());
-      fval->addBasisFunction(I, 0.);
+      fval->addBasisFunction(std::move(I), 0.);
   }
 #if 0
   for(Size fa = 0; fa < ranges.size(); fa+=2) { // assumption: DBN covers all domain variables
@@ -131,7 +131,7 @@ TEST(ALPIntegrationTest, TestSysadmin) {
       _StateIncrementIterator sitr(I_o->getSubdomain());
       while(sitr.hasNext()) {
           auto I = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa,fa+1}), sitr.next());
-          fval->addBasisFunction(I, 0.);
+          fval->addBasisFunction(std::move(I), 0.);
       }
   }
 #endif

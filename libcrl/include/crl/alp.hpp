@@ -20,7 +20,8 @@ namespace crl {
 
 /**
  * \brief A factored (linear) value function
- * Consists of locally-scoped basis functions along with their weights
+ * Consists of locally-scoped basis functions along with their weights. Additionally supports localized Q-function
+ * computations via variable elimination.
  * FIXME maybe move into factor_learner.hpp
  */
 class _FactoredValueFunction {
@@ -32,13 +33,22 @@ protected:
   std::vector<DiscreteFunction<Reward>> _basis;
   /// \brief The weight vector associated with the basis functions for value computations
   std::vector<double> _weight;
+  /// \brief The gamma-discounted backprojections associated with the basis functions in _basis
+  std::vector<DiscreteFunction<Reward>> _backprojection;
+  /// \brief True iff backprojections have already been multiplied by w parameters before variable elimination
+  /// \see getBestAction()
+  bool _bp_discounted;
+  /// \brief The reward functions to compute the local Q-functions
+  /// \see getBestAction()
+  std::vector<DiscreteFunction<Reward>> _lrfs;
 public:
   /// \brief ctor with an optional size hint for the number of basis functions to be added
   _FactoredValueFunction(const Domain& domain, Size size_hint = 0)
-  : _domain(domain) {
+  : _domain(domain), _bp_discounted(false) {
     if(size_hint != 0) {
         _basis.reserve(size_hint);
         _weight.reserve(size_hint);
+        _backprojection.reserve(size_hint);
     }
   }
   /// \brief Add a basis function (with local state and action scope) to this V-fn
@@ -56,6 +66,14 @@ public:
   const std::vector<double>& getWeight() const {
     return _weight;
   }
+  /// \brief Adds a gamma-discounted backprojection of a basis function to this value function
+  /// \note Will be modified inside this function
+  void addBackprojection(DiscreteFunction<Reward> bp) {
+      _backprojection.push_back(std::move(bp));
+  }
+  void setLRFs(const std::vector<DiscreteFunction<Reward>>& lrfs) {
+      _lrfs = lrfs;
+  }
 
   //
   // Evaluation
@@ -67,16 +85,16 @@ public:
   Reward eval(const State& js) const {
     return getV(js);
   }
-  /// \brief Return the best action in (global) \a State js
+  /// \brief Return the best action in (global) \a State js along with the optimum value
   /// \note Runs distributed action selection via variable elimination in the coordination graph
-  Action getBestAction(const State& js) const {
+  std::tuple<Action,Reward> getBestAction(const State& js) const {
       const SizeVec elim_order = cpputil::ordered_vec<Size>(_domain->getNumStateFactors() + _domain->getNumActionFactors());
       return getBestAction(js, elim_order);
   }
-  /// \brief Return the best action in (global) \a State js
-  /// \note Runs distributed action selection via variable elimination (given an \a elimination order) in the coordination graph
-  /// \note The elimination order is over states and actions, {v1, v2, ..., vZ}, where a value vJ = |num_state_factors|+K denotes action factor K.
-  Action getBestAction(const State& js, const SizeVec& elimination_order) const;
+  /// \brief Return the best action in (global) \a State js along with the optimum value
+  /// Runs distributed action selection via variable elimination (given an \a elimination order) in the coordination graph
+  /// \note The elimination order is over action factors only
+  std::tuple<Action,Reward> getBestAction(const State& js, const SizeVec& elimination_order) const;
 
 };
 typedef boost::shared_ptr<_FactoredValueFunction> FactoredValueFunction;
@@ -111,7 +129,7 @@ public:
   /// \brief Get best joint \a Action from joint \a State js
   virtual Action getAction(const State& js) override {
     assert(_value_fn != nullptr);
-    return _value_fn->getBestAction(js);
+    return std::get<0>(_value_fn->getBestAction(js));
   }
 
   ///

@@ -73,7 +73,7 @@ void _FQTable::setQ(const State& s, const Action& a, Reward r) {
 }
 
 _FStateDistribution::_FStateDistribution(const Domain& domain)
-: _domain(domain), prob_vec(_domain->getNumStates(), 0) {
+: _domain(domain), _prob_vec(_domain->getNumStates(), 0) {
 
 }
 
@@ -93,7 +93,7 @@ State _FStateDistribution::sample() {
 void _FStateDistribution::setP(const State& s, Probability p) {
 	if (!s) //terminal state represented by sub-1 distribution
 		return;
-	prob_vec[s.getIndex()] = p;
+	_prob_vec[s.getIndex()] = p;
 	if (p)
 		_known_states.insert(s);
 	else {
@@ -104,7 +104,7 @@ void _FStateDistribution::setP(const State& s, Probability p) {
 	}
 }
 void _FStateDistribution::clear() {
-	prob_vec = std::vector<Probability>(_domain->getNumStates(), 0);
+	_prob_vec = std::vector<Probability>(_domain->getNumStates(), 0);
 	_known_states.clear();
 }
 
