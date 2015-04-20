@@ -24,7 +24,7 @@ namespace {
 // Helper functions
 //
 
-/// \brief Count the number of different factors between a, b (from the same domain)
+/// \brief Count the number of different factor values between a, b (from the same domain)
 /// \return The number of different elements and a bit-mask (0,1) where a and b differ
 tuple<Size,vector<bool>> count_unique(const Domain& dom, const FactorVec& a, const FactorVec& b) {
   assert(a.size() == b.size());
