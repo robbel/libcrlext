@@ -67,7 +67,7 @@ libcrl_libs = ['dl', 'lpsolve55_pic', 'colamd']
 
 if has_spudd:
 	build_sources += [build.File('spudd.cpp')]
-        gtest_sources += [build.File('test_spudd.cpp')]
+        gtest_sources += [testdir.File('test_spudd.cpp')]
 	headers += ['crl/spudd.hpp']
 	libcrl_libs += ['spudd']
 
