@@ -116,7 +116,7 @@ TEST(SPUDDTest, PolicyQueryTest) {
     sysdomain->addActionFactor(0, 1, "a4");
 
     SpuddPolicy sp;
-    ASSERT_NO_THROW(sp = boost::make_shared<_SpuddPolicy>(sysdomain, "SPUDD-OPTDual.ADD"));
+    ASSERT_NO_THROW(sp = boost::make_shared<_SpuddPolicy>(sysdomain, "SPUDD-OPTDual-64bit-nonportable.ADD"));
 
     Action aopt = sp->getAction(State(sysdomain,74));
     LOG_DEBUG(aopt);
