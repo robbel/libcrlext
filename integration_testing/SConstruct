@@ -46,6 +46,7 @@ config.CheckCXXHeader('boost/shared_ptr.hpp')
 config.CheckLibWithHeader('crl', 'crl/crl.hpp', 'cpp')
 config.CheckLibWithHeader('env', 'crl/env_ffg.hpp', 'cpp')
 config.CheckCXXHeader('rlglue/Agent_common.h')
+has_spudd = config.CheckLib('spudd', language='C++')
 env = config.Finish()
 
 lib_targets = []
@@ -58,8 +59,9 @@ alp = env.Program(bin.Entry('alp'), alp_sources, LIBS=['env','crl','pthread','gt
 bin_targets += [alp]
 dbn = env.Program(bin.Entry('dbn'), dbn_sources, LIBS=['env','crl','pthread','gtest','gtest_main'])
 bin_targets += [dbn]
-spudd = env.Program(bin.Entry('spudd'), spudd_sources, LIBS=['env','crl','pthread','gtest','gtest_main'])
-bin_targets += [spudd]
+if has_spudd:
+        spudd = env.Program(bin.Entry('spudd'), spudd_sources, LIBS=['env','crl','pthread','gtest','gtest_main'])
+        bin_targets += [spudd]
 
 if prefix != Dir('.'):
 	for header in headers:
@@ -76,7 +78,8 @@ env.PrependENVPath('LD_LIBRARY_PATH', lib_paths)
 gtest_alias = env.Alias('test', example, example[0].abspath)
 gtest_alias = env.Alias('test', alp, alp[0].abspath)
 gtest_alias = env.Alias('test', dbn, dbn[0].abspath)
-gtest_alias = env.Alias('test', spudd, spudd[0].abspath)
+if has_spudd:
+        gtest_alias = env.Alias('test', spudd, spudd[0].abspath)
 env.AlwaysBuild(gtest_alias)
 
 # TODO: add configuration files from ./cfgs as required
