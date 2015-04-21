@@ -123,7 +123,7 @@ std::vector<T> slice(const _DiscreteFunction<T>* pf, Size i, const State&s, cons
     return sl;
 }
 
-/// \brief Maximize the given function over a particular state or action variable `i'
+/// \brief Maximize the given function over a particular state or action variable `i' (max marginalization)
 /// \param known_flat True iff function `pf' is known to be a \a _FDiscreteFunction (optimization)
 /// \return A new function that is maximized over (and does not depend on) `i'
 /// \note If `i' is greater than the number of state factors, it is assumed to be an action factor
@@ -167,8 +167,7 @@ DiscreteFunction<T> maximize(const _DiscreteFunction<T>* pf, Size i, bool known_
   return f;
 }
 
-/// \brief Joins the given set of functions into a larger one defined over the joint domain
-/// \param f An operator to apply when joining two successive functions from `funcs' together
+/// \brief Joins the given set of functions into a larger one defined as the function sum over the joint domain
 /// \return A new function defined over the union of all function domains represented in `funcs'
 template<class T>
 DiscreteFunction<T> join(cpputil::Iterator<DiscreteFunction<T>>& funcs) {

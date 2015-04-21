@@ -25,7 +25,7 @@ using namespace cpputil;
 class FunctionSetTest : public ::testing::Test {
 protected:
     FunctionSetTest() { }
-//  virtual ~DBNText() { }
+//  virtual ~FunctionSetTest() { }
     virtual void SetUp() override;
 //  virtual void TearDown() override;
 
@@ -221,7 +221,6 @@ TEST_F(FunctionSetTest, FunctionCopyTest) {
   _FDiscreteFunction<double> f2(_domain);
 
   f.pack();
-
   f.define(_s,_a, 3);
 
   // copy assignment
