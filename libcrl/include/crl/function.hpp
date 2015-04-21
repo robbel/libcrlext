@@ -742,4 +742,4 @@ using ConstantFn = boost::shared_ptr<_ConstantFn<T>>;
 //
 #include "algorithm.hpp"
 
-#endif
+#endif /*FUNCTION_HPP_*/

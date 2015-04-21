@@ -12,6 +12,9 @@
 #ifndef ALGORITHM_HPP_
 #define ALGORITHM_HPP_
 
+#include <iostream>
+#include "crl/function.hpp"
+
 //
 // Some useful algorithms on functions
 //
@@ -189,4 +192,4 @@ DiscreteFunction<T> maximize(const _DiscreteFunction<T>* pf, Size i, bool known_
 
 } // namespace crl
 
-#endif
+#endif /*ALGORITHM_HPP_*/
