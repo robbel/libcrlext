@@ -252,6 +252,8 @@ TEST_F(FunctionSetTest, FunctionInstantiationTest) {
   // the resulting function only depends on action factors
   const DiscreteFunction<double>& rf = algorithm::instantiate(&f, _s, false);
   EXPECT_DOUBLE_EQ(rf->eval(_a), 3.);
+  const DiscreteFunction<double>& rf0 = algorithm::instantiate(&f, _s, true);
+  EXPECT_DOUBLE_EQ(rf0->eval(_a), 3.);
 
   // test with an Indicator, should yield empty scope
   Indicator<> I = boost::make_shared<_Indicator<>>(_domain, SizeVec({1}), _s2);
@@ -264,4 +266,45 @@ TEST_F(FunctionSetTest, FunctionInstantiationTest) {
   const DiscreteFunction<double>& rf3 = algorithm::instantiate(I.get(), _s, false);
   EXPECT_TRUE(rf3->getSubdomain()->getNumStateFactors() == 0 && rf3->getSubdomain()->getNumActionFactors() == 0);
   EXPECT_EQ(rf3->eval(Action()), 0);
+}
+
+///
+/// \brief Function max marginalization tests
+///
+TEST_F(FunctionSetTest, FunctionMaxMarginalTest) {
+    _FDiscreteFunction<double> f(_domain);
+    f.addStateFactor(0);
+    f.addStateFactor(1);
+    f.addActionFactor(0);
+    f.pack();
+    f.define(_s,_a, 3);
+    f.define(_s2,_a, 4);
+    // maximize over first state factor
+    _FDiscreteFunction<double> f2(f);
+    const DiscreteFunction<double>& rf = algorithm::maximize(&f2, 0, true);
+    EXPECT_TRUE(rf->getSubdomain()->getNumStateFactors() == 1);
+    EXPECT_DOUBLE_EQ(rf->eval(State(),Action()), 4.);
+
+    // maximize over action factor
+    const DiscreteFunction<double>& rf2 = algorithm::maximize(rf.get(), _domain->getNumStateFactors(), true);
+    EXPECT_TRUE(rf2->getSubdomain()->getNumActionFactors() == 0);
+
+    // maximize over remaining state factor
+    const DiscreteFunction<double>& rf3 = algorithm::maximize(rf2.get(), 1, false); // different code path
+    EXPECT_TRUE(rf3->getSubdomain()->getNumStateFactors() == 0);
+    EXPECT_DOUBLE_EQ(rf3->eval(State(),Action()), 4.);
+#if !NDEBUG
+    LOG_DEBUG("Final result after max marginalization:");
+    _StateActionIncrementIterator saitr(rf3->getSubdomain());
+    while(saitr.hasNext()) {
+        const std::tuple<State,Action>& sa = saitr.next();
+        const State& s = std::get<0>(sa);
+        const Action& a = std::get<1>(sa);
+        LOG_DEBUG(s << " " << a << ": " << rf3->eval(s,a));
+    }
+#endif
+    // test with non-flat function
+    Indicator<> I = boost::make_shared<_Indicator<>>(_domain, SizeVec({1}), _s2);
+    const DiscreteFunction<double>& rf4 = algorithm::maximize(I.get(), 1, false);
+    EXPECT_DOUBLE_EQ(rf4->eval(State(),Action()), 1.);
 }

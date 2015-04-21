@@ -241,7 +241,6 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
   // Run variable elimination to generate further variables/constraints
   //
 
-  const Size num_states = _domain->getNumStateFactors();
   const Size num_factors = F.getNumFactors();
   LOG_DEBUG("Number of unique factors (S,A) to eliminate: " << num_factors);
   if(elim_order.size() != num_factors) {
@@ -250,7 +249,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
 
   using range = decltype(F)::range;
   for(Size v : elim_order) {
-      assert(v < num_states + _domain->getNumActionFactors());
+      assert(v < _domain->getNumStateFactors() + _domain->getNumActionFactors());
       LOG_DEBUG("Eliminating variable " << v);
       // eliminate variable `v' (either state or action)
       range r = F.getFactor(v);
@@ -268,12 +267,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const std::vec
       Domain prev_dom_E = E->getSubdomain(); // which still includes `v'
       const subdom_map s_dom(E->getStateFactors());
       const subdom_map a_dom(E->getActionFactors());
-      if(v < num_states) {
-        E->eraseStateFactor(v);
-      }
-      else {
-        E->eraseActionFactor(v-num_states);
-      }
+      E->eraseFactor(v);
       E->computeSubdomain(); // does not include `v' anymore
 #if !NDEBUG
       std::stringstream ss;

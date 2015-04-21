@@ -244,6 +244,16 @@ public:
       _computed = false;
     }
   }
+  /// \brief Erase action or state factor `i' from the scope of this function
+  /// \note If `i' is greater than the number of state factors in the (global) domain, it is assumed to be an action factor.
+  void eraseFactor(Size i) {
+      if(i < _domain->getNumStateFactors()) {
+          eraseStateFactor(i);
+      }
+      else {
+          eraseActionFactor(i - _domain->getNumStateFactors());
+      }
+  }
 
   /// \brief Join state and action factor scopes of this function with the supplied ones
   virtual void join(const SizeVec& state_dom, const SizeVec& action_dom) {
