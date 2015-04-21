@@ -307,7 +307,7 @@ TEST_F(FunctionSetTest, FunctionMaxMarginalTest) {
     Indicator<> I = boost::make_shared<_Indicator<>>(_domain, SizeVec({1}), _s2);
     const DiscreteFunction<double>& rf4 = algorithm::maximize(I.get(), 1, false);
     EXPECT_DOUBLE_EQ(rf4->eval(State(),Action()), 1.);
-};
+}
 
 ///
 /// \brief Function join tests
@@ -328,4 +328,48 @@ TEST_F(FunctionSetTest, FunctionJoinTest) {
     const DiscreteFunction<double>& res = algorithm::join<double>({f,f2});
     EXPECT_TRUE(res->getSubdomain()->getNumStateFactors() == 2 && res->getSubdomain()->getNumActionFactors() == 1);
     EXPECT_DOUBLE_EQ(res->eval(_s,_a), 13.);
+}
+
+///
+/// \brief Function slicing tests
+///
+TEST_F(FunctionSetTest, FunctionSliceTest) {
+    FDiscreteFunction<double> f = boost::make_shared<_FDiscreteFunction<double>>(_domain);
+    f->addStateFactor(0);
+    f->addStateFactor(1);
+    f->addActionFactor(0);
+    f->pack();
+    f->define(_s,_a, 3);
+    f->define(_s2,_a, 4);
+#if !NDEBUG
+    LOG_DEBUG("Before slicing:");
+    _StateActionIncrementIterator saitr(f->getSubdomain());
+    while(saitr.hasNext()) {
+        const std::tuple<State,Action>& sa = saitr.next();
+        const State& s = std::get<0>(sa);
+        const Action& a = std::get<1>(sa);
+        LOG_DEBUG(s << " " << a << ": " << f->eval(s,a));
+    }
+#endif
+
+    // slice of the first state vector
+    std::vector<double> res = algorithm::slice(f.get(), 0, _s, _a);
+    EXPECT_DOUBLE_EQ(res[_s.getFactor(0)], f->eval(_s,_a));
+    EXPECT_DOUBLE_EQ(res[_s2.getFactor(0)], f->eval(_s2,_a));
+
+    LOG_DEBUG("First slicing result:");
+    for(auto v : res) {
+        LOG_DEBUG(v);
+    }
+
+    // get a different slice
+    State sl(_s);
+    sl.setFactor(1,1);
+    res = algorithm::slice(f.get(), 0, sl, _a);
+    EXPECT_DOUBLE_EQ(res[sl.getFactor(0)], f->eval(sl,_a));
+
+    LOG_DEBUG("Second slicing result:");
+    for(auto v : res) {
+        LOG_DEBUG(v);
+    }
 }

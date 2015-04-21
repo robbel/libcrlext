@@ -60,8 +60,9 @@ T sum_over_domain(const _DiscreteFunction<T>* pf, bool known_flat) {
     }
 }
 
-/// \brief Instantiate the given function in a particular state
+/// \brief Instantiate the given function in a particular (complete w.r.t. function's subdomain) state
 /// \param known_flat True iff function `pf' is known to be a \a _FDiscreteFunction (optimization)
+/// \note This is a less general version of adding evidence (over some subset of variables) to the function pf
 /// \return A new function with only \a Action dependencies
 template<class T>
 DiscreteFunction<T> instantiate(const _DiscreteFunction<T>* pf, const State& s, bool known_flat) {
@@ -89,6 +90,37 @@ DiscreteFunction<T> instantiate(const _DiscreteFunction<T>* pf, const State& s, 
   }
 
   return f;
+}
+
+/// \brief Given a partial instantiation of either \a State s or \a Action a, return the slice for variable `i'
+/// \note This is a less general version of adding evidence (over some subset of variables) to the function pf
+/// \note If `i' is greater than the number of state factors, it is assumed to be an action factor
+/// \return A slice with only variable `i' dependencies
+template<class T>
+std::vector<T> slice(const _DiscreteFunction<T>* pf, Size i, const State&s, const Action& a) {
+    std::vector<T> sl;
+    const Size num_state = pf->_domain->getNumStateFactors();
+    FactorRange range;
+    // select relevant free variable
+    State rs(s);
+    Action ra(a);
+    RLType* prl = nullptr;
+    if(i < num_state) {
+        prl = &rs;
+        range = pf->_domain->getStateRanges()[i];
+    }
+    else {
+        prl = &ra;
+        i -= num_state;
+        range = pf->_domain->getActionRanges()[i];
+    }
+
+    for(Factor fa = range.getMin(); fa <= range.getMax(); fa++) {
+        prl->setFactor(i, fa);
+        sl.push_back(pf->eval(rs,ra));
+    }
+
+    return sl;
 }
 
 /// \brief Maximize the given function over a particular state or action variable `i'
