@@ -63,9 +63,20 @@ std::tuple<Action,Reward> _FactoredValueFunction::getBestAction(const State& js,
         _bp_discounted = true;
     }
 
-  // todo
+    // run argVariableElimination over joint action space
+    // functions are instantiated in state `js'
+    FunctionSet<Reward> F(_domain);
+    for(auto& bp : _backprojection) {
+        State ms = bp->mapState(js);
+        F.insert(algorithm::instantiate(bp.get(), ms, false));
+    }
+    for(auto& b : _lrfs) {
+        State ms = b->mapState(js);
+        F.insert(algorithm::instantiate(b.get(), ms, false));
+    }
 
-    return make_tuple(Action(), 0.);
+    tuple<Action,Reward> tpl = algorithm::argVariableElimination(F, elimination_order);
+    return std::move(tpl);
 }
 
 //

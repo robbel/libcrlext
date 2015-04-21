@@ -172,5 +172,16 @@ TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
           LOG_INFO(" V(" << s << ")=" << qt->getV(s));
         }
     }
+
+    // compute maximum value for a specific state
+    State js(domain, 1);
+    // eliminate only action variables
+    SizeVec elim_order = cpputil::ordered_vec<Size>(domain->getNumActionFactors(), domain->getNumStateFactors());
+    tuple<Action,Reward> res = fval->getBestAction(js, elim_order);
+    LOG_INFO("Maximum value in " << js << " after variable elimination: " << std::get<1>(res));
+    // for an exhaustive basis function set we can compare result with known V-fn
+    if(fval->getBasis().size() == domain->getNumStates()) {
+      EXPECT_TRUE(cpputil::approxEq(std::get<1>(res), fval->getV(js), Reward(0.1)));
+    }
   }
 }

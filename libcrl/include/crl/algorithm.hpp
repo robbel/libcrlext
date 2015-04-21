@@ -13,7 +13,9 @@
 #define ALGORITHM_HPP_
 
 #include <iostream>
+#include <numeric>
 #include "crl/function.hpp"
+#include "logger.hpp"
 
 //
 // Some useful algorithms on functions
@@ -210,6 +212,57 @@ template<class T>
 DiscreteFunction<T> join(std::initializer_list<DiscreteFunction<T>> funcs) {
     cpputil::ContainerIterator<DiscreteFunction<double>,std::initializer_list<DiscreteFunction<double>>> fiter(std::move(funcs));
     return join(fiter);
+}
+
+//
+// Variable elimination with argmax
+//
+
+/// \todo
+template<class T, class R = Action>
+std::tuple<R,T> argVariableElimination(FunctionSet<T>& F, const crl::SizeVec& elimination_order) {
+  // Make sure we can eliminate all variables in function set
+  assert(elimination_order.size() >= F.getNumFactors());
+  LOG_DEBUG("Numer of unique variables to eliminate: " << F.getNumFactors());
+
+  std::vector<DiscreteFunction<T>> elim_cache;
+  // store for functions that have reached empty scope
+  std::vector<DiscreteFunction<T>> empty_fns;
+  using range = typename FunctionSet<T>::range;
+  for(Size v : elimination_order) {
+      LOG_DEBUG("Eliminating variable " << v);
+      range r = F.getFactor(v);
+      if(!r.hasNext()) {
+          LOG_DEBUG("Variable " << v << " not eliminated. It does not exist in FunctionSet.");
+          continue;
+      }
+
+      DiscreteFunction<T> esum = algorithm::join(r);
+      DiscreteFunction<T> emax = algorithm::maximize(esum.get(), v, false);
+      elim_cache.push_back(std::move(esum));
+      F.eraseFactor(v);
+      if(emax->getSubdomain()->getNumStateFactors() == 0 && emax->getSubdomain()->getNumActionFactors() == 0) {
+        LOG_DEBUG("Function reduced to empty scope");
+        empty_fns.push_back(std::move(emax));
+      }
+      else {
+        F.insert(std::move(emax)); // continue elimination
+      }
+  }
+
+  if(!F.empty()) {
+      LOG_FATAL("Functions remain in function set: variable elimination failed.");
+      assert(false);
+      //return std::make_tuple(R(), T(0)); //fixme
+  }
+
+  // sum over all empty functions defines the maximum value
+  T maxVal = std::accumulate(empty_fns.begin(), empty_fns.end(), T(0), [](T store, const DiscreteFunction<T>& f) {
+      return f->eval(State(),Action()) + store; });
+   
+  // todo: argmax
+
+  return std::make_tuple(R(), maxVal);
 }
 
 } // namespace algorithm

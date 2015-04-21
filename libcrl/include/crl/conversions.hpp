@@ -14,10 +14,12 @@
 
 #include <string>
 #include "crl/crl.hpp"
-#include "crl/factor_learner.hpp"
-
 
 namespace crl {
+
+// forward declarations
+class _FactoredMDP;
+typedef boost::shared_ptr<_FactoredMDP> FactoredMDP;
 
 ///
 /// \brief write the \a FactoredMDP representing a specific problem to a file in SPUDD format.

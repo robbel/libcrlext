@@ -361,7 +361,7 @@ private:
                     typename std::multimap<Size, DiscreteFunction<T>>::iterator> forward_range;
 public:
   /// \brief type for iterator over functions in this \a FunctionSet
-  typedef FunctionSetIterator<T> range;
+  using range = FunctionSetIterator<T>;
   /// \brief ctor
   FunctionSet(const Domain& domain)
     : _domain(domain), _a_offset(_domain->getNumStateFactors()) { }
@@ -442,13 +442,18 @@ public:
     return std::multimap<Size, DiscreteFunction<T>>::size();
   }
   /// \brief Compute unique (both state and action) factors contained in this set
-  typename std::multimap<Size, DiscreteFunction<T>>::size_type getNumFactors() const {
-    typename std::multimap<Size, DiscreteFunction<T>>::size_type count = 0;
+  SizeVec getFactors() const {
+    SizeVec vec;
     for(auto it = this->begin(), end = this->end(); it != end; it = this->upper_bound(it->first)) {
-        count++;
+        vec.push_back(it->first);
     }
-    return count;
+    return vec;
   }
+  /// \brief Compute number of unique (both state and action) factors contained in this set
+  typename std::multimap<Size, DiscreteFunction<T>>::size_type getNumFactors() const {
+    return getFactors().size();
+  }
+
   /// \brief Remove all elements from this std::multiset
   void clear() {
     std::multimap<Size, DiscreteFunction<T>>::clear();

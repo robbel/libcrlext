@@ -14,6 +14,7 @@
 #include <fstream>
 #include "cpputil.hpp"
 #include "crl/conversions.hpp"
+#include "crl/factor_learner.hpp"
 
 using namespace std;
 using namespace crl;
