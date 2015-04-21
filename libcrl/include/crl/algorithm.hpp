@@ -107,6 +107,8 @@ DiscreteFunction<T> maximize(const _DiscreteFunction<T>* pf, Size i, bool known_
   f->pack(-std::numeric_limits<T>::infinity());
 
   _StateActionIncrementIterator saitr(pf->getSubdomain());
+  const subdom_map s_dom(pf->getStateFactors());
+  const subdom_map a_dom(pf->getActionFactors());
   const std::vector<T>* pvals = nullptr;
   typename std::vector<T>::size_type j = 0;
   if(of) {
@@ -123,14 +125,60 @@ DiscreteFunction<T> maximize(const _DiscreteFunction<T>* pf, Size i, bool known_
           v = (*pvals)[j++];
       else
           v = (*pf)(s,a);
-      State ms = f->mapState(s);
-      Action ma = f->mapAction(a);
+      State ms = f->mapState(s,s_dom);
+      Action ma = f->mapAction(a,a_dom);
       if(v > (*f)(ms,ma)) {
         f->define(ms,ma,v);
       }
   }
 
   return f;
+}
+
+/// \brief Joins the given set of functions into a larger one defined over the joint domain
+/// \param f An operator to apply when joining two successive functions from `funcs' together
+/// \return A new function defined over the union of all function domains represented in `funcs'
+template<class T>
+DiscreteFunction<T> join(cpputil::Iterator<DiscreteFunction<T>>& funcs) {
+    assert(funcs.hasNext());
+    const Domain& domain = funcs.next()->_domain; // same domain
+    FDiscreteFunction<T> jf = boost::make_shared<_FDiscreteFunction<T>>(domain);
+    // join function scopes
+    funcs.reset();
+    while(funcs.hasNext()) {
+        jf->join(*funcs.next());
+    }
+    // allocate memory
+    jf->pack();
+    // create joint tabular values
+    _StateActionIncrementIterator saitr(jf->getSubdomain());
+    const subdom_map s_dom(jf->getStateFactors());
+    const subdom_map a_dom(jf->getActionFactors());
+    auto& vals = jf->values();
+    typename std::vector<T>::size_type i = 0;
+    while(saitr.hasNext()) {
+        const std::tuple<State,Action>& sa = saitr.next();
+        const State& s = std::get<0>(sa);
+        const Action& a = std::get<1>(sa);
+        T v = 0;
+        funcs.reset();
+        while(funcs.hasNext()) {
+            const auto& f = funcs.next();
+            State ms = f->mapState(s,s_dom);
+            Action ma = f->mapAction(a,a_dom);
+            v += f->eval(ms,ma);
+        }
+        vals[i++] = v;
+    }
+
+    return jf;
+}
+
+/// \brief Convenience function
+template<class T>
+DiscreteFunction<T> join(std::initializer_list<DiscreteFunction<T>> funcs) {
+    cpputil::ContainerIterator<DiscreteFunction<double>,std::initializer_list<DiscreteFunction<double>>> fiter(std::move(funcs));
+    return join(fiter);
 }
 
 } // namespace algorithm

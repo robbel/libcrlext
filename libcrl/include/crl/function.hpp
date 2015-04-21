@@ -39,6 +39,7 @@ namespace algorithm {
 template<class T> T sum_over_domain(const crl::_DiscreteFunction<T>* pf, bool known_flat);
 template<class T> DiscreteFunction<T> instantiate(const _DiscreteFunction<T>* pf, const State& s, bool known_flat);
 template<class T> DiscreteFunction<T> maximize(const _DiscreteFunction<T>* pf, Size i, bool known_flat);
+template<class T> DiscreteFunction<T> join(cpputil::Iterator<DiscreteFunction<T>>& funcs);
 
 } // namespace algorithm
 
@@ -57,6 +58,7 @@ template<class T>
 class _DiscreteFunction {
   friend DiscreteFunction<T> algorithm::instantiate<T>(const _DiscreteFunction<T>* pf, const State& s, bool known_flat);
   friend DiscreteFunction<T> algorithm::maximize<T>(const _DiscreteFunction<T>* pf, Size i, bool known_flat);
+  friend DiscreteFunction<T> algorithm::join<T>(cpputil::Iterator<DiscreteFunction<T>>& funcs);
   /// \brief template operator<< declared in place
   friend std::ostream& operator<<(std::ostream &os, const _DiscreteFunction<T>& f) {
     os << "f(S,A)=f({";
@@ -88,9 +90,6 @@ public:
   /// \brief ctor
   _DiscreteFunction(const Domain& domain, std::string name = "")
   : _domain(domain), _name(name), _computed(false) { }
-  /// \brief Initialize this function's scope with the union of scopes of the ones in \a funcs
-  _DiscreteFunction(std::initializer_list<DiscreteFunction<T>> funcs, std::string name = "")
-  : _DiscreteFunction(cpputil::ContainerIterator<DiscreteFunction<T>,std::initializer_list<DiscreteFunction<T>>>(funcs), name) { }
   /// \brief Initialize this function's scope with the union of scopes of the ones in \a funcs
   _DiscreteFunction(cpputil::Iterator<DiscreteFunction<T>>& funcs, std::string name = "")
   : _name(name), _computed(false) {
@@ -468,8 +467,6 @@ public:
   /// \brief ctor
   _EmptyFunction(const Domain& domain, std::string name = "")
   : _DiscreteFunction<T>(domain, name) { }
-  _EmptyFunction(std::initializer_list<DiscreteFunction<T>> funcs, std::string name = "")
-  : _DiscreteFunction<T>(std::move(funcs), name) { }
   _EmptyFunction(cpputil::Iterator<DiscreteFunction<T>>& funcs, std::string name = "")
   : _DiscreteFunction<T>(funcs, name) { }
 
@@ -549,7 +546,11 @@ public:
     : _DiscreteFunction<T>(domain, name), _packed(false) { }
     /// \brief copy ctor
     _FDiscreteFunction(const _FDiscreteFunction<T>& rhs)
-    : _DiscreteFunction<T>(rhs), _sa_table(boost::make_shared<_FStateActionTable<T>>(*rhs._sa_table)), _packed(rhs._packed) { }
+    : _DiscreteFunction<T>(rhs), _packed(rhs._packed) {
+        if(rhs._sa_table) {
+            _sa_table = boost::make_shared<_FStateActionTable<T>>(*rhs._sa_table); // deep copy
+        }
+    }
     /// \brief copy assignment
     _FDiscreteFunction& operator=(const _FDiscreteFunction& rhs) {
       _FDiscreteFunction<T> tmp(rhs);

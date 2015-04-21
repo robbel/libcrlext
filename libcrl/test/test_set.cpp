@@ -307,4 +307,25 @@ TEST_F(FunctionSetTest, FunctionMaxMarginalTest) {
     Indicator<> I = boost::make_shared<_Indicator<>>(_domain, SizeVec({1}), _s2);
     const DiscreteFunction<double>& rf4 = algorithm::maximize(I.get(), 1, false);
     EXPECT_DOUBLE_EQ(rf4->eval(State(),Action()), 1.);
+};
+
+///
+/// \brief Function join tests
+///
+TEST_F(FunctionSetTest, FunctionJoinTest) {
+    FDiscreteFunction<double> f = boost::make_shared<_FDiscreteFunction<double>>(_domain);
+    f->addStateFactor(0);
+    f->addActionFactor(0);
+    FDiscreteFunction<double> f2 = boost::make_shared<_FDiscreteFunction<double>>(*f);
+    f2->addStateFactor(1);
+    f->pack();
+    f2->pack();
+    f->define(_s,_a, 3);
+    f->define(_s2,_a, 4);
+    f2->define(_s,_a, 10);
+    f2->define(_s2,_a, 20);
+
+    const DiscreteFunction<double>& res = algorithm::join<double>({f,f2});
+    EXPECT_TRUE(res->getSubdomain()->getNumStateFactors() == 2 && res->getSubdomain()->getNumActionFactors() == 1);
+    EXPECT_DOUBLE_EQ(res->eval(_s,_a), 13.);
 }
