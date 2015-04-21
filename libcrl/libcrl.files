@@ -1,3 +1,4 @@
+include/crl/algorithm.hpp
 include/crl/alp.hpp
 include/crl/alp_cplex.hpp
 include/crl/alp_lpsolve.hpp

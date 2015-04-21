@@ -22,6 +22,7 @@ namespace crl {
 //
 // Forward declarations, typedefs
 //
+
 template<class T> class _DiscreteFunction;
 /// \brief The identity mapping
 static auto identity_map = [](Size i) { return i; };
@@ -32,18 +33,12 @@ typedef cpputil::inverse_map<Size> subdom_map;
 template<class T>
 using DiscreteFunction = boost::shared_ptr<_DiscreteFunction<T>>;
 
-//
-// Some useful algorithms on functions
-//
+// Algorithm declarations
 namespace algorithm {
 
-/// \brief Sum the given function over its entire domain
-/// \param known_flat True iff function `pf' is known to be a \a _FDiscreteFunction (optimization)
 template<class T> T sum_over_domain(const crl::_DiscreteFunction<T>* pf, bool known_flat);
-/// \brief Instantiate the given function in a given state
-/// \param known_flat True iff function `pf' is known to be a \a _FDiscreteFunction (optimization)
-/// \return A new function with only \a Action dependencies
 template<class T> DiscreteFunction<T> instantiate(const _DiscreteFunction<T>* pf, const State& s, bool known_flat);
+template<class T> DiscreteFunction<T> maximize(const _DiscreteFunction<T>* pf, Size i, bool known_flat);
 
 } // namespace algorithm
 
@@ -61,6 +56,7 @@ template<class T> DiscreteFunction<T> instantiate(const _DiscreteFunction<T>* pf
 template<class T>
 class _DiscreteFunction {
   friend DiscreteFunction<T> algorithm::instantiate<T>(const _DiscreteFunction<T>* pf, const State& s, bool known_flat);
+  friend DiscreteFunction<T> algorithm::maximize<T>(const _DiscreteFunction<T>* pf, Size i, bool known_flat);
   /// \brief template operator<< declared in place
   friend std::ostream& operator<<(std::ostream &os, const _DiscreteFunction<T>& f) {
     os << "f(S,A)=f({";
@@ -107,10 +103,10 @@ public:
   }
   /// \brief copy ctor
   _DiscreteFunction(const _DiscreteFunction& rhs)
-  : _domain(boost::make_shared<_Domain>(*rhs._domain)), _state_dom(rhs._state_dom), _action_dom(rhs._action_dom),
+  : _domain(rhs._domain), _state_dom(rhs._state_dom), _action_dom(rhs._action_dom),
     _name(rhs._name), _computed(rhs._computed) {
       if(rhs._subdomain) {
-          _subdomain = boost::make_shared<_Domain>(*rhs._subdomain);
+          _subdomain = boost::make_shared<_Domain>(*rhs._subdomain); // copy this variable explicitly since it may change
       }
   }
   /// \brief copy assignment
@@ -559,12 +555,12 @@ public:
     /// \brief Assemble the flat table corresponding to this function
     /// \note Called after all state and action dependencies have been added
     ///
-    virtual void pack() {
+    virtual void pack(T initial = T(0)) {
       if(!this->_computed) {
           this->computeSubdomain();
       }
       // allocate memory
-      _sa_table = boost::make_shared<_FStateActionTable<T>>(this->_subdomain);
+      _sa_table = boost::make_shared<_FStateActionTable<T>>(this->_subdomain, initial);
       _packed = true;
     }
 
@@ -739,82 +735,11 @@ public:
 template<class T = double>
 using ConstantFn = boost::shared_ptr<_ConstantFn<T>>;
 
+} // namespace crl
+
 //
 // algorithm implementations
 //
-
-namespace algorithm {
-
-template<class T>
-T sum_over_domain(const _DiscreteFunction<T>* pf, bool known_flat) {
-    const _FDiscreteFunction<T>* ff;
-    if(known_flat) {
-        ff = static_cast<const _FDiscreteFunction<T>*>(pf);
-    } else {
-        ff = dynamic_cast<const _FDiscreteFunction<T>*>(pf);
-        if(ff) {
-            known_flat = true;
-        }
-    }
-
-    if(known_flat) {
-        return std::accumulate(ff->_sa_table->values().begin(), ff->_sa_table->values().end(), T(0));
-    }
-    else { // some other cases FIXME move domainSum into base class
-        const _Indicator<T>* pif = dynamic_cast<const _Indicator<T>*>(pf);
-        if(pif) {
-            return 1;
-        } else { // brute force summation over domain
-            T sum = 0;
-            _StateActionIncrementIterator saitr(pf->getSubdomain());
-            while(saitr.hasNext()) {
-                const std::tuple<State,Action>& sa = saitr.next();
-                sum += pf->eval(std::get<0>(sa), std::get<1>(sa));
-            }
-            return sum;
-        }
-    }
-}
-
-template<class T>
-DiscreteFunction<T> instantiate(const _DiscreteFunction<T>* pf, const State& s, bool known_flat) {
-  const _FDiscreteFunction<T>* of;
-  if(known_flat) {
-      of = static_cast<const _FDiscreteFunction<T>*>(pf);
-  } else {
-      of = dynamic_cast<const _FDiscreteFunction<T>*>(pf);
-      if(of) {
-          known_flat = true;
-      }
-  }
-
-  // TODO: additional optimization paths for Indicator and ConstantFn
-  DiscreteFunction<T> f = boost::make_shared<_FDiscreteFunction<T>>(pf->_domain);
-  _FDiscreteFunction<T>* rawf = static_cast<_FDiscreteFunction<T>*>(f.get());
-  rawf->_action_dom = pf->_action_dom;
-  rawf->pack();
-  const Size num_actions = rawf->_subdomain->getNumActions();
-
-  if(known_flat) {
-    auto& vals  = of->_sa_table->values();
-    auto& start = vals[s.getIndex()*num_actions];
-    auto start_it = vals.begin() + (&start - vals.data());
-    std::copy(start_it, start_it+num_actions, rawf->values().begin());
-  }
-  else { // evaluate other function exhaustively
-    _ActionIncrementIterator aitr(rawf->getSubdomain());
-    auto& vals = rawf->values();
-    typename std::vector<T>::size_type i = 0;
-    while(aitr.hasNext()) {
-      vals[i++] = pf->eval(s,aitr.next());
-    }
-  }
-
-  return f;
-}
-
-} // namespace algorithm
-
-} // namespace crl
+#include "algorithm.hpp"
 
 #endif

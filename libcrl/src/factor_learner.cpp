@@ -27,8 +27,8 @@ using namespace crl;
 // FactorLearner implementation
 //
 
-void _FactorLearner::pack() {
-	_DBNFactor::pack();
+void _FactorLearner::pack(ProbabilityVec initial) {
+	_DBNFactor::pack(initial);
 	// allocate remaining counters
 	_sa_count = SACountTable(new _FStateActionTable<Index>(_subdomain));
 	_sa_f_count = SAFCountTable(new _FStateActionTable<SizeVec>(_subdomain));

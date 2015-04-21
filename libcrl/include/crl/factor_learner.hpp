@@ -53,7 +53,7 @@ public:
 	virtual ~_FactorLearner() { }
 
 	// DBNFactor interface
-	virtual void pack() override;
+	virtual void pack(ProbabilityVec initial = ProbabilityVec(0)) override;
 
 	// Learner interface
 	virtual bool observe(const State& s, const Action& a, const Observation& o) override;

@@ -141,7 +141,7 @@ public:
 template <class T>
 class _FStateActionTable : public _StateActionTable<T> {
 protected:
-	const Domain _domain;
+	Domain _domain;
 	/// \brief Implemented as flat, linear storage
 	std::vector<T> _sa_values;
 	Size _num_actions;
@@ -155,8 +155,7 @@ public:
 	  static_assert(sizeof(decltype(_sa_values.size())) >= 8, "vector size_t must be at least 64-bits");
 	}
 	/// \brief copy ctor
-	_FStateActionTable(const _FStateActionTable& rhs)
-	: _domain(boost::make_shared<_Domain>(*rhs._domain)), _sa_values(rhs._sa_values), _num_actions(rhs._num_actions) { }
+	_FStateActionTable(const _FStateActionTable& rhs) = default;
 	/// \brief move ctor
 	_FStateActionTable(_FStateActionTable&&) = default;
 	/// \brief dtor
