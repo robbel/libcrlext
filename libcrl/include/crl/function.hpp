@@ -24,6 +24,7 @@ namespace crl {
 //
 
 template<class T> class _DiscreteFunction;
+template<class T> class FunctionSet;
 /// \brief The identity mapping
 static auto identity_map = [](Size i) { return i; };
 /// \brief A mapping from global factor indices to those in a subdomain
@@ -33,7 +34,9 @@ typedef cpputil::inverse_map<Size> subdom_map;
 template<class T>
 using DiscreteFunction = boost::shared_ptr<_DiscreteFunction<T>>;
 
+//
 // Algorithm declarations
+//
 namespace algorithm {
 
 template<class T> T sum_over_domain(const crl::_DiscreteFunction<T>* pf, bool known_flat);
@@ -41,8 +44,9 @@ template<class T> DiscreteFunction<T> instantiate(const _DiscreteFunction<T>* pf
 template<class T> std::vector<T> slice(const _DiscreteFunction<T>* pf, Size i, const State&s, const Action& a);
 template<class T> DiscreteFunction<T> maximize(const _DiscreteFunction<T>* pf, Size i, bool known_flat);
 template<class T> DiscreteFunction<T> join(cpputil::Iterator<DiscreteFunction<T>>& funcs);
+template<class T> std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F, const crl::SizeVec& elimination_order);
 
-} // namespace algorithm
+}
 
 //
 // Function definitions
@@ -57,10 +61,12 @@ template<class T> DiscreteFunction<T> join(cpputil::Iterator<DiscreteFunction<T>
  */
 template<class T>
 class _DiscreteFunction {
+  // friend declarations
   friend DiscreteFunction<T> algorithm::instantiate<T>(const _DiscreteFunction<T>* pf, const State& s, bool known_flat);
   friend DiscreteFunction<T> algorithm::maximize<T>(const _DiscreteFunction<T>* pf, Size i, bool known_flat);
   friend DiscreteFunction<T> algorithm::join<T>(cpputil::Iterator<DiscreteFunction<T>>& funcs);
   friend std::vector<T> algorithm::slice<T>(const _DiscreteFunction<T>* pf, Size i, const State&s, const Action& a);
+  friend std::tuple<Action,T> algorithm::argVariableElimination<T>(FunctionSet<T>& F, const crl::SizeVec& elimination_order);
   /// \brief template operator<< declared in place
   friend std::ostream& operator<<(std::ostream &os, const _DiscreteFunction<T>& f) {
     os << "f(S,A)=f({";

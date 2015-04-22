@@ -218,9 +218,10 @@ DiscreteFunction<T> join(std::initializer_list<DiscreteFunction<T>> funcs) {
 // Variable elimination with argmax
 //
 
-/// \todo
-template<class T, class R = Action>
-std::tuple<R,T> argVariableElimination(FunctionSet<T>& F, const crl::SizeVec& elimination_order) {
+/// \brief Runs variable elimination on the provided \a FunctionSet and computes the argmax in a second pass
+/// \return The maximizing variable setting and the (maximal) value
+template<class T>
+std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F, const crl::SizeVec& elimination_order) {
   // Make sure we can eliminate all variables in function set
   assert(elimination_order.size() >= F.getNumFactors());
   LOG_DEBUG("Numer of unique variables to eliminate: " << F.getNumFactors());
@@ -251,18 +252,35 @@ std::tuple<R,T> argVariableElimination(FunctionSet<T>& F, const crl::SizeVec& el
   }
 
   if(!F.empty()) {
-      LOG_FATAL("Functions remain in function set: variable elimination failed.");
-      assert(false);
-      //return std::make_tuple(R(), T(0)); //fixme
+      throw cpputil::InvalidException("Functions remain in function set: variable elimination failed");
   }
 
   // sum over all empty functions defines the maximum value
   T maxVal = std::accumulate(empty_fns.begin(), empty_fns.end(), T(0), [](T store, const DiscreteFunction<T>& f) {
-      return f->eval(State(),Action()) + store; });
-   
-  // todo: argmax
+      return store + f->eval(State(),Action()); });
 
-  return std::make_tuple(R(), maxVal);
+  // argmax in reverse order
+  assert(elim_cache.size() == elimination_order.size());
+
+  Action retMax(elim_cache.front()->_domain); // the globally maximizing joint action
+  const RangeVec ranges = elim_cache.front()->_domain->getActionRanges();
+  const Size num_state = elim_cache.front()->_domain->getNumStateFactors();
+  auto fit = elim_cache.rbegin();
+  for (auto rit = elimination_order.rbegin(); rit != elimination_order.rend(); ++rit, ++fit) {
+      Size v = *rit;
+      Action ma((*fit)->mapAction(retMax)); // map to local function's domain
+      const std::vector<T>& slice = algorithm::slice(fit->get(), v, State(), ma);
+      auto opt = std::max_element(slice.begin(), slice.end());
+      // todo: adjust val from Size
+      Size offset = opt-slice.begin();
+      // update maximizing action
+      assert(v >= num_state);
+      retMax.setFactor(v-num_state, ranges[v-num_state].getMin()+offset);
+
+      // ...
+  }
+
+  return std::make_tuple(retMax, maxVal);
 }
 
 } // namespace algorithm

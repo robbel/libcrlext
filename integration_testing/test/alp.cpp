@@ -175,7 +175,7 @@ TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
 
     // compute maximum value for a specific state
     State js(domain, 1);
-    // eliminate only action variables
+    // eliminate only action variables, in order
     SizeVec elim_order = cpputil::ordered_vec<Size>(domain->getNumActionFactors(), domain->getNumStateFactors());
     tuple<Action,Reward> res = fval->getBestAction(js, elim_order);
     LOG_INFO("Maximum value in " << js << " after variable elimination: " << std::get<1>(res));
@@ -183,5 +183,6 @@ TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
     if(fval->getBasis().size() == domain->getNumStates()) {
       EXPECT_TRUE(cpputil::approxEq(std::get<1>(res), fval->getV(js), Reward(0.1)));
     }
+    LOG_INFO("Maximizing action is " << std::get<0>(res));
   }
 }
