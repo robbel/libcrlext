@@ -182,6 +182,12 @@ TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
     tuple<Action,Reward> res = fval->getBestAction(js, elim_order);
     LOG_INFO("Maximum value in " << js << " after variable elimination: " << std::get<1>(res));
     EXPECT_DOUBLE_EQ(std::get<1>(res), fval->getV(js));
+    EXPECT_DOUBLE_EQ(fval->getV(js),fval->getQ(js,std::get<0>(res)));
     LOG_INFO("Maximizing action is " << std::get<0>(res));
+    // test against some other action
+    Action oa(std::get<0>(res));
+    oa.setIndex(0);
+    LOG_DEBUG("Q value in " << js << " and another action " << oa << ": " << fval->getQ(js,oa));
+    EXPECT_TRUE(fval->getV(js) >= fval->getQ(js,oa));
   }
 }

@@ -49,18 +49,7 @@ std::tuple<Action,Reward> _FactoredValueFunction::getBestAction(const State& js,
 
     // Discount stored backprojections once to form local Q functions
     if(!_bp_discounted) {
-        std::vector<double>::size_type i = 0;
-        for(auto& bp : _backprojection) {
-            _ConstantFn<Reward>* cfn = dynamic_cast<_ConstantFn<Reward>*>(bp.get());
-            if(cfn) {
-                (*cfn) *= _weight[i++];
-            }
-            else {
-                _FDiscreteFunction<Reward>* fd = static_cast<_FDiscreteFunction<Reward>*>(bp.get());
-                (*fd) *= _weight[i++];
-            }
-        }
-        _bp_discounted = true;
+        discount();
     }
 
     // run argVariableElimination over joint action space
@@ -95,6 +84,46 @@ std::tuple<Action,Reward> _FactoredValueFunction::getBestAction(const State& js,
         [](Reward store, const DiscreteFunction<Reward>& f) { return store + f->eval(State(),Action()); });
 
     return tpl;
+}
+
+Reward _FactoredValueFunction::getQ(const State& js, const Action& ja) {
+    assert(_backprojection.size() == _basis.size());
+    assert(!_lrfs.empty());
+
+    // Discount stored backprojections once to form local Q functions
+    if(!_bp_discounted) {
+        discount();
+    }
+
+    Reward ret = 0.;
+    for(auto& bp : _backprojection) {
+        State ms = bp->mapState(js);
+        Action ma = bp->mapAction(ja);
+        ret += bp->eval(ms,ma);
+    }
+    for(auto& b : _lrfs) {
+        State ms = b->mapState(js);
+        Action ma = b->mapAction(ja);
+        ret += b->eval(ms,ma);
+    }
+
+    return ret;
+}
+
+void _FactoredValueFunction::discount() {
+    // Discount stored backprojections once to form part of local Q functions
+    std::vector<double>::size_type i = 0;
+    for(auto& bp : _backprojection) {
+        _ConstantFn<Reward>* cfn = dynamic_cast<_ConstantFn<Reward>*>(bp.get());
+        if(cfn) {
+            (*cfn) *= _weight[i++];
+        }
+        else {
+            _FDiscreteFunction<Reward>* fd = static_cast<_FDiscreteFunction<Reward>*>(bp.get());
+            (*fd) *= _weight[i++];
+        }
+    }
+    _bp_discounted = true;
 }
 
 //

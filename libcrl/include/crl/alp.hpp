@@ -35,12 +35,15 @@ protected:
   std::vector<double> _weight;
   /// \brief The gamma-discounted backprojections associated with the basis functions in _basis
   std::vector<DiscreteFunction<Reward>> _backprojection;
-  /// \brief True iff backprojections have already been multiplied by w parameters before variable elimination
-  /// \see getBestAction()
+  /// \brief True iff backprojections have already been multiplied by weight parameters to allow Q function computations
+  /// \see getBestAction(), getQ(), discount()
   bool _bp_discounted;
   /// \brief The reward functions to compute the local Q-functions
   /// \see getBestAction()
   std::vector<DiscreteFunction<Reward>> _lrfs;
+  /// \brief Discounts the backprojections with the (computed) weights to allow Q function computations
+  /// \see getBestAction(), getQ()
+  void discount();
 public:
   /// \brief ctor with an optional size hint for the number of basis functions to be added
   _FactoredValueFunction(const Domain& domain, Size size_hint = 0)
@@ -81,12 +84,19 @@ public:
 
   /// \brief Return value of (global) \a State js
   Reward getV(const State& js) const;
-  /// \brief Return value of (global) \a State s
+  /// \brief Return value of (global) \a State js
   Reward eval(const State& js) const {
     return getV(js);
   }
+  /// \brief Return value of (global) \a State js and \a Action ja
+  /// \note Exercises the Q function representation of this value function
+  Reward getQ(const State& js, const Action& ja);
+  /// \brief Return value of (global) \a State js and \a Action ja
+  Reward eval(const State& js, const Action& ja) {
+      return getQ(js,ja);
+  }
   /// \brief Return the best action in (global) \a State js along with the optimum value
-  /// \note Runs distributed action selection via variable elimination in the coordination graph
+  /// \note Runs distributed action selection via variable elimination (default action ordering) in the coordination graph
   std::tuple<Action,Reward> getBestAction(const State& js) {
       const SizeVec elim_order = cpputil::ordered_vec<Size>(_domain->getNumActionFactors());
       return getBestAction(js, elim_order);
