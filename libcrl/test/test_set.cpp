@@ -355,20 +355,21 @@ TEST_F(FunctionSetTest, FunctionSliceTest) {
     std::vector<double> res = algorithm::slice(f.get(), 0, _s, _a);
     EXPECT_DOUBLE_EQ(res[_s.getFactor(0)], f->eval(_s,_a));
     EXPECT_DOUBLE_EQ(res[_s2.getFactor(0)], f->eval(_s2,_a));
-
+#if !NDEBUG
     LOG_DEBUG("First slicing result:");
     for(auto v : res) {
         LOG_DEBUG(v);
     }
-
+#endif
     // get a different slice
     State sl(_s);
     sl.setFactor(1,1);
     res = algorithm::slice(f.get(), 0, sl, _a);
     EXPECT_DOUBLE_EQ(res[sl.getFactor(0)], f->eval(sl,_a));
-
+#if !NDEBUG
     LOG_DEBUG("Second slicing result:");
     for(auto v : res) {
         LOG_DEBUG(v);
     }
+#endif
 }
