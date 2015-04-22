@@ -98,7 +98,7 @@ public:
   /// \brief Return the best action in (global) \a State js along with the optimum value
   /// \note Runs distributed action selection via variable elimination (default action ordering) in the coordination graph
   std::tuple<Action,Reward> getBestAction(const State& js) {
-      const SizeVec elim_order = cpputil::ordered_vec<Size>(_domain->getNumActionFactors());
+      const SizeVec elim_order = cpputil::ordered_vec<Size>(_domain->getNumActionFactors(), _domain->getNumStateFactors());
       return getBestAction(js, elim_order);
   }
   /// \brief Return the best action in (global) \a State js along with the optimum value
