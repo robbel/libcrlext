@@ -167,9 +167,9 @@ TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
           const State& s = sitr.next();
           double r = qt->getV(s);
 
-          EXPECT_TRUE(cpputil::approxEq(r, wvec[si++], 0.1));
-          EXPECT_TRUE(cpputil::approxEq(r, (double)fval->getV(s), 0.1));
-          LOG_INFO(" V_vi(" << s << ")=" << qt->getV(s) << " - V_alp=" << (double)fval->getV(s));
+          EXPECT_TRUE(cpputil::approxEq(r, wvec[si], 0.1)); // comparison across algorithms, loose accuracy constraint
+          EXPECT_NEAR(wvec[si++], fval->getV(s), 2*std::numeric_limits<Reward>::epsilon()); // tighter constraint
+          LOG_INFO(" V_vi(" << s << ")=" << qt->getV(s) << " -- V_alp=" << (double)fval->getV(s));
         }
     }
 
