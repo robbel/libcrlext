@@ -234,7 +234,7 @@ std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F, const crl::SizeVe
       LOG_DEBUG("Eliminating variable " << v);
       range r = F.getFactor(v);
       if(!r.hasNext()) {
-          LOG_DEBUG("Variable " << v << " not eliminated. It does not exist in FunctionSet.");
+          LOG_INFO("Variable " << v << " not eliminated. It does not exist in FunctionSet.");
           continue;
       }
 
@@ -259,25 +259,28 @@ std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F, const crl::SizeVe
   T maxVal = std::accumulate(empty_fns.begin(), empty_fns.end(), T(0), [](T store, const DiscreteFunction<T>& f) {
       return store + f->eval(State(),Action()); });
 
+  if(elim_cache.empty()) {
+      return std::make_tuple(Action(),maxVal);
+  }
+
   // argmax in reverse order
   assert(elim_cache.size() == elimination_order.size());
+  const Domain& domain = elim_cache.front()->_domain;
+  const RangeVec ranges = domain->getActionRanges();
+  const Size num_state = domain->getNumStateFactors();
 
-  Action retMax(elim_cache.front()->_domain); // the globally maximizing joint action
-  const RangeVec ranges = elim_cache.front()->_domain->getActionRanges();
-  const Size num_state = elim_cache.front()->_domain->getNumStateFactors();
-  auto fit = elim_cache.rbegin();
+  Action retMax(domain); // the globally maximizing joint action
+  auto fit = elim_cache.rbegin(); // function iterator
   for (auto rit = elimination_order.rbegin(); rit != elimination_order.rend(); ++rit, ++fit) {
       Size v = *rit;
+      assert(v >= num_state); // eliminating an action variable
       Action ma((*fit)->mapAction(retMax)); // map to local function's domain
       const std::vector<T>& slice = algorithm::slice(fit->get(), v, State(), ma);
-      auto opt = std::max_element(slice.begin(), slice.end());
-      // todo: adjust val from Size
-      Size offset = opt-slice.begin();
+      auto optIt = std::max_element(slice.begin(), slice.end()); // yields the /first/ maximizing action
+      assert(optIt != slice.end()); // empty range check
+      auto offset = optIt-slice.begin();
       // update maximizing action
-      assert(v >= num_state);
       retMax.setFactor(v-num_state, ranges[v-num_state].getMin()+offset);
-
-      // ...
   }
 
   return std::make_tuple(retMax, maxVal);

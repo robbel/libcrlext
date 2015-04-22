@@ -64,19 +64,37 @@ std::tuple<Action,Reward> _FactoredValueFunction::getBestAction(const State& js,
     }
 
     // run argVariableElimination over joint action space
+    // store for functions that have reached empty scope
+    std::vector<DiscreteFunction<Reward>> empty_fns;
     // functions are instantiated in state `js'
     FunctionSet<Reward> F(_domain);
     for(auto& bp : _backprojection) {
         State ms = bp->mapState(js);
-        F.insert(algorithm::instantiate(bp.get(), ms, false));
+        DiscreteFunction<Reward> f = algorithm::instantiate(bp.get(), ms, false);
+        if(f->getSubdomain()->getNumStateFactors() == 0 && f->getSubdomain()->getNumActionFactors() == 0) {
+          empty_fns.push_back(std::move(f));
+        }
+        else {
+            F.insert(std::move(f));
+        }
     }
     for(auto& b : _lrfs) {
         State ms = b->mapState(js);
-        F.insert(algorithm::instantiate(b.get(), ms, false));
+        DiscreteFunction<Reward> f = algorithm::instantiate(b.get(), ms, false);
+        if(f->getSubdomain()->getNumStateFactors() == 0 && f->getSubdomain()->getNumActionFactors() == 0) {
+          empty_fns.push_back(std::move(f));
+        }
+        else {
+            F.insert(std::move(f));
+        }
     }
 
     tuple<Action,Reward> tpl = algorithm::argVariableElimination(F, elimination_order);
-    return std::move(tpl);
+    // add value of empty-scope functions to final result
+    std::get<1>(tpl) = std::accumulate(empty_fns.begin(), empty_fns.end(), std::get<1>(tpl),
+        [](Reward store, const DiscreteFunction<Reward>& f) { return store + f->eval(State(),Action()); });
+
+    return tpl;
 }
 
 //

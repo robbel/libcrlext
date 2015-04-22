@@ -169,20 +169,19 @@ TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
 
           EXPECT_TRUE(cpputil::approxEq(r, wvec[si++], 0.1));
           EXPECT_TRUE(cpputil::approxEq(r, (double)fval->getV(s), 0.1));
-          LOG_INFO(" V(" << s << ")=" << qt->getV(s));
+          LOG_INFO(" V_vi(" << s << ")=" << qt->getV(s) << " - V_alp=" << (double)fval->getV(s));
         }
     }
 
     // compute maximum value for a specific state
-    State js(domain, 1);
+    State js(domain);
+    js.setFactor(0,2);
+    js.setFactor(1,2);
     // eliminate only action variables, in order
     SizeVec elim_order = cpputil::ordered_vec<Size>(domain->getNumActionFactors(), domain->getNumStateFactors());
     tuple<Action,Reward> res = fval->getBestAction(js, elim_order);
     LOG_INFO("Maximum value in " << js << " after variable elimination: " << std::get<1>(res));
-    // for an exhaustive basis function set we can compare result with known V-fn
-    if(fval->getBasis().size() == domain->getNumStates()) {
-      EXPECT_TRUE(cpputil::approxEq(std::get<1>(res), fval->getV(js), Reward(0.1)));
-    }
+    EXPECT_DOUBLE_EQ(std::get<1>(res), fval->getV(js));
     LOG_INFO("Maximizing action is " << std::get<0>(res));
   }
 }
