@@ -93,7 +93,7 @@ typedef boost::shared_ptr<_Sysadmin> Sysadmin;
 
 } // namespace sysadmin
 
-/// \brief Build a sysadmin problem with the specified number of computers in the ring
+/// \brief Build a sysadmin problem with the specified number of computers in the topology
 /// \param arch The network topology, either "star" or "ring"
 /// \param num_comps The number of computers in the network
 sysadmin::Sysadmin buildSysadmin(std::string arch, Size num_comps);
