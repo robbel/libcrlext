@@ -270,7 +270,7 @@ int main(int argc, char** argv) {
 		glue_main_agent(host, port);
 		gsl_rng_free(gsl_random);
 	}
-	catch (cpputil::Exception e) {
+	catch (const cpputil::Exception& e) {
 		cerr << e << endl << e.trace << endl;
 	}
 	return 0;

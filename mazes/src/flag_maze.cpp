@@ -92,12 +92,12 @@ set<vector<int> > getFlagOrderings(int collectors_left, set<int> flags_left) {
 		return sv;
 	}
 
-	for (set<int>::iterator itr=flags_left.begin(); itr!=flags_left.end(); itr++) {
+	for (set<int>::iterator itr=flags_left.begin(); itr!=flags_left.end(); ++itr) {
 		int flag = *itr;
 		set<int> next_flags_left(flags_left);
 		next_flags_left.erase(next_flags_left.find(flag));
 		set<vector<int> > next_orderings(getFlagOrderings(collectors_left-1, next_flags_left));
-		for (set<vector<int> >::iterator itr=next_orderings.begin(); itr!=next_orderings.end(); itr++) {
+		for (set<vector<int> >::iterator itr=next_orderings.begin(); itr!=next_orderings.end(); ++itr) {
 			vector<int> ordering(*itr);
 			ordering.insert(ordering.begin(), flag);
 			sv.insert(ordering);
@@ -119,7 +119,7 @@ StateSet _FlagMaze::getTerminalStates() {
 	for (size_t i=0; i<_flags.size(); i++)
 		flags_left.insert(i);
 	set<vector<int> > flag_orderings = getFlagOrderings(_spawns.size(), flags_left);
-	for (set<vector<int> >::iterator itr=flag_orderings.begin(); itr!=flag_orderings.end(); itr++) {
+	for (set<vector<int> >::iterator itr=flag_orderings.begin(); itr!=flag_orderings.end(); ++itr) {
 		vector<int> flag_order = *itr;
 		State s(_domain, 0);
 		s.setFactor(0, 0);

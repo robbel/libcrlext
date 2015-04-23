@@ -88,7 +88,7 @@ Action _IUCTQTable::GetUCTAction(Size state_hash, Size& hash_a, bool explore) {
 			cerr << "v=" << (*citer).first << " action_hash=" << (*citer).second << " action=" << Action(_domain, (*citer).second) << endl;
 		}
 	}
-	multimap<double,Size>::iterator last = pq.end(); last--;
+	multimap<double,Size>::iterator last = pq.end(); --last;
 	double max = last->first;
 	double n = pq.count(max); // how many elements in pq is equal to the max
 	if (n==1) { // only one max
@@ -121,7 +121,7 @@ Action 	_UCTQTable::getBestAction (const State &s) {
 	Size best_action_hash = 0; //FIXME: returning action 0 on error
 	Reward max;
 	bool first = true;
-	for( HASH_MAP_ACTIONS_INFO::const_iterator iter = state_info->_actions.begin(); iter != state_info->_actions.end(); iter++) {
+	for( HASH_MAP_ACTIONS_INFO::const_iterator iter = state_info->_actions.begin(); iter != state_info->_actions.end(); ++iter) {
 		const CActionInfoHash& action_info = iter->second;
 		if (first) {
 			best_action_hash = iter->first;
@@ -213,7 +213,7 @@ Action 	_MBUCTQTable::getBestAction (const State &s) {
 	Size best_action_hash = 0; // FIXME: returning action 0 on error?
 	Reward max;
 	bool first = true;
-	for( HASH_MAP_ACTIONS_INFO::const_iterator iter = state_info->_actions.begin(); iter != state_info->_actions.end(); iter++) {
+	for( HASH_MAP_ACTIONS_INFO::const_iterator iter = state_info->_actions.begin(); iter != state_info->_actions.end(); ++iter) {
 		const CActionInfoHash& action_info = iter->second;
 		if (first) {
 			best_action_hash = iter->first;

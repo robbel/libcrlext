@@ -76,7 +76,7 @@ public:
 	}
 	virtual ~_HKnownClassifier() { }
 };
-typedef boost::shared_ptr<_FKnownClassifier> FKnownClassifier;
+typedef boost::shared_ptr<_HKnownClassifier> HKnownClassifier;
 
 /**
  * An MDP that uses a heuristic for the rewards from unknown state/actions,

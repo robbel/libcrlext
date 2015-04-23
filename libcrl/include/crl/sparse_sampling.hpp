@@ -48,10 +48,10 @@ public:
 	_SampleTree(const MDP& mdp, const State& s, Reward r, int breadth);
 	virtual ~_SampleTree() { }
 	virtual void sampleToDepth(int depth, float gamma);
-	Reward getV() {
+	Reward getV() const {
 		return _best_q;
 	}
-	Action getBestAction() {
+	Action getBestAction() const {
 		return _best_action;
 	}
 };

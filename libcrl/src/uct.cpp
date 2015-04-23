@@ -61,7 +61,7 @@ void _IUCTPlanner::runSimulation(const State& s) {
 		try{
 			new_state = _mdp->T(current_state,action)->sample();
 		}
-		catch (DistributionException e) {
+		catch (const DistributionException& e) {
 			// sampling throws an exception if all next states have probability 0.
 			goal_is_reached = true;
 		}

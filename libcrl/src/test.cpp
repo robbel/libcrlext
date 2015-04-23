@@ -286,7 +286,7 @@ int main(int argc, char** argv) {
 //		testVI(mdp, domain);
 //		testHash(domain);
 	}
-	catch (Exception e) {
+	catch (const Exception& e) {
 		cerr << e << endl;
 	}
 }

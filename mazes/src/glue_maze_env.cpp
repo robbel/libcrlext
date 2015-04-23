@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
 		glue_main_env(host, port);
 		return 0;
 	}
-	catch (cpputil::Exception e) {
+	catch (const cpputil::Exception& e) {
 		cerr << e << endl;
 		return 1;
 	}

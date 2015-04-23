@@ -263,8 +263,8 @@ void _Cluster::calcProbs(const Action& a) {
 		probs[i] = dirichlet_theta[i];
 		sum += probs[i];
 	}
-	delete dirichlet_alpha;
-	delete dirichlet_theta;
+	delete [] dirichlet_alpha;
+	delete [] dirichlet_theta;
 }
 
 Size _Cluster::size() {

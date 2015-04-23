@@ -160,7 +160,7 @@ public:
 		createTrace();
 #endif
     }
-	operator std::string() {return what;}
+        operator std::string() const {return what;}
 };
 
 class RangeException : public Exception {

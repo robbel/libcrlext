@@ -47,8 +47,8 @@ protected:
 public:
 	_Maze(size_t width, size_t height);
 	virtual ~_Maze() { }
-	size_t getWidth() {return _width;}
-	size_t getHeight() {return _height;}
+	size_t getWidth() const {return _width;}
+	size_t getHeight() const {return _height;}
 
 	bool getWallNorth(size_t x, size_t y);
 	bool getWallEast(size_t x, size_t y);
@@ -80,12 +80,12 @@ public:
 			    Reward reward_goal,
 			    Reward reward_pit,
 			    Reward reward_step);
-	Probability getSlipForward() {return _slip_forward;}
-	Probability getSlipLeft() {return _slip_left;}
-	Probability getSlipRight() {return _slip_right;}
-	Reward getRewardGoal() {return _reward_goal;}
-	Reward getRewardPit() {return _reward_pit;}
-	Reward getRewardStep() {return _reward_step;}
+	Probability getSlipForward() const {return _slip_forward;}
+	Probability getSlipLeft() const {return _slip_left;}
+	Probability getSlipRight() const {return _slip_right;}
+	Reward getRewardGoal() const {return _reward_goal;}
+	Reward getRewardPit() const {return _reward_pit;}
+	Reward getRewardStep() const {return _reward_step;}
 	void setSlipForward(Probability slip_forward) {_slip_forward=slip_forward;}
 	void setSlipLeft(Probability slip_left) {_slip_left=slip_left;}
 	void setSlipRight(Probability slip_right) {_slip_right=slip_right;}
@@ -132,9 +132,9 @@ public:
 	virtual ~_FlagMaze();
 	virtual Domain getDomain();
 	virtual State getInitialState();
-	SlipConfig getConfig() {return _config;}
-	std::vector<Location>& getFlags() {return _flags;}
-	std::vector<Location>& getSpawns() {return _spawns;}
+	SlipConfig getConfig() const {return _config;}
+	const std::vector<Location>& getFlags() const {return _flags;}
+	const std::vector<Location>& getSpawns() const {return _spawns;}
 	virtual StateSet getTerminalStates();
 };
 typedef boost::shared_ptr<_FlagMaze> FlagMaze;

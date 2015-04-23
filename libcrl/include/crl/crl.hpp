@@ -44,8 +44,8 @@ public:
 	_Observation(const State& s, Reward r)
 	: _s(s), _r(r) { }
 
-	State getState() {return _s;}
-	Reward getReward() {return _r;}
+	State getState() const {return _s;}
+	Reward getReward() const {return _r;}
 };
 typedef boost::shared_ptr<_Observation> Observation;
 

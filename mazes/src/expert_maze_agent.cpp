@@ -208,7 +208,7 @@ int main(int argc, char** argv) {
 	try {
 		glue_main_agent();
 	}
-	catch (cpputil::Exception e) {
+	catch (const cpputil::Exception& e) {
 		cerr << e << endl;
 	}
 

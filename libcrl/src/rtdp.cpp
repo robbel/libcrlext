@@ -58,7 +58,7 @@ Reward _RTDPPlanner::runSimulation(const State& s, Size depth) {
 		if (next_error > error)
 			error = next_error;
 	}
-	catch (DistributionException e) {
+	catch (const DistributionException& e) {
 		/* reached terminal state.
 		 * sampling throws an exception if all next states have probability 0.
 		 */

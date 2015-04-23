@@ -140,8 +140,6 @@ public:
 };
 typedef boost::shared_ptr<_Cluster> Cluster;
 
-class _ClusterMDP;
-typedef boost::shared_ptr<_ClusterMDP> ClusterMDP;
 class _ClusterMDP : public _MDP {
 protected:
 	Domain _domain;

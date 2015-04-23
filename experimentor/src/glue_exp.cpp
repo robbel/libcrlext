@@ -1,6 +1,7 @@
 /*
  Copyright (C) 2008, Brian Tanner
  modified by John Asmuth
+ modified by Philipp Robbel
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -192,14 +193,14 @@ int main(int argc, char *argv[]) {
 
 	time_t start_time = time_in_milli();
 
-	const char* task_spec = strdup(RL_init());
+	char* task_spec = strdup(RL_init());
 
-	const char* agent_id = strdup(RL_agent_message((char*)"id"));
-	const char* agent_param = strdup(RL_agent_message((char*)"param"));
-	const char* agent_vers = strdup(RL_agent_message((char*)"version"));
-	const char* env_id = strdup(RL_env_message((char*)"id"));
-	const char* env_param = strdup(RL_env_message((char*)"param"));
-	const char* env_vers = strdup(RL_env_message((char*)"version"));
+	char* agent_id = strdup(RL_agent_message((char*)"id"));
+	char* agent_param = strdup(RL_agent_message((char*)"param"));
+	char* agent_vers = strdup(RL_agent_message((char*)"version"));
+	char* env_id = strdup(RL_env_message((char*)"id"));
+	char* env_param = strdup(RL_env_message((char*)"param"));
+	char* env_vers = strdup(RL_env_message((char*)"version"));
 
 	{
 		ostringstream seed_os;
@@ -260,13 +261,13 @@ int main(int argc, char *argv[]) {
 	}
 
 	RL_cleanup();
-	delete task_spec;
-	delete agent_id;
-	delete agent_vers;
-	delete agent_param;
-	delete env_id;
-	delete env_param;
-	delete env_vers;
+	free(task_spec);
+	free(agent_id);
+	free(agent_vers);
+	free(agent_param);
+	free(env_id);
+	free(env_param);
+	free(env_vers);
 
 	return 0;
 }

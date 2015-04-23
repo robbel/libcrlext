@@ -139,13 +139,13 @@ public:
 			_outcome_distributions[action_index].stay = atof(actionObj["stay"].getText().c_str());
 		}
 	}
-	Probability left(const Action& a) {
+	Probability left(const Action& a) const {
 		return _outcome_distributions[a.getIndex()].left;
 	}
-	Probability right(const Action& a) {
+	Probability right(const Action& a) const {
 		return _outcome_distributions[a.getIndex()].right;
 	}
-	Probability stay(const Action& a) {
+	Probability stay(const Action& a) const {
 		return _outcome_distributions[a.getIndex()].stay;
 	}
 };
