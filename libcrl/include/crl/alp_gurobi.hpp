@@ -13,6 +13,8 @@
 #define ALP_GUROBI_HPP_
 
 #include <iostream>
+
+#include "gurobi_c++.h"
 #include "crl/alp.hpp"
 
 //
@@ -31,20 +33,18 @@ typedef FunctionVec<Reward> RFunctionVec;
 
 namespace gurobi {
 
-//
-// todo
-//
-
 /**
  * \brief A class that abstracts a Gurobi LP
- * \todo Just a stub for now..
  * All specific LP solver dependencies should be restricted to this hpp/cpp file
+ * TODO: could implement iterative constraint generation if performance becomes prohibitive
  */
 class _LP {
 private:
   const crl::Domain _domain;
   /// \brief Storage for functions generated during variable elimination
   crl::FunctionSet<crl::Reward> F;
+  /// \brief The Gurobi LP
+  boost::shared_ptr<GRBModel> _lp;
 public:
   /// \brief ctor
   _LP(const crl::Domain& domain)
@@ -54,18 +54,21 @@ public:
 
   /// \brief Given targets \f$C\f$ and \f$\mathbf{b}\f$ compute polynomial set of constraints
   /// \return 0 iff successful
-  int generateLP(const crl::RFunctionVec& C, const crl::RFunctionVec& b, const crl::SizeVec& elim_order);
+  int generateLP(const crl::RFunctionVec& C, const crl::RFunctionVec& b, const std::vector<double>& alpha, const crl::SizeVec& elim_order);
+  /// \brief Given targets \f$C\f$ and \f$\mathbf{b}\f$ compute possibly exponential set of constraints
+  /// \return 0 iff successful
+  int generateBLP(const crl::RFunctionVec& C, const crl::RFunctionVec& b, const std::vector<double>& alpha);
   /// \brief Solve this LP
   /// \return 0 iff successful
-  int solve(const std::vector<double>& alpha, crl::_FactoredValueFunction* vfn);
+  int solve(crl::_FactoredValueFunction* vfn);
 };
 typedef boost::shared_ptr<_LP> LP;
 
 namespace testing {
 
-//
-// todo
-//
+/// \brief A Gurobi version of the LP example that ships with lpsolve
+/// Source: http://lpsolve.sourceforge.net/5.5/formulate.htm
+int lp_demo();
 
 } // namespace testing
 

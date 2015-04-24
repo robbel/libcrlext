@@ -17,5 +17,6 @@
 /// \brief Placeholder for some Gurobi experiments
 ///
 TEST(GurobiTest, BasicGurobiTest) {
-  SUCCEED();
+  int res = gurobi::testing::lp_demo();
+  EXPECT_EQ(res, 0) << "no optimal solution found"; // else: optimal solution found, no error
 }
