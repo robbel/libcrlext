@@ -9,11 +9,11 @@
     GNU Lesser General Public License for more details.
  */
 
-#include "crl/alp_cplex.hpp"
+#include "crl/alp_gurobi.hpp"
 
 using namespace crl;
 
-namespace cplex {
+namespace gurobi {
 
 //
 // todo
@@ -34,5 +34,4 @@ int _LP::solve(const std::vector<double>& alpha, crl::_FactoredValueFunction* vf
   return 0;
 }
 
-} // namespace cplex
-
+} // namespace gurobi

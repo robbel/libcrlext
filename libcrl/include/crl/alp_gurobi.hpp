@@ -9,14 +9,14 @@
     GNU Lesser General Public License for more details.
  */
 
-#ifndef ALP_CPLEX_HPP_
-#define ALP_CPLEX_HPP_
+#ifndef ALP_GUROBI_HPP_
+#define ALP_GUROBI_HPP_
 
 #include <iostream>
 #include "crl/alp.hpp"
 
 //
-// CPLEX specific code to support the \a ALPPlanner
+// Gurobi specific code to support the \a ALPPlanner
 //
 
 namespace crl {
@@ -29,14 +29,14 @@ typedef FunctionVec<Reward> RFunctionVec;
 
 } // namespace crl
 
-namespace cplex {
+namespace gurobi {
 
 //
 // todo
 //
 
 /**
- * \brief A class that abstracts a CPLEX LP
+ * \brief A class that abstracts a Gurobi LP
  * \todo Just a stub for now..
  * All specific LP solver dependencies should be restricted to this hpp/cpp file
  */
@@ -69,6 +69,6 @@ namespace testing {
 
 } // namespace testing
 
-} // namespace cplex
+} // namespace gurobi
 
-#endif /*ALP_CPLEX_HPP_*/
+#endif /*ALP_GUROBI_HPP_*/

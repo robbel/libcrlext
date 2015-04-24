@@ -1,6 +1,6 @@
 include/crl/algorithm.hpp
 include/crl/alp.hpp
-include/crl/alp_cplex.hpp
+include/crl/alp_gurobi.hpp
 include/crl/alp_lpsolve.hpp
 include/crl/common.hpp
 include/crl/conversions.hpp
@@ -26,7 +26,7 @@ include/crl/vi.hpp
 include/cpputil.hpp
 include/logger.hpp
 src/alp.cpp
-src/alp_cplex.cpp
+src/alp_gurobi.cpp
 src/alp_lpsolve.cpp
 src/conversions.cpp
 src/crl.cpp
@@ -47,6 +47,7 @@ src/uctdata.cpp
 src/vi.cpp
 test/test_alp_basic.cpp
 test/test_dbn.cpp
+test/test_gurobi.cpp
 test/test_set.cpp
 test/test_spudd.cpp
 README
