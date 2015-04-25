@@ -96,14 +96,19 @@ Reward _FactoredValueFunction::getQ(const State& js, const Action& ja) {
     }
 
     Reward ret = 0.;
+    Action ma(ja);
     for(auto& bp : _backprojection) {
         State ms = bp->mapState(js);
-        Action ma = bp->mapAction(ja);
+        if(ja) { // backprojections may have empty action scope
+          ma = bp->mapAction(ja);
+        }
         ret += bp->eval(ms,ma);
     }
     for(auto& b : _lrfs) {
         State ms = b->mapState(js);
-        Action ma = b->mapAction(ja);
+        if(ja) {
+          ma = b->mapAction(ja);
+        }
         ret += b->eval(ms,ma);
     }
 

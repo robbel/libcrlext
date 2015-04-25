@@ -94,7 +94,7 @@ DiscreteFunction<T> instantiate(const _DiscreteFunction<T>* pf, const State& s, 
   return f;
 }
 
-/// \brief Given a partial instantiation of either \a State s or \a Action a, return the slice for variable `i'
+/// \brief Given a partial instantiation of either (local) \a State s or \a Action a, return the slice for (global) variable `i'
 /// \note This is a less general version of adding evidence (over some subset of variables) to the function pf
 /// \note If `i' is greater than the number of state factors, it is assumed to be an action factor
 /// \return A slice with only variable `i' dependencies
@@ -110,11 +110,15 @@ std::vector<T> slice(const _DiscreteFunction<T>* pf, Size i, const State&s, cons
     if(i < num_state) {
         prl = &rs;
         range = pf->_domain->getStateRanges()[i];
+        // convert `i' to local scope index
+        i = cpputil::inverse_map<Size>(pf->getStateFactors())(i);
     }
     else {
         prl = &ra;
         i -= num_state;
         range = pf->_domain->getActionRanges()[i];
+        // convert `i' to local scope index
+        i = cpputil::inverse_map<Size>(pf->getActionFactors())(i);
     }
 
     for(Factor fa = range.getMin(); fa <= range.getMax(); fa++) {

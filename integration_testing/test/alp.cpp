@@ -180,8 +180,8 @@ TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
     SizeVec elim_order = cpputil::ordered_vec<Size>(domain->getNumActionFactors(), domain->getNumStateFactors());
     tuple<Action,Reward> res = fval->getBestAction(js, elim_order);
     LOG_INFO("Maximum value in " << js << " after variable elimination: " << std::get<1>(res));
-    EXPECT_DOUBLE_EQ(std::get<1>(res), fval->getV(js));
-    EXPECT_DOUBLE_EQ(fval->getV(js),fval->getQ(js,std::get<0>(res)));
+    EXPECT_DOUBLE_EQ(std::get<1>(res), fval->getQ(js,std::get<0>(res)));
+    EXPECT_TRUE(fval->getV(js) >= fval->getQ(js,std::get<0>(res))); // in all approximations, V should be an upper bound on Q*
     LOG_INFO("Maximizing action is " << std::get<0>(res));
     // test against some other action
     Action oa(std::get<0>(res));
