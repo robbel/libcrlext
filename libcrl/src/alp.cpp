@@ -172,12 +172,15 @@ int _ALPPlanner::plan() {
     // create a basic elimination order (sorted state variables, followed by sorted action variables)
     SizeVec elim_order = cpputil::ordered_vec<Size>(_domain->getNumStateFactors() + _domain->getNumActionFactors());
 
+    long start_time = cpputil::time_in_milli();
     lpsolve::_LP lp(_domain);
     int res = lp.generateLP(_C_set, _fmdp->getLRFs(), _alpha, elim_order);
     if(res != 0) {
       LOG_ERROR("generateLP() error code: " << res);
       return 1;
     }
+    long end_time = cpputil::time_in_milli();
+    LOG_INFO("generateLP() returned after " << end_time - start_time << "ms");
 
     res = lp.solve(_value_fn.get());
     if(res != 0) {
@@ -191,12 +194,15 @@ int _ALPPlanner::plan() {
 int _BLPPlanner::plan() {
     precompute();
 
+    long start_time = cpputil::time_in_milli();
     lpsolve::_LP lp(_domain);
     int res = lp.generateBLP(_C_set, _fmdp->getLRFs(), _alpha);
     if(res != 0) {
       LOG_ERROR("generateBLP() error code: " << res);
       return 1;
     }
+    long end_time = cpputil::time_in_milli();
+    LOG_INFO("generateBLP() returned after " << end_time - start_time << "ms");
 
     res = lp.solve(_value_fn.get());
     if(res != 0) {

@@ -12,7 +12,6 @@
 #include <gtest/gtest.h>
 
 #include "crl/alp.hpp"
-#include "crl/alp_lpsolve.hpp"
 #include "crl/env_sysadmin.hpp"
 #include "crl/vi.hpp"
 #include "logger.hpp"
@@ -93,9 +92,9 @@ TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
   // add the constant basis (to guarantee LP feasibility)
 //  auto cfn = boost::make_shared<_ConstantFn<Reward>>(domain);
 //  fval->addBasisFunction(std::move(cfn), 0.);
-#if 0
   // add more basis functions
-  const RangeVec& ranges = domain->getStateRanges();
+  //const RangeVec& ranges = domain->getStateRanges();
+#if 0
   // create a basis (one indicator per local state, i.e., corresponding to `single' basis in Guestrin thesis)
   for(Size fa = 0; fa < ranges.size(); fa++) { // assumption: DBN covers all domain variables
       // place one indicator basis on each possible factor value

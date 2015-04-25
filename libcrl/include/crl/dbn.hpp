@@ -326,7 +326,6 @@ public:
       Indicator<> I = boost::dynamic_pointer_cast<_Indicator<>>(_func);
       if(I) {
           h[I->getStateIndex()] = 1.;
-          // TODO simplify the entire computation below as well for this special case
           // FIXME maintain special functions for sparse domains (ala these StateSetIterators !)
       }
       else {
@@ -344,13 +343,19 @@ public:
       // efficient loop over all (s,a) pairs in backprojection domain
       auto& vals = this->values();
       for(T& v : vals) {
-          const std::tuple<State,Action>& sa = saitr.next();
-          v = 0.;
+        const std::tuple<State,Action>& sa = saitr.next();
+        v = 0.;
+        if(I) {
+            const State s(hdom,I->getStateIndex());
+            v = h[(Size)s] * _dbn.T(std::get<0>(sa), std::get<1>(sa), s, s_dom, h_dom, a_dom);
+        }
+        else {
           hitr.reset();
           while(hitr.hasNext()) {
-              const State& s = hitr.next();
-              v += h[(Size)s] * _dbn.T(std::get<0>(sa), std::get<1>(sa), s, s_dom, h_dom, a_dom);
+            const State& s = hitr.next();
+            v += h[(Size)s] * _dbn.T(std::get<0>(sa), std::get<1>(sa), s, s_dom, h_dom, a_dom);
           }
+        }
       }
       _cached = true;
   }

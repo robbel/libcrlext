@@ -44,13 +44,16 @@ private:
   /// \brief Storage for functions generated during variable elimination
   crl::FunctionSet<crl::Reward> F;
   /// \brief The Gurobi LP
+  boost::shared_ptr<GRBEnv> _env;
   boost::shared_ptr<GRBModel> _lp;
+  /// \brief The w variables added to this LP
+  std::vector<GRBVar> _wvars;
 public:
   /// \brief ctor
   _LP(const crl::Domain& domain)
   : _domain(domain), F(domain) { }
   /// \brief dtor
-  ~_LP();
+  ~_LP() { }
 
   /// \brief Given targets \f$C\f$ and \f$\mathbf{b}\f$ compute polynomial set of constraints
   /// \return 0 iff successful
