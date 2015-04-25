@@ -94,6 +94,231 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<d
     _lp  = boost::make_shared<GRBModel>(*_env);
     _lp->set(GRB_StringAttr_ModelName, "ALP");
 
+    // add the weight variables with [-inf,inf] bounds along with the objective coefficients
+    for(vector<double>::size_type i = 0; i < alpha.size(); i++) {
+      GRBVar v = _lp->addVar(-GRB_INFINITY, GRB_INFINITY, alpha[i], GRB_CONTINUOUS, "w"+to_string(i));
+      _wvars.push_back(std::move(v));
+    }
+
+    // The objective is to minimize the costs
+    _lp->set(GRB_IntAttr_ModelSense, GRB_MINIMIZE);
+    _lp->update();
+
+    //
+    // generate equality constraints to abstract away basis (C) functions
+    //
+
+    // A mapping from function to lp-variable offset (used during variable elimination)
+    std::unordered_map<const _DiscreteFunction<Reward>*, int> var_offset;
+    // store for functions that have reached empty scope (those are used in last constraint)
+    std::vector<DiscreteFunction<Reward>> empty_fns;
+
+
+    int var = alpha.size(); // the offset at which to insert more variables
+    int wi = 0; // corresponding to active w_i variable
+    for(const auto& f : C) {
+        const auto& p = var_offset.insert({f.get(),var});
+        if(!p.second) {
+          assert(false);
+        }
+        int cc = 0;
+        _StateActionIncrementIterator saitr(f->getSubdomain());
+        while(saitr.hasNext()) {
+            const std::tuple<State,Action>& sa = saitr.next();
+            const State& s = std::get<0>(sa);
+            const Action& a = std::get<1>(sa);
+            // add variable
+            GRBVar v = _lp->addVar(-GRB_INFINITY, GRB_INFINITY, 0., GRB_CONTINUOUS, "C"+to_string(wi)+"_"+to_string(cc));
+            GRBLinExpr lhs = _wvars[wi] * (*f)(s,a) - v;
+            _lp->addConstr(lhs, GRB_EQUAL, 0.);
+            var++;
+            cc++;
+        }
+        // test for constant basis
+        if(f->getSubdomain()->getNumStateFactors() == 0 && f->getSubdomain()->getNumActionFactors() == 0) {
+            LOG_DEBUG("Found constant basis function with empty scope");
+            empty_fns.push_back(f);
+        }
+        F.insert(std::move(f)); // store function in set for variable elimination
+        wi++;
+    }
+
+    //
+    // generate equality constraints to abstract away target (b) functions
+    //
+
+    int bb = 0;
+    for(const auto& f : b) {
+        const auto& p = var_offset.insert({f.get(),var});
+        if(!p.second) {
+            assert(false);
+        }
+        int bv = 0;
+        _StateActionIncrementIterator saitr(f->getSubdomain());
+        while(saitr.hasNext()) {
+            const std::tuple<State,Action>& sa = saitr.next();
+            const State& s = std::get<0>(sa);
+            const Action& a = std::get<1>(sa);
+            // add variable
+            GRBVar v = _lp->addVar(-GRB_INFINITY, GRB_INFINITY, 0., GRB_CONTINUOUS, "b"+to_string(bb)+"_"+to_string(bv));
+            _lp->addConstr(v, GRB_EQUAL, (*f)(s,a));
+            var++;
+            bv++;
+        }
+        F.insert(std::move(f));
+        bb++;
+    }
+
+    //
+    // Run variable elimination to generate further variables/constraints
+    //
+
+    const Size num_factors = F.getNumFactors();
+    LOG_DEBUG("Number of unique factors (S,A) to eliminate: " << num_factors);
+    if(elim_order.size() != num_factors) {
+      LOG_WARN("Elimination order set has different size from available factors to eliminate");
+    }
+
+    using range = decltype(F)::range;
+    for(Size v : elim_order) {
+        assert(v < _domain->getNumStateFactors() + _domain->getNumActionFactors());
+        LOG_DEBUG("Eliminating variable " << v);
+        // eliminate variable `v' (either state or action)
+        range r = F.getFactor(v);
+        if(!r.hasNext()) {
+            LOG_DEBUG("Variable " << v << " not eliminated. It does not exist in FunctionSet.");
+            continue;
+        }
+        EmptyFunction<Reward> E = boost::make_shared<_EmptyFunction<Reward>>(r); // construct new function merely for domain computations
+        const auto& p = var_offset.insert({E.get(), var}); // variable offset in LP
+        LOG_DEBUG("Storing offset: " << var << " for replacement function");
+        if(!p.second) {
+            assert(false);
+        }
+        E->computeSubdomain();
+        Domain prev_dom_E = E->getSubdomain(); // which still includes `v'
+        const subdom_map s_dom(E->getStateFactors());
+        const subdom_map a_dom(E->getActionFactors());
+        E->eraseFactor(v);
+        E->computeSubdomain(); // does not include `v' anymore
+  #if !NDEBUG
+        std::stringstream ss;
+        ss << "Newly constructed function E has factor scope: S{ ";
+        for(auto s : E->getStateFactors()) {
+            ss << s << ", ";
+        }
+        ss << "} A{ ";
+        for(auto a : E->getActionFactors()) {
+            ss << a << ", ";
+        }
+        ss << "};";
+        LOG_DEBUG(ss.str());
+  #endif
+        if(E->getSubdomain()->getNumStateFactors() == 0 && E->getSubdomain()->getNumActionFactors() == 0) {
+            LOG_DEBUG("Found function with empty scope");
+            empty_fns.push_back(E);
+        }
+
+        // generate constraints
+        _StateActionIncrementIterator saitr(prev_dom_E);
+        while(saitr.hasNext()) {
+            const std::tuple<State,Action>& z = saitr.next();
+            const State& s = std::get<0>(z);
+            const Action& a = std::get<1>(z);
+            // reduced state in E
+            State ms = E->mapState(s,s_dom);
+            Action ma = E->mapAction(a,a_dom);
+            // translate this reduced (ms,ma) pair into an LP variable offset (laid out as <s0,a0>,<s0,a1>,...,<s1,a0>,...)
+            const int offset_E = var + ms.getIndex() * E->getSubdomain()->getNumActions() + ma.getIndex();
+            LOG_DEBUG("Current offset: " << offset_E);
+            // build constraint
+
+            vector<double> row; // TODO: move out of loop
+            vector<int> colno; // 1-offset column numbering
+            colno.push_back(offset_E);
+            row.push_back(-1.);
+
+            r.reset();
+            while(r.hasNext()) { // over all functions
+                const DiscreteFunction<Reward>& f = r.next();
+                // obtain their offset into variable list
+                const int offset = var_offset.at(f.get());
+                // obtain reduced state
+                ms = f->mapState(s,s_dom);
+                ma = f->mapAction(a,a_dom);
+                // translate this reduced (ms,ma) pair into LP variable offset
+                const int f_offset = offset + ms.getIndex() * f->getSubdomain()->getNumActions() + ma.getIndex();
+                // add to constraint
+                colno.push_back(f_offset);
+                row.push_back(1.);
+            }
+            // build lhs
+            GRBLinExpr lhs = 0;
+
+
+
+            // add constraint (including new variables) to LP
+            if(!add_constraintex(_lp, row.size(), row.data(), colno.data(), LE, 0.)) {
+                return 6; // adding of constraint failed
+            }
+  #if !NDEBUG
+            LOG_DEBUG("Added constraint:");
+            std::stringstream ss;
+            for(int i = 0; i < row.size(); i++) {
+              ss << get_col_name(_lp,colno[i]) << "*" << row[i] << " ";
+            }
+            LOG_DEBUG(ss.str());
+  #endif
+        }
+        LOG_DEBUG("Function set F before erase of factor: " << v);
+        LOG_DEBUG(F);
+
+        // Erase from var_offset hash table (required to avoid collisions)
+        r.reset();
+        while(r.hasNext()) {
+            std::size_t k = var_offset.erase(r.next().get());
+            if(k != 1) {
+                assert(false);
+            }
+        }
+        F.eraseFactor(v);
+        F.insert(E); // store new function (if not empty scope)
+        // update variable counter
+        var+=E->getSubdomain()->size();
+
+        LOG_DEBUG("Function set F after erase and insertion of new function E: ");
+        LOG_DEBUG(F);
+    }
+
+    LOG_DEBUG("Number of unique factors (S,A) after elimination: " << F.getNumFactors() << " and size: " << F.size());
+
+    // F does not store empty scope functions
+    if(!F.empty()) {
+        return 7; // functions remain in function set: variable elimination failed
+    }
+
+    // add remaining constraints (last row)
+    // \f$\phi \geq \ldots\f$
+    vector<double> lrow;
+    vector<int> lcolno; // 1-offset column numbering
+    for(const auto& e : empty_fns) {
+        const int offset = var_offset.at(e.get());
+        lcolno.push_back(offset);
+        lrow.push_back(1);
+    }
+    if(!add_constraintex(_lp, lrow.size(), lrow.data(), lcolno.data(), LE, 0.)) {
+        return 8; // adding of constraint failed
+    }
+
+
+
+
+
+
+    _lp->update();
+
+    //write LP to stdout
+    LOG_INFO("Generated LP with " << _lp->get(GRB_IntAttr_NumVars) << " variables and " << _lp->get(GRB_IntAttr_NumConstrs) << " constraints.");
   }
   catch(const GRBException& e) { }
 
