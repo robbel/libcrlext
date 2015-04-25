@@ -89,13 +89,14 @@ std::tuple<Action,Reward> _FactoredValueFunction::getBestAction(const State& js,
 Reward _FactoredValueFunction::getQ(const State& js, const Action& ja) {
     assert(_backprojection.size() == _basis.size());
     assert(!_lrfs.empty());
+    assert(js);
 
     // Discount stored backprojections once to form local Q functions
     if(!_bp_discounted) {
         discount();
     }
 
-    Reward ret = 0.;
+    double ret = 0.;
     Action ma(ja);
     for(auto& bp : _backprojection) {
         State ms = bp->mapState(js);
@@ -112,7 +113,7 @@ Reward _FactoredValueFunction::getQ(const State& js, const Action& ja) {
         ret += b->eval(ms,ma);
     }
 
-    return ret;
+    return static_cast<Reward>(ret);
 }
 
 void _FactoredValueFunction::discount() {
