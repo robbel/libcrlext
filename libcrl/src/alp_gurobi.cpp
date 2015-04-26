@@ -256,14 +256,15 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<d
                 lhs += fv;
             }
             // add constraint (including new variables) to LP
-            GRBConstr constr = _lp->addConstr(lhs,GRB_LESS_EQUAL,v);
-
+            /*GRBConstr constr =*/ _lp->addConstr(lhs,GRB_LESS_EQUAL,v);
+/*
 #if !NDEBUG
             LOG_DEBUG("Added constraint:");
             _lp->update();
             GRBLinExpr ex = _lp->getRow(constr);
             LOG_DEBUG(ex);
 #endif
+*/
         }
         LOG_DEBUG("Function set F before erase of factor: " << v);
         LOG_DEBUG(F);
