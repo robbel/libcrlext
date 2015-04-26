@@ -129,17 +129,20 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<d
             const Action& a = std::get<1>(sa);
             // add variable
             GRBVar v = _lp->addVar(-GRB_INFINITY, GRB_INFINITY, 0., GRB_CONTINUOUS, "C"+to_string(wi)+"_"+to_string(cc));
-            GRBLinExpr lhs = _wvars[wi] * (*f)(s,a) - v;
-            _lp->addConstr(lhs, GRB_EQUAL, 0.);
+            _lp->update();
+            GRBLinExpr lhs = _wvars[wi] * (*f)(s,a);
+            _lp->addConstr(lhs, GRB_EQUAL, v);
             var++;
             cc++;
         }
         // test for constant basis
         if(f->getSubdomain()->getNumStateFactors() == 0 && f->getSubdomain()->getNumActionFactors() == 0) {
             LOG_DEBUG("Found constant basis function with empty scope");
-            empty_fns.push_back(f);
+            empty_fns.push_back(std::move(f));
         }
-        F.insert(std::move(f)); // store function in set for variable elimination
+        else {
+            F.insert(std::move(f)); // store function in set for variable elimination
+        }
         wi++;
     }
 
@@ -161,6 +164,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<d
             const Action& a = std::get<1>(sa);
             // add variable
             GRBVar v = _lp->addVar(-GRB_INFINITY, GRB_INFINITY, 0., GRB_CONTINUOUS, "b"+to_string(bb)+"_"+to_string(bv));
+            _lp->update();
             _lp->addConstr(v, GRB_EQUAL, (*f)(s,a));
             var++;
             bv++;
@@ -201,7 +205,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<d
         const subdom_map a_dom(E->getActionFactors());
         E->eraseFactor(v);
         E->computeSubdomain(); // does not include `v' anymore
-  #if !NDEBUG
+#if !NDEBUG
         std::stringstream ss;
         ss << "Newly constructed function E has factor scope: S{ ";
         for(auto s : E->getStateFactors()) {
@@ -213,7 +217,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<d
         }
         ss << "};";
         LOG_DEBUG(ss.str());
-  #endif
+#endif
         if(E->getSubdomain()->getNumStateFactors() == 0 && E->getSubdomain()->getNumActionFactors() == 0) {
             LOG_DEBUG("Found function with empty scope");
             empty_fns.push_back(E);
@@ -221,6 +225,8 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<d
 
         // generate constraints
         _StateActionIncrementIterator saitr(prev_dom_E);
+        _lp->addVars(E->getSubdomain()->size()); // note: variable still in [0,inf)
+        _lp->update();
         while(saitr.hasNext()) {
             const std::tuple<State,Action>& z = saitr.next();
             const State& s = std::get<0>(z);
@@ -232,12 +238,10 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<d
             const int offset_E = var + ms.getIndex() * E->getSubdomain()->getNumActions() + ma.getIndex();
             LOG_DEBUG("Current offset: " << offset_E);
             // build constraint
+            GRBVar v = _lp->getVar(offset_E);
+            v.set(GRB_DoubleAttr_LB, -GRB_INFINITY);
 
-            vector<double> row; // TODO: move out of loop
-            vector<int> colno; // 1-offset column numbering
-            colno.push_back(offset_E);
-            row.push_back(-1.);
-
+            GRBLinExpr lhs = 0;
             r.reset();
             while(r.hasNext()) { // over all functions
                 const DiscreteFunction<Reward>& f = r.next();
@@ -248,27 +252,18 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<d
                 ma = f->mapAction(a,a_dom);
                 // translate this reduced (ms,ma) pair into LP variable offset
                 const int f_offset = offset + ms.getIndex() * f->getSubdomain()->getNumActions() + ma.getIndex();
-                // add to constraint
-                colno.push_back(f_offset);
-                row.push_back(1.);
+                GRBVar fv = _lp->getVar(f_offset);
+                lhs += fv;
             }
-            // build lhs
-            GRBLinExpr lhs = 0;
-
-
-
             // add constraint (including new variables) to LP
-            if(!add_constraintex(_lp, row.size(), row.data(), colno.data(), LE, 0.)) {
-                return 6; // adding of constraint failed
-            }
-  #if !NDEBUG
+            GRBConstr constr = _lp->addConstr(lhs,GRB_LESS_EQUAL,v);
+
+#if !NDEBUG
             LOG_DEBUG("Added constraint:");
-            std::stringstream ss;
-            for(int i = 0; i < row.size(); i++) {
-              ss << get_col_name(_lp,colno[i]) << "*" << row[i] << " ";
-            }
-            LOG_DEBUG(ss.str());
-  #endif
+            _lp->update();
+            GRBLinExpr ex = _lp->getRow(constr);
+            LOG_DEBUG(ex);
+#endif
         }
         LOG_DEBUG("Function set F before erase of factor: " << v);
         LOG_DEBUG(F);
@@ -294,37 +289,31 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<d
 
     // F does not store empty scope functions
     if(!F.empty()) {
-        return 7; // functions remain in function set: variable elimination failed
+        return 1; // functions remain in function set: variable elimination failed
     }
 
     // add remaining constraints (last row)
     // \f$\phi \geq \ldots\f$
-    vector<double> lrow;
-    vector<int> lcolno; // 1-offset column numbering
+    GRBLinExpr lhs = 0;
     for(const auto& e : empty_fns) {
         const int offset = var_offset.at(e.get());
-        lcolno.push_back(offset);
-        lrow.push_back(1);
+        lhs += _lp->getVar(offset);
     }
-    if(!add_constraintex(_lp, lrow.size(), lrow.data(), lcolno.data(), LE, 0.)) {
-        return 8; // adding of constraint failed
-    }
-
-
-
-
-
-
+    _lp->addConstr(lhs,GRB_LESS_EQUAL,0.);
     _lp->update();
 
     //write LP to stdout
     LOG_INFO("Generated LP with " << _lp->get(GRB_IntAttr_NumVars) << " variables and " << _lp->get(GRB_IntAttr_NumConstrs) << " constraints.");
+    return 0;
   }
-  catch(const GRBException& e) { }
+  catch(const GRBException& e) {
+    cerr << e.getErrorCode() << ": " << e.getMessage() << endl;
+  }
+  catch(...) {
+    cerr << "Unknown exception thrown" << endl;
+  }
 
-  throw cpputil::InvalidException("not implemented yet.");
-
-  return 0;
+  return 2;
 }
 
 int _LP::solve(crl::_FactoredValueFunction* vfn) {
