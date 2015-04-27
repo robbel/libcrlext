@@ -77,6 +77,6 @@ Action _SpuddPolicy::getAction(const State& s) {
     LOG_DEBUG("For state " << s << " return action: " << _mdp->getActionName(optact));
 
     return Action(_domain, optact);
-};
+}
 
 } // namespace crl

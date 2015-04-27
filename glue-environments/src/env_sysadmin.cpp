@@ -157,7 +157,7 @@ void _Sysadmin::buildFactoredMDP() {
 
 State _Sysadmin::begin() {
   _current = State(_domain);
-  for(Size i = 0; i < _num_comps; i+=2) {
+  for(Size i = 0; i < _num_comps*2; i+=2) {
       _current.setFactor(i,   (Factor) Status::GOOD);
       _current.setFactor(i+1, (Factor) Load::IDLE);
   }
@@ -190,7 +190,7 @@ Observation _Sysadmin::getObservation(const Action& ja) {
         assert(r <= acc);
 
         // update new state
-        new_current.setFactor(f, bin);
+        new_current.setFactor(f, bin-1);
     }
 
     _current = std::move(new_current);
