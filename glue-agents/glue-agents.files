@@ -1,3 +1,4 @@
 src/agent_vi_rmax.cpp
+src/glue_spudd.cpp
 README
 SConstruct
