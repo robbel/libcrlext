@@ -3,3 +3,8 @@ Fork from rl-glue experimentor, from https://code.google.com/p/experimentor/.
 Note: required for experiment scripts in ./experiments
 
 Note: this is compiled against librlgluenetdev (along with `exp_codec.c') to work over the network. As usual, an alternative is to choose librlglue and compile Agent and Environment into same executable.
+
+See ./doc/experimentor.html for instructions.
+Basic usage: 
+  experimentor <experiments/my_experiment.py>
+  experimentor_plot <exp_log/my_experiment/resultsXYZ.csv> where XYZ is the type of plot to generate

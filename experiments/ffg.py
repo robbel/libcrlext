@@ -13,7 +13,7 @@ agent_rmax20 = Agent("agent_vi_rmax 20 1 .1")
 
 agent_random = Agent("random_agent", cwd="/home/philipp/Builds/maastricht/3rdParty/libcrlext/glue-crl")
 
-env_ffg1 = Environment("env_ffg cfgs/ffg1.xml", cwd="/home/philipp/Builds/maastricht/3rdParty/libcrlext/glue-environments")
+glue_ffg1 = Environment("glue_ffg cfgs/ffg1.xml", cwd="/home/philipp/Builds/maastricht/3rdParty/libcrlext/glue-environments")
 env_littman1 = Environment("env_littman cfgs/littman1.xml", cwd="/home/philipp/Builds/maastricht/3rdParty/libcrlext/glue-environments")
 env_echo = Environment("echo run an environment")
 
@@ -25,15 +25,15 @@ num_runs = 1
 #instance names must be unique
 instances = [
 
-    #Instance("BOSS_a5_m20", agent_boss_a5_m20, env_ffg, steps=num_steps, trials=num_trials, runs=num_runs),
-    #Instance("BOSS_a5_m10", agent_boss_a5_m10, env_ffg, steps=num_steps, trials=num_trials, runs=num_runs),
-    #Instance("BOSS_m10", agent_boss_m10, env_ffg1, steps=num_steps, trials=num_trials, runs=num_runs),
-    #Instance("CRMAX_m10", agent_crmax_m10, env_ffg1, steps=num_steps, trials=num_trials, runs=num_runs),
-    #Instance("BOSS_a5_m2", agent_boss_a5_m2, env_ffg, steps=num_steps, trials=num_trials, runs=num_runs),
-    Instance("RAND", agent_random, env_ffg1, steps=num_steps, trials=num_trials, runs=num_runs),
-    Instance("RMAX_m2", agent_rmax2, env_ffg1, steps=num_steps, trials=num_trials, runs=num_runs),
-    Instance("RMAX_m5", agent_rmax5, env_ffg1, steps=num_steps, trials=num_trials, runs=num_runs),
-    Instance("RMAX_m10", agent_rmax10, env_ffg1, steps=num_steps, trials=num_trials, runs=num_runs),
-    Instance("RMAX_m20", agent_rmax20, env_ffg1, steps=num_steps, trials=num_trials, runs=num_runs),
-    #Instance("DEBUG", agent_echo, env_ffg1, steps=num_steps, trials=num_trials, runs=num_runs),
+    #Instance("BOSS_a5_m20", agent_boss_a5_m20, glue_ffg, steps=num_steps, trials=num_trials, runs=num_runs),
+    #Instance("BOSS_a5_m10", agent_boss_a5_m10, glue_ffg, steps=num_steps, trials=num_trials, runs=num_runs),
+    #Instance("BOSS_m10", agent_boss_m10, glue_ffg1, steps=num_steps, trials=num_trials, runs=num_runs),
+    #Instance("CRMAX_m10", agent_crmax_m10, glue_ffg1, steps=num_steps, trials=num_trials, runs=num_runs),
+    #Instance("BOSS_a5_m2", agent_boss_a5_m2, glue_ffg, steps=num_steps, trials=num_trials, runs=num_runs),
+    Instance("RAND", agent_random, glue_ffg1, steps=num_steps, trials=num_trials, runs=num_runs),
+    Instance("RMAX_m2", agent_rmax2, glue_ffg1, steps=num_steps, trials=num_trials, runs=num_runs),
+    Instance("RMAX_m5", agent_rmax5, glue_ffg1, steps=num_steps, trials=num_trials, runs=num_runs),
+    Instance("RMAX_m10", agent_rmax10, glue_ffg1, steps=num_steps, trials=num_trials, runs=num_runs),
+    Instance("RMAX_m20", agent_rmax20, glue_ffg1, steps=num_steps, trials=num_trials, runs=num_runs),
+    #Instance("DEBUG", agent_echo, glue_ffg1, steps=num_steps, trials=num_trials, runs=num_runs),
 ]

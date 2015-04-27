@@ -61,7 +61,8 @@ if os.uname()[0] == "Darwin":
 	env.Append(SHLINKFLAGS='-undefined dynamic_lookup')
 
 config = Configure(env)
-has_crl = config.CheckLibWithHeader('crl', 'crl/crl.hpp', 'cpp')
+#has_crl = config.CheckLibWithHeader('crl', 'crl/crl.hpp', 'cpp')
+has_crl = config.CheckCXXHeader('crl/crl.hpp')
 has_glue = config.CheckCXXHeader('rlglue/Agent_common.h')
 
 has_glue_nm = sum([
@@ -69,6 +70,7 @@ has_glue_nm = sum([
 	config.CheckLib('rlgnmenv')
 ])
 env = config.Finish()
+env.PrependENVPath('LD_LIBRARY_PATH', lib_paths)
 
 lib_targets = []
 bin_targets = []

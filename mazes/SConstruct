@@ -53,6 +53,7 @@ has_glue = config.CheckCXXHeader('rlglue/Agent_common.h')
 
 config.CheckLibWithHeader('rlcrlenv', 'crl/glue_env.hpp', 'cpp')
 env = config.Finish()
+env.PrependENVPath('LD_LIBRARY_PATH', lib_paths)
 
 lib_targets = []
 bin_targets = []

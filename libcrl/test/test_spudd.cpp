@@ -89,7 +89,7 @@ TEST(SPUDDTest, BasicTest) {
 
   }
   catch(const cpputil::Exception& e) {
-    cerr << e << endl;
+    LOG_ERROR(e);
     FAIL();
   }
 

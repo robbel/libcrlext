@@ -47,6 +47,7 @@ has_crl = config.CheckLibWithHeader('crl', 'crl/crl.hpp', 'cpp')
 has_glue = config.CheckCXXHeader('rlglue/Agent_common.h')
 has_gsl = config.CheckLibWithHeader('gsl', 'gsl/gsl_rng.h', 'c')
 env = config.Finish()
+env.PrependENVPath('LD_LIBRARY_PATH', lib_paths)
 
 lib_targets = []
 bin_targets = []
