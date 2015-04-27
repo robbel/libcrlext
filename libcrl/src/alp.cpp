@@ -12,6 +12,9 @@
 #include <numeric>
 #include "crl/alp.hpp"
 #include "crl/alp_lpsolve.hpp"
+#if HAS_GUROBI
+#include "crl/alp_gurobi.hpp"
+#endif
 #include "logger.hpp"
 
 using namespace std;
@@ -82,6 +85,10 @@ std::tuple<Action,Reward> _FactoredValueFunction::getBestAction(const State& js,
     // add value of empty-scope functions to final result
     std::get<1>(tpl) = std::accumulate(empty_fns.begin(), empty_fns.end(), std::get<1>(tpl),
         [](Reward store, const DiscreteFunction<Reward>& f) { return store + f->eval(State(),Action()); });
+
+    if(!std::get<0>(tpl)) { // empty action (i.e, when backprojections and reward functions have no action dependencies)
+        std::get<0>(tpl) = Action(_domain,0); // simply choose first one
+    }
 
     return tpl;
 }
@@ -179,7 +186,11 @@ int _ALPPlanner::plan() {
     SizeVec elim_order = cpputil::ordered_vec<Size>(_domain->getNumStateFactors() + _domain->getNumActionFactors());
 
     long start_time = cpputil::time_in_milli();
+#if HAS_GUROBI
+    gurobi::_LP lp(_domain);
+#else
     lpsolve::_LP lp(_domain);
+#endif
     int res = lp.generateLP(_C_set, _fmdp->getLRFs(), _alpha, elim_order);
     if(res != 0) {
       LOG_ERROR("generateLP() error code: " << res);
@@ -201,7 +212,11 @@ int _BLPPlanner::plan() {
     precompute();
 
     long start_time = cpputil::time_in_milli();
+#if HAS_GUROBI
+    gurobi::_LP lp(_domain);
+#else
     lpsolve::_LP lp(_domain);
+#endif
     int res = lp.generateBLP(_C_set, _fmdp->getLRFs(), _alpha);
     if(res != 0) {
       LOG_ERROR("generateBLP() error code: " << res);

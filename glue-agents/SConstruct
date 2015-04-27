@@ -35,6 +35,7 @@ vi_rmax_sources    = [build.File('agent_vi_rmax.cpp')]
 #headers            = [inc.File('crl/agent_spudd.hpp')]
 # glue wrappers
 glue_spudd_sources = [build.File('glue_spudd.cpp')]
+glue_alp_sources = [build.File('glue_alp.cpp')]
 
 	
 env = Environment(tools = ["default", "tools"], toolpath = '.',
@@ -47,7 +48,8 @@ if os.uname()[0] == "Darwin":
 	env.Append(SHLINKFLAGS='-undefined dynamic_lookup')
 	
 config = Configure(env)
-#has_crl = config.CheckLibWithHeader('crl', 'crl/crl.hpp', 'cpp')
+# alp agent uses libenv for planning
+config.CheckLibWithHeader('env', 'crl/env_ffg.hpp', 'cpp')
 has_crl = config.CheckCXXHeader('crl/crl.hpp')
 has_glue = config.CheckCXXHeader('rlglue/Agent_common.h')
 has_spudd = config.CheckLib('spudd', language='C++')
@@ -70,6 +72,9 @@ if has_crl and has_glue:
 	                       LIBS=['strxml', 'crl', 'rlgnmagent',
 	                             'rlcrlagent', 'rlutils', 'rlgluenetdev'])
 	bin_targets += [agent_vi_rmax]
+
+        glue_alp = env.Program(bin.Entry('glue_alp'), glue_alp_sources, LIBS=['env', 'crl', 'rlgnmagent', 'rlcrlagent', 'rlutils', 'rlgluenetdev'])
+        bin_targets += [glue_alp]
 
 	if has_spudd:
 		glue_spudd = env.Program(bin.Entry('glue_spudd'), glue_spudd_sources, LIBS=['crl', 'rlgnmagent', 'rlcrlagent', 'rlutils', 'rlgluenetdev'])
@@ -97,5 +102,6 @@ dist_files += [inc.Entry(header) for header in headers]
 #dist_files += [src.Entry(build_source) for build_source in build_sources]
 dist_files += [src.Entry(s) for s in vi_rmax_sources]
 dist_files += [src.Entry(s) for s in glue_spudd_sources]
+dist_files += [src.Entry(s) for s in glue_alp_sources]
 
 env.Alias('dist', env.DistTar('glue-agents.tar.gz', dist_files))

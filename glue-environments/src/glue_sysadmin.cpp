@@ -62,18 +62,18 @@ const char* env_message(const char* inMessage) {
 // launch networked rl-glue environment through rlgnm library
 int main(int argc, char** argv) {
     if (argc != 3) {
-            cerr << "Usage: " << argv[0] << " <\"star\"|\"ring\"> <computer_number>" << endl;
+            LOG_ERROR("Usage: " << argv[0] << " <\"star\"|\"ring\"> <computer_number>");
             return EXIT_FAILURE;
     }
 
     try {
         long long comp_no = std::atoll(argv[2]);
         if(comp_no <= 0 || !(_sysadmin = buildSysadmin(argv[1], static_cast<Size>(comp_no)))) {
-            cerr << "Instantiation of Multi-agent Sysadmin problem failed." << endl;
+            LOG_ERROR("Instantiation of Multi-agent Sysadmin problem failed.");
             return EXIT_FAILURE;
         }
     } catch(const cpputil::Exception& e) {
-        cerr << e << endl;
+        LOG_ERROR(e);
         return EXIT_FAILURE;
     }
 

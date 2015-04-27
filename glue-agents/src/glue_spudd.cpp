@@ -70,7 +70,7 @@ const char* agent_message(const char* inMessage) {
 // launch networked rl-glue agent through rlgnm library
 int main(int argc, char** argv) {
     if (argc != 2) {
-            cerr << "Usage: " << argv[0] << " <SPUDD-OPTDual.ADD file>" << endl;
+            LOG_ERROR("Usage: " << argv[0] << " <SPUDD-OPTDual.ADD file>");
             return EXIT_FAILURE;
     }
 
