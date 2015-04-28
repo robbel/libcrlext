@@ -1,0 +1,243 @@
+// Automatically produced by libcrl::exportToSpudd
+// SPUDD / Symbolic Perseus Format for 'sysadmin_ring_2'
+
+(variables
+ (status_0 status_00 status_01 status_02)
+ (load_0 load_00 load_01 load_02)
+ (status_1 status_10 status_11 status_12)
+ (load_1 load_10 load_11 load_12)
+)
+
+action reboot0_0__reboot1_0
+status_0
+ (status_1 (status_10 (status_0 (status_00 (0.9 0.1 0 ))
+ (status_01 (0 0.9 0.1 ))
+ (status_02 (0 0 1 ))))
+ (status_11 (status_0 (status_00 (0.7 0.3 0 ))
+ (status_01 (0 0.7 0.3 ))
+ (status_02 (0 0 1 ))))
+ (status_12 (status_0 (status_00 (0.5 0.5 0 ))
+ (status_01 (0 0.5 0.5 ))
+ (status_02 (0 0 1 )))))
+
+load_0
+ (load_0 (load_00 (status_0 (status_00 (0 1 0 ))
+ (status_01 (0 1 0 ))
+ (status_02 (1 0 0 ))))
+ (load_01 (status_0 (status_00 (0 0 1 ))
+ (status_01 (0 0.2 0.8 ))
+ (status_02 (1 0 0 ))))
+ (load_02 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 )))))
+
+status_1
+ (status_1 (status_10 (status_0 (status_00 (0.9 0.1 0 ))
+ (status_01 (0.7 0.3 0 ))
+ (status_02 (0.5 0.5 0 ))))
+ (status_11 (status_0 (status_00 (0 0.9 0.1 ))
+ (status_01 (0 0.7 0.3 ))
+ (status_02 (0 0.5 0.5 ))))
+ (status_12 (status_0 (status_00 (0 0 1 ))
+ (status_01 (0 0 1 ))
+ (status_02 (0 0 1 )))))
+
+load_1
+ (load_1 (load_10 (status_1 (status_10 (0 1 0 ))
+ (status_11 (0 1 0 ))
+ (status_12 (1 0 0 ))))
+ (load_11 (status_1 (status_10 (0 0 1 ))
+ (status_11 (0 0.2 0.8 ))
+ (status_12 (1 0 0 ))))
+ (load_12 (status_1 (status_10 (1 0 0 ))
+ (status_11 (1 0 0 ))
+ (status_12 (1 0 0 )))))
+
+cost [+
+ (load_0 (load_00 (-0))
+ (load_01 (-0))
+ (load_02 (-1)))
+
+ (load_1 (load_10 (-0))
+ (load_11 (-0))
+ (load_12 (-1)))
+
+     ]
+endaction
+
+action reboot0_1__reboot1_0
+status_0
+ (status_1 (status_10 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 ))))
+ (status_11 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 ))))
+ (status_12 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 )))))
+
+load_0
+ (load_0 (load_00 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 ))))
+ (load_01 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 ))))
+ (load_02 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 )))))
+
+status_1
+ (status_1 (status_10 (status_0 (status_00 (0.9 0.1 0 ))
+ (status_01 (0.7 0.3 0 ))
+ (status_02 (0.5 0.5 0 ))))
+ (status_11 (status_0 (status_00 (0 0.9 0.1 ))
+ (status_01 (0 0.7 0.3 ))
+ (status_02 (0 0.5 0.5 ))))
+ (status_12 (status_0 (status_00 (0 0 1 ))
+ (status_01 (0 0 1 ))
+ (status_02 (0 0 1 )))))
+
+load_1
+ (load_1 (load_10 (status_1 (status_10 (0 1 0 ))
+ (status_11 (0 1 0 ))
+ (status_12 (1 0 0 ))))
+ (load_11 (status_1 (status_10 (0 0 1 ))
+ (status_11 (0 0.2 0.8 ))
+ (status_12 (1 0 0 ))))
+ (load_12 (status_1 (status_10 (1 0 0 ))
+ (status_11 (1 0 0 ))
+ (status_12 (1 0 0 )))))
+
+cost [+
+ (load_0 (load_00 (-0))
+ (load_01 (-0))
+ (load_02 (-1)))
+
+ (load_1 (load_10 (-0))
+ (load_11 (-0))
+ (load_12 (-1)))
+
+     ]
+endaction
+
+action reboot0_0__reboot1_1
+status_0
+ (status_1 (status_10 (status_0 (status_00 (0.9 0.1 0 ))
+ (status_01 (0 0.9 0.1 ))
+ (status_02 (0 0 1 ))))
+ (status_11 (status_0 (status_00 (0.7 0.3 0 ))
+ (status_01 (0 0.7 0.3 ))
+ (status_02 (0 0 1 ))))
+ (status_12 (status_0 (status_00 (0.5 0.5 0 ))
+ (status_01 (0 0.5 0.5 ))
+ (status_02 (0 0 1 )))))
+
+load_0
+ (load_0 (load_00 (status_0 (status_00 (0 1 0 ))
+ (status_01 (0 1 0 ))
+ (status_02 (1 0 0 ))))
+ (load_01 (status_0 (status_00 (0 0 1 ))
+ (status_01 (0 0.2 0.8 ))
+ (status_02 (1 0 0 ))))
+ (load_02 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 )))))
+
+status_1
+ (status_1 (status_10 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 ))))
+ (status_11 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 ))))
+ (status_12 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 )))))
+
+load_1
+ (load_1 (load_10 (status_1 (status_10 (1 0 0 ))
+ (status_11 (1 0 0 ))
+ (status_12 (1 0 0 ))))
+ (load_11 (status_1 (status_10 (1 0 0 ))
+ (status_11 (1 0 0 ))
+ (status_12 (1 0 0 ))))
+ (load_12 (status_1 (status_10 (1 0 0 ))
+ (status_11 (1 0 0 ))
+ (status_12 (1 0 0 )))))
+
+cost [+
+ (load_0 (load_00 (-0))
+ (load_01 (-0))
+ (load_02 (-1)))
+
+ (load_1 (load_10 (-0))
+ (load_11 (-0))
+ (load_12 (-1)))
+
+     ]
+endaction
+
+action reboot0_1__reboot1_1
+status_0
+ (status_1 (status_10 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 ))))
+ (status_11 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 ))))
+ (status_12 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 )))))
+
+load_0
+ (load_0 (load_00 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 ))))
+ (load_01 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 ))))
+ (load_02 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 )))))
+
+status_1
+ (status_1 (status_10 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 ))))
+ (status_11 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 ))))
+ (status_12 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 )))))
+
+load_1
+ (load_1 (load_10 (status_1 (status_10 (1 0 0 ))
+ (status_11 (1 0 0 ))
+ (status_12 (1 0 0 ))))
+ (load_11 (status_1 (status_10 (1 0 0 ))
+ (status_11 (1 0 0 ))
+ (status_12 (1 0 0 ))))
+ (load_12 (status_1 (status_10 (1 0 0 ))
+ (status_11 (1 0 0 ))
+ (status_12 (1 0 0 )))))
+
+cost [+
+ (load_0 (load_00 (-0))
+ (load_01 (-0))
+ (load_02 (-1)))
+
+ (load_1 (load_10 (-0))
+ (load_11 (-0))
+ (load_12 (-1)))
+
+     ]
+endaction
+
+reward (0.0)
+
+discount 0.9
+//horizon 10
+tolerance 0.1

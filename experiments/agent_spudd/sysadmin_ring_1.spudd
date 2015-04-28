@@ -1,0 +1,63 @@
+// Automatically produced by libcrl::exportToSpudd
+// SPUDD / Symbolic Perseus Format for 'sysadmin_ring_1'
+
+(variables
+ (status_0 status_00 status_01 status_02)
+ (load_0 load_00 load_01 load_02)
+)
+
+action reboot0_0
+status_0
+ (status_0 (status_00 (0.9 0.1 0 ))
+ (status_01 (0 0.9 0.1 ))
+ (status_02 (0 0 1 )))
+
+load_0
+ (load_0 (load_00 (status_0 (status_00 (0 1 0 ))
+ (status_01 (0 1 0 ))
+ (status_02 (1 0 0 ))))
+ (load_01 (status_0 (status_00 (0 0 1 ))
+ (status_01 (0 0.2 0.8 ))
+ (status_02 (1 0 0 ))))
+ (load_02 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 )))))
+
+cost [+
+ (load_0 (load_00 (-0))
+ (load_01 (-0))
+ (load_02 (-1)))
+
+     ]
+endaction
+
+action reboot0_1
+status_0
+ (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 )))
+
+load_0
+ (load_0 (load_00 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 ))))
+ (load_01 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 ))))
+ (load_02 (status_0 (status_00 (1 0 0 ))
+ (status_01 (1 0 0 ))
+ (status_02 (1 0 0 )))))
+
+cost [+
+ (load_0 (load_00 (-0))
+ (load_01 (-0))
+ (load_02 (-1)))
+
+     ]
+endaction
+
+reward (0.0)
+
+discount 0.9
+//horizon 10
+tolerance 0.1
