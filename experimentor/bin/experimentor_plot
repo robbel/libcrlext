@@ -2,27 +2,48 @@
 
 import csv_util, sys
 
-if len(sys.argv) != 2:
-	print "Usage: ", sys.argv[0], "<result csv>"
+if len(sys.argv) != 2 and len(sys.argv) != 3:
+	print "Usage: ", sys.argv[0], "<result csv> [<errors csv>]"
 	sys.exit(1)
 	
 path = sys.argv[1]
 csv = csv_util.readCSV(path)
 
+err_path = sys.argv[2] if len(sys.argv) > 2 else ""
+err_csv  = csv_util.readCSV(err_path) if err_path else []
+if err_csv and len(err_csv) != len(csv):
+	print "[ERORR]: csvs not same size"
+	sys.exit(1)
+
 import pylab
 names = csv[0]
 ys = [[] for name in names]
+errs = [[] for name in names]
+errno = 1
 for row in csv[1:]:
 	for i in range(len(row)):
 		ys[i].append(float(row[i]))
+	if err_csv:
+		for i in range(len(row)):
+			errs[i].append(float(err_csv[errno][i]))
+		errno = errno + 1;
+
 xs = range(1, len(csv))
+errno = 0
+lines = []
 for y in ys:
-	pylab.plot(xs, y)
+	if not err_csv:
+		line = pylab.plot(xs, y)
+		lines.append(line)
+	else:
+		errorbar = pylab.errorbar(xs, y, errs[errno])
+		lines.append(errorbar[0])
+	errno = errno + 1
 pylab.title(path)
 
 pylab.xlabel("Trials")
 pylab.ylabel("Values")
-pylab.legend(names)
+pylab.legend(lines, names, loc='upper right', fancybox=True, numpoints=20)
 try:
 	name = path.split('/')[-1]
 	name = name.split('.')[0]
