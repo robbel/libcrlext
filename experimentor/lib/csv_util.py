@@ -50,7 +50,8 @@ def mean_confidence_interval(data, confidence=0.95):
     import scipy.stats  
     a = 1.0*array(data)
     n = len(a)
-    m, se = mean(a), scipy.stats.stderr(a)
+    #m, se = mean(a), scipy.stats.stderr(a) # deprecated
+    m, se = mean(a), scipy.stats.sem(a)
     # calls the inverse CDF of the Student's t distribution
     h = se * scipy.stats.t._ppf((1+confidence)/2., n-1)
     return h
