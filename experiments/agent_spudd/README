@@ -1,0 +1,1 @@
+Note that all SPUDD optimal policies are generated on a 64-bit machine and non-portable to 32-bit.

@@ -4,7 +4,7 @@ log_dir = "exp_log"
 
 agent_echo = Agent("echo run an agent")
 agent_random = Agent("random_agent");
-agent_spudd = Agent("glue_spudd ./test/SPUDD-OPTDual-ma-sysadmin-ring-6.ADD", cwd="/home/philipp/Builds/maastricht/3rdParty/libcrlext/libcrl")
+agent_spudd = Agent("glue_spudd ../experiments/agent_spudd/SPUDD-OPTDual-ma-sysadmin-ring-6.ADD", cwd="/home/philipp/Builds/maastricht/3rdParty/libcrlext/libcrl")
 agent_alp = Agent("glue_alp ring 6");
 
 env_echo = Environment("echo run an environment")
