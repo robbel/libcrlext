@@ -13,7 +13,7 @@ It is currently maintained as a private repository at https://bitbucket.org/robb
 * *Optional:* Install the latest version of [SPUDD](https://cs.uwaterloo.ca/~jhoey/research/spudd/) to support model file export and policy import. *Note:* on 64bit architectures, needs Makefile changes to use -fPIC switch.
 * For unit tests, the [Google Test](http://code.google.com/p/googletest) framework is used (use `libgtest-dev` in Ubuntu). *Note:* Some versions of Ubuntu require an additional compilation step, see [here](http://askubuntu.com/questions/145887/why-no-library-files-installed-for-google-test).
 * Adjust the paths in setpaths.sh to mimic your installation. Source them into the current shell via `. setpaths.sh`
-* To compile, invoke `scons` in every folder, starting with `external` (the dependencies), then `libcrl` (the main library), `rlgnmn` (the network wrapper), and then the remaining ones in arbitrary order
+* To compile, invoke `scons` in every folder, starting with `external` (the dependencies, which need to be installed), then `libcrl` (the main library), `rlgnmn` (the network wrapper), and then the remaining ones in arbitrary order
 
 ### Contribution guidelines ###
 
