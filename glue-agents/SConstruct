@@ -79,6 +79,7 @@ if has_crl and has_glue:
 	if has_spudd:
 		glue_spudd = env.Program(bin.Entry('glue_spudd'), glue_spudd_sources, LIBS=['crl', 'rlgnmagent', 'rlcrlagent', 'rlutils', 'rlgluenetdev'])
 		bin_targets += [glue_spudd]
+                env.Append(CCFLAGS=['-DHAS_SPUDD'])
 	else:
 		print "Skipping spudd agent"
 else:

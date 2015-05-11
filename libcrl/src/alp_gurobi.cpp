@@ -350,12 +350,12 @@ int _LP::solve(crl::_FactoredValueFunction* vfn) {
         LOG_ERROR("The model is unbounded");
         return 1;
     }
-    else if ((status != GRB_INF_OR_UNBD) && (status != GRB_INFEASIBLE)) {
-        LOG_ERROR("Optimization was stopped with status " << status);
+    else if(status == GRB_INFEASIBLE) {
+        LOG_ERROR("The model is infeasible");
         return 2;
     }
     else {
-        LOG_ERROR("The model is infeasible");
+        LOG_ERROR("Optimization was stopped with status " << status);
         return 3;
     }
   } catch(const GRBException& e) {

@@ -20,6 +20,8 @@
 /// Ensures that base class dtor goes through correctly
 class SPUDDMDP : public ::MDP {
 public:
+    /// \brief Return action and value of optimal policy in given state
+    std::tuple<int,double> consultOptimalPolicyAV(DdNode *pol, DdNode *val, int *varvals);
     /// \brief patched dtor
     ~SPUDDMDP();
 };
@@ -48,6 +50,8 @@ public:
 
     /// \brief Return the action encoded in the pre-computed policy
     virtual Action getAction(const State& s) override;
+    /// \brief Return the action and associated value encoded in the pre-computed policy
+    virtual std::tuple<Action,double> getActionValue(const State& s);
 };
 typedef boost::shared_ptr<_SpuddPolicy> SpuddPolicy;
 

@@ -20,6 +20,9 @@
 #include "crl/glue_agent.hpp"
 #include "cpputil.hpp"
 #include "logger.hpp"
+#if HAS_SPUDD
+#include "crl/spudd.hpp"
+#endif
 
 using namespace crl;
 using namespace cpputil;
@@ -76,8 +79,8 @@ const char* agent_message(const char* inMessage) {
 int main(int argc, char** argv) {
     LOG_INFO("This is the (experimental) ALP agent for currently the sysadmin environment only.");
 
-    if (argc != 3) {
-        LOG_ERROR("Usage: " << argv[0] << " <\"star\"|\"ring\"> <computer_number>");
+    if (argc != 3 && argc != 4) {
+        LOG_ERROR("Usage: " << argv[0] << " <\"star\"|\"ring\"> <computer_number> [SPUDD-OPTDual.ADD file]");
         return EXIT_FAILURE;
     }
 
@@ -148,6 +151,27 @@ int main(int argc, char** argv) {
         }
 
         LOG_INFO("ALP planner successfully initialized.");
+
+#if HAS_SPUDD
+        // compute some metrics given the optimal policy
+        if(argc == 4) {
+            _SpuddPolicy optpolicy(_domain, argv[3]);
+            _StateIncrementIterator sitr(_domain);
+            double linf = 0.;
+            while(sitr.hasNext()) {
+                const State& s = sitr.next();
+                tuple<Action,double> res = optpolicy.getActionValue(s);
+                LOG_DEBUG("Policy: " << s << " (opt): " << std::get<0>(res) << " val: " << std::get<1>(res)
+                          << " (alp): " << fval->getV(s));
+                double valdiff = std::abs(std::get<1>(res) - fval->getV(s));
+                if(valdiff > linf) {
+                  linf = valdiff;
+                }
+            }
+
+            LOG_INFO("L_inf = " << linf);
+        }
+#endif
 
     } catch(const cpputil::Exception& e) {
         LOG_ERROR(e);

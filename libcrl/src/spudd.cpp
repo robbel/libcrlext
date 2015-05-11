@@ -19,6 +19,20 @@
 using namespace std;
 using namespace crl;
 
+tuple<int,double> SPUDDMDP::consultOptimalPolicyAV(DdNode *pol, DdNode *val, int *varvals) {
+    Pair dval, aval;
+    getAV(gbm,pol,val, aval,dval, varvals, vars, numvars, orig_vars, numorigvars);
+    int bestact;
+    //bestact =
+    bestact = (int) (aval.get_min()-1);
+    //if ((bestact = pickAction((int) (aval.get_min()))) < 0) {
+    if (bestact < 0) {
+      fprintf(stderr,"error in action\n");
+      exit(0);
+    }
+    return make_tuple(bestact, dval.get_min());
+}
+
 SPUDDMDP::~SPUDDMDP() {
     ::MDP::mvinput = true;
     ::MDP::allocateMemory();
@@ -77,6 +91,15 @@ Action _SpuddPolicy::getAction(const State& s) {
     LOG_DEBUG("For state " << s << " return action: " << _mdp->getActionName(optact));
 
     return Action(_domain, optact);
+}
+
+tuple<Action,double> _SpuddPolicy::getActionValue(const State& s) {
+    FactorVec svec = resolve(_domain, s);
+    vector<int> state(svec.begin(),svec.end());
+    tuple<int,double> tpl = _mdp->consultOptimalPolicyAV(_act, _val, state.data());
+    LOG_DEBUG("For state " << s << " return action: " << _mdp->getActionName(std::get<0>(tpl)));
+
+    return make_tuple(Action(_domain, std::get<0>(tpl)), std::get<1>(tpl));
 }
 
 } // namespace crl
