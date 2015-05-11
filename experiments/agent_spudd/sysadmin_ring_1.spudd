@@ -60,4 +60,4 @@ reward (0.0)
 
 discount 0.9
 //horizon 10
-tolerance 0.1
+tolerance 0.0001
