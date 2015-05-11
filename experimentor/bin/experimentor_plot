@@ -33,7 +33,7 @@ errno = 0
 lines = []
 for y in ys:
 	if not err_csv:
-		line = pylab.plot(xs, y)
+		line, = pylab.plot(xs, y)
 		lines.append(line)
 	else:
 		errorbar = pylab.errorbar(xs, y, errs[errno])
