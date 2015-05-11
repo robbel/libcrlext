@@ -18,6 +18,8 @@
 #include "crl/alp.hpp"
 #include "crl/env_sysadmin.hpp"
 #include "crl/glue_agent.hpp"
+#include "crl/conversions.hpp"
+#include "crl/vi.hpp"
 #include "cpputil.hpp"
 #include "logger.hpp"
 #if HAS_SPUDD
@@ -151,6 +153,18 @@ int main(int argc, char** argv) {
         }
 
         LOG_INFO("ALP planner successfully initialized.");
+//#if !NDEBUG
+//        for(auto v : fval->getWeight()) {
+//          LOG_DEBUG(" W: " << std::fixed << v);
+//        }
+
+//        _StateIncrementIterator sitr(_domain);
+//        while(sitr.hasNext()) {
+//            const State& s = sitr.next();
+//            auto tpl = fval->getBestAction(s);
+//            LOG_DEBUG(s << ": " << std::get<0>(tpl) << " w/:" << std::get<1>(tpl));
+//        }
+//#endif
 
 #if HAS_SPUDD
         // compute some metrics given the optimal policy
@@ -158,18 +172,39 @@ int main(int argc, char** argv) {
             _SpuddPolicy optpolicy(_domain, argv[3]);
             _StateIncrementIterator sitr(_domain);
             double linf = 0.;
+            double l1   = 0.; // note that we are using uniform alphas
             while(sitr.hasNext()) {
                 const State& s = sitr.next();
                 tuple<Action,double> res = optpolicy.getActionValue(s);
                 LOG_DEBUG("Policy: " << s << " (opt): " << std::get<0>(res) << " val: " << std::get<1>(res)
                           << " (alp): " << fval->getV(s));
                 double valdiff = std::abs(std::get<1>(res) - fval->getV(s));
+                l1 += valdiff;
                 if(valdiff > linf) {
                   linf = valdiff;
                 }
             }
+            LOG_INFO("[spudd] L_inf = " << linf << " L_1 = " << l1);
+#if 0
+            // compute same stats for value iteration
+            crl::MDP mdp = convertToMDP(fmdp);
+            VIPlanner planner(new _FlatVIPlanner(_domain, mdp, .0001, 0.9));
+            planner->plan();
+            QTable qtable = planner->getQTable();
 
-            LOG_INFO("L_inf = " << linf);
+            sitr.reset();
+            linf = 0.;
+            l1 = 0.;
+            while(sitr.hasNext()) {
+                const State& s = sitr.next();
+                double valdiff = std::abs(qtable->getV(s) - fval->getV(s));
+                l1 += valdiff;
+                if(valdiff > linf) {
+                  linf = valdiff;
+                }
+            }
+            LOG_INFO("[vi] L_inf = " << linf << " L_1 = " << l1);
+#endif
         }
 #endif
 

@@ -38,6 +38,7 @@ int _LP::generateBLP(const RFunctionVec& C, const RFunctionVec& b, const vector<
     // The objective is to minimize the costs
     _lp->set(GRB_IntAttr_ModelSense, GRB_MINIMIZE);
     _lp->update();
+    LOG_INFO("Objective: " << _lp->getObjective());
 
     //
     // Brute force constraint generation
@@ -65,6 +66,7 @@ int _LP::generateBLP(const RFunctionVec& C, const RFunctionVec& b, const vector<
             sum += (*f)(ms,ma);
         }
         GRBLinExpr rhs = -sum;
+//        LOG_DEBUG(lhs << "<=" << rhs);
         _lp->addConstr(lhs, GRB_LESS_EQUAL, rhs);
     }
     _lp->update();
@@ -103,6 +105,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<d
     // The objective is to minimize the costs
     _lp->set(GRB_IntAttr_ModelSense, GRB_MINIMIZE);
     _lp->update();
+    LOG_INFO("Objective: " << _lp->getObjective());
 
     //
     // generate equality constraints to abstract away basis (C) functions

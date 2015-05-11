@@ -14,6 +14,7 @@
 #include "crl/alp.hpp"
 #include "crl/env_sysadmin.hpp"
 #include "crl/vi.hpp"
+#include "crl/conversions.hpp"
 #include "logger.hpp"
 
 using namespace std;
@@ -37,29 +38,6 @@ QTable testVI(MDP mdp, Domain domain, float gamma) {
     LOG_INFO("VI planner returned after " << end_time - start_time << "ms");
     QTable qtable = planner->getQTable();
     return qtable;
-}
-
-///
-/// \brief Convert factored MDP to flat MDP (exhaustive joint S,A enumeration)
-///
-MDP convertToMDP(FactoredMDP fmdp) {
-  const Domain& domain = fmdp->getDomain();
-  _FMDP mdp(domain);
-
-  for (Size state_index=0; state_index<domain->getNumStates(); state_index++) {
-          State s(domain, state_index);
-          for (Size action_index=0; action_index<domain->getNumActions(); action_index++) {
-                  Action a(domain, action_index);
-                  mdp.setR(s, a, fmdp->R(s, a));
-                  for (Size next_index=0; next_index<domain->getNumStates(); next_index++) {
-                          State n(domain, next_index);
-                          Probability p = fmdp->T(s,a,n);
-                          mdp.setT(s, a, n, p);
-                  }
-          }
-  }
-
-  return boost::make_shared<_FMDP>(mdp);
 }
 
 } // anonymous ns

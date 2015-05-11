@@ -164,14 +164,30 @@ void _ALPPlanner::precompute() {
             Backprojection<Reward> B = boost::make_shared<_Backprojection<Reward>>(_domain, _fmdp->T(), h);
             B->cache();
             (*B) *= _gamma;
+//#if !NDEBUG
+//            LOG_DEBUG("\\gamma * Backprojection:");
+//            _StateActionIncrementIterator saitr(B->getSubdomain());
+//            while(saitr.hasNext()) {
+//                const std::tuple<State,Action>& sa = saitr.next();
+//                LOG_DEBUG(std::get<0>(sa) << " " << std::get<1>(sa) << ": " << B->eval(std::get<0>(sa), std::get<1>(sa)));
+//            }
+//#endif
             // store a (deep) copy of the backprojected basis in the factored value function
             _value_fn->addBackprojection(boost::make_shared<_Backprojection<Reward>>(*B));
             (*B) -= h.get(); // FIXME in indicator case, h is not a `flat' function, implement efficient sparse multiplication
+//#if !NDEBUG
+//            LOG_DEBUG("\\gamma * Backprojection - h(x):");
+//            saitr.reset();
+//            while(saitr.hasNext()) {
+//                const std::tuple<State,Action>& sa = saitr.next();
+//                LOG_DEBUG(std::get<0>(sa) << " " << std::get<1>(sa) << ": " << B->eval(std::get<0>(sa), std::get<1>(sa)));
+//            }
+//#endif
             _C_set.push_back(std::move(B));
         }
         // compute factored state relevance weights assuming uniform state likelihoods
         const Size dom_size = h->getSubdomain()->size();
-        Reward r_sum = algorithm::sum_over_domain(h.get(), false);
+        Reward r_sum = algorithm::sum_over_domain(h.get(), false); // FIXME for arbitrary ConstantFn! Consider internally T=double
         _alpha.push_back(r_sum/dom_size);
     }
     // make lrfs available for local Q-function computations in factored value function
