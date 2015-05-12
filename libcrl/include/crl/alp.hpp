@@ -178,6 +178,23 @@ public:
   virtual int plan() override;
 };
 
+/**
+ * The Vanilla (V) approximate linear program (ALP) planner along with a factored value function.
+ * This planner is not smart about generating constraints with variable elimination but enumerates over all S, A
+ * Further, it does not exploit local scopes in the basis functions (no efficient backprojections).
+ */
+class _VLPPlanner : public _ALPPlanner {
+public:
+  _VLPPlanner(const FactoredMDP& fmdp, float gamma)
+  : _ALPPlanner(fmdp, gamma) { }
+
+  ///
+  /// \brief run the ALP algorithm without optimized constraint generation or backprojections.
+  /// Compute weights for \a FactoredValueFunction via approximate LP after brute force constraint enumeration.
+  ///
+  virtual int plan() override;
+};
+
 } // namespace crl
 
 #endif

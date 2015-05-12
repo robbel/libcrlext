@@ -61,6 +61,9 @@ public:
   /// \brief Given targets \f$C\f$ and \f$\mathbf{b}\f$ compute possibly exponential set of constraints
   /// \return 0 iff successful
   int generateBLP(const crl::RFunctionVec& C, const crl::RFunctionVec& b, const std::vector<double>& alpha);
+  /// \brief Given basis functions in \f$C\f$ and \f$\mathbf{b}\f$ compute possibly exponential set of constraints
+  /// \return 0 iff successful
+  int generateVLP(const crl::RFunctionVec& C, const crl::RFunctionVec& b, const std::vector<double>& alpha, const _DBN& dbn, double gamma);
   /// \brief Solve this LP
   /// \return 0 iff successful
   int solve(crl::_FactoredValueFunction* vfn);

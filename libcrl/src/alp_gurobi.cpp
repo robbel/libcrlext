@@ -17,6 +17,84 @@ using namespace crl;
 
 namespace gurobi {
 
+int _LP::generateVLP(const RFunctionVec& C, const RFunctionVec& b, const vector<double>& alpha, const _DBN& dbn, double gamma) {
+  assert(C.size() == alpha.size());
+
+  _wvars.clear();
+  _wvars.reserve(alpha.size());
+
+  try {
+    // create the lp
+    _env = boost::make_shared<GRBEnv>();
+    _lp  = boost::make_shared<GRBModel>(*_env);
+    _lp->set(GRB_StringAttr_ModelName, "VLP");
+
+    // add the weight variables with [-inf,inf] bounds along with the objective coefficients
+    for(vector<double>::size_type i = 0; i < alpha.size(); i++) {
+      GRBVar v = _lp->addVar(-GRB_INFINITY, GRB_INFINITY, alpha[i], GRB_CONTINUOUS, "w"+to_string(i));
+      _wvars.push_back(std::move(v));
+    }
+
+    // The objective is to minimize the costs
+    _lp->set(GRB_IntAttr_ModelSense, GRB_MINIMIZE);
+    _lp->update();
+    LOG_INFO("Objective: " << _lp->getObjective());
+
+    //
+    // Brute force constraint generation
+    //
+    _StateActionIncrementIterator saitr(_domain);
+    vector<double> coeff; // coefficient cache
+    coeff.reserve(_wvars.size());
+    while(saitr.hasNext()) {
+        const std::tuple<State,Action>& sa = saitr.next();
+        const State& s = std::get<0>(sa);
+        const Action& a = std::get<1>(sa);
+        // write out one constraint for those
+        GRBLinExpr lhs = 0;
+        vector<double>::size_type i = 0;
+        for(const auto& f : C) {
+            State ms = f->mapState(s);
+            coeff[i++] = (*f)(ms);
+        }
+        lhs.addTerms(coeff.data(), _wvars.data(), _wvars.size());
+        // rhs
+        double sum = 0.;
+        for(const auto& f : b) {
+            State ms = f->mapState(s);
+            Action ma = f->mapAction(a);
+            sum += (*f)(ms,ma);
+        }
+        GRBLinExpr rhs = sum;
+        _StateIncrementIterator sitr(_domain);
+        // over all successor states
+        while(sitr.hasNext()) {
+            const State& n = sitr.next();
+            const double prob = gamma * dbn.T(s,a,n);
+            i = 0;
+            for(const auto& f : C) {
+                State ms = f->mapState(n);
+                coeff[i++] = prob * (*f)(ms);
+            }
+            rhs.addTerms(coeff.data(), _wvars.data(), _wvars.size());
+        }
+//        LOG_DEBUG(lhs << "<=" << rhs);
+        _lp->addConstr(lhs, GRB_GREATER_EQUAL, rhs);
+    }
+    _lp->update();
+
+    //write LP to stdout
+    LOG_INFO("Generated LP with " << _lp->get(GRB_IntAttr_NumVars) << " variables and " << _lp->get(GRB_IntAttr_NumConstrs) << " constraints.");
+
+  } catch(const GRBException& e) {
+    LOG_ERROR(e.getErrorCode() << ": " << e.getMessage());
+  } catch(...) {
+    LOG_ERROR("Unknown exception thrown");
+  }
+
+  return 0;
+}
+
 int _LP::generateBLP(const RFunctionVec& C, const RFunctionVec& b, const vector<double>& alpha) {
   assert(C.size() == alpha.size());
 

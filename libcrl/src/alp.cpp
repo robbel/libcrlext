@@ -250,4 +250,40 @@ int _BLPPlanner::plan() {
     return 0; // success
 }
 
+int _VLPPlanner::plan() {
+    //precompute(); // does not use _C_set (backprojections)
+    _alpha.clear();
+    _C_set.clear();
+    for(const auto& h : _value_fn->getBasis()) {
+        // compute factored state relevance weights assuming uniform state likelihoods
+        const Size dom_size = h->getSubdomain()->size();
+        Reward r_sum = algorithm::sum_over_domain(h.get(), false); // FIXME for arbitrary ConstantFn! Consider internally T=double
+        _alpha.push_back(r_sum/dom_size);
+    }
+    // make lrfs available for local Q-function computations in factored value function
+    _value_fn->setLRFs(_fmdp->getLRFs());
+
+    long start_time = cpputil::time_in_milli();
+#if HAS_GUROBI
+    gurobi::_LP lp(_domain);
+#else
+    lpsolve::_LP lp(_domain);
+#endif
+    int res = lp.generateVLP(_value_fn->getBasis(), _fmdp->getLRFs(), _alpha, _fmdp->T(), _gamma);
+    if(res != 0) {
+      LOG_ERROR("generateVLP() error code: " << res);
+      return 1;
+    }
+    long end_time = cpputil::time_in_milli();
+    LOG_INFO("generateVLP() returned after " << end_time - start_time << "ms");
+
+    res = lp.solve(_value_fn.get());
+    if(res != 0) {
+      LOG_ERROR("solve() error code: " << res);
+      return 2;
+    }
+
+    return 0; // success
+}
+
 } // namespace crl
