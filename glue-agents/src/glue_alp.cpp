@@ -171,20 +171,24 @@ int main(int argc, char** argv) {
         if(argc == 4) {
             _SpuddPolicy optpolicy(_domain, argv[3]);
             _StateIncrementIterator sitr(_domain);
+            double Vmax = 0.;
             double linf = 0.;
             double l1   = 0.; // note that we are using uniform alphas
             while(sitr.hasNext()) {
                 const State& s = sitr.next();
                 tuple<Action,double> res = optpolicy.getActionValue(s);
-                LOG_DEBUG("Policy: " << s << " (opt): " << std::get<0>(res) << " val: " << std::get<1>(res)
-                          << " (alp): " << fval->getV(s));
-                double valdiff = std::abs(std::get<1>(res) - fval->getV(s));
+                double optval = std::get<1>(res);
+                LOG_DEBUG("Policy: " << s << " (opt): " << std::get<0>(res) << " val: " << optval << " (alp): " << fval->getV(s));
+                double valdiff = std::abs(optval - fval->getV(s));
                 l1 += valdiff;
                 if(valdiff > linf) {
                   linf = valdiff;
                 }
+                if(optval > Vmax) {
+                    Vmax = optval;
+                }
             }
-            LOG_INFO("[spudd] L_inf = " << linf << " L_1 = " << l1);
+            LOG_INFO("[spudd] L_inf = " << linf << " L_inf^rel = " << linf/Vmax << " L_1 = " << l1);
 #if 0
             // compute same stats for value iteration
             crl::MDP mdp = convertToMDP(fmdp);
