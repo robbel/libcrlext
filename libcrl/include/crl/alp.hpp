@@ -177,7 +177,7 @@ public:
   ///
   virtual int plan() override;
 };
-
+#if 0
 /**
  * The Vanilla (V) approximate linear program (ALP) planner along with a factored value function.
  * This planner is not smart about generating constraints with variable elimination but enumerates over all S, A
@@ -194,7 +194,7 @@ public:
   ///
   virtual int plan() override;
 };
-
+#endif
 } // namespace crl
 
 #endif

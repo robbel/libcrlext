@@ -249,7 +249,7 @@ int _BLPPlanner::plan() {
 
     return 0; // success
 }
-
+#if 0
 int _VLPPlanner::plan() {
     //precompute(); // does not use _C_set (backprojections)
     _alpha.clear();
@@ -285,5 +285,5 @@ int _VLPPlanner::plan() {
 
     return 0; // success
 }
-
+#endif
 } // namespace crl
