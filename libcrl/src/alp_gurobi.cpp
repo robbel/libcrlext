@@ -16,7 +16,7 @@ using namespace std;
 using namespace crl;
 
 namespace gurobi {
-
+#if 0
 int _LP::generateVLP(const RFunctionVec& C, const RFunctionVec& b, const vector<double>& alpha, const _DBN& dbn, double gamma) {
   assert(C.size() == alpha.size());
 
@@ -94,7 +94,7 @@ int _LP::generateVLP(const RFunctionVec& C, const RFunctionVec& b, const vector<
 
   return 0;
 }
-
+#endif
 int _LP::generateBLP(const RFunctionVec& C, const RFunctionVec& b, const vector<double>& alpha) {
   assert(C.size() == alpha.size());
 
@@ -446,6 +446,56 @@ int _LP::solve(crl::_FactoredValueFunction* vfn) {
   }
 
   return 4;
+}
+
+int _LP::generateSCALP(const RFunctionVec& C, const RFunctionVec& b, const vector<double>& alpha, const SizeVec& elim_order, double lambda, double beta, double ret_bound) {
+  // generate ALP without regularization
+  int res = generateLP(C, b, alpha, elim_order);
+
+  if(res) {
+      return res; // error
+  }
+
+  try {
+    _lp->set(GRB_StringAttr_ModelName, "SC-ALP");
+    const int v_offset = _lp->get(GRB_IntAttr_NumVars);
+
+    // add additional (non-negative) variables to objective for L_1 regularization
+    for(vector<double>::size_type i = 0; i < alpha.size(); i++) {
+      _lp->addVar(0., GRB_INFINITY, lambda, GRB_CONTINUOUS, "z"+to_string(i));
+    }
+    // add additional integer variables to objective for basis function scope regularization
+    // Note: here, proportional regularization to C state factor scope size
+    for(vector<double>::size_type i = 0; i < alpha.size(); i++) {
+      const double reg = beta * C[i]->getSubdomain()->getNumStateFactors();
+      _lp->addVar(0, 1, reg, GRB_BINARY, "k"+to_string(i));
+    }
+    _lp->update();
+    LOG_INFO("Objective: " << _lp->getObjective());
+
+    // add absolute value and integer constraints
+    int offset = v_offset;
+    const int varno = alpha.size();
+    for(vector<double>::size_type i = 0; i < alpha.size(); i++) {
+        GRBVar kv = _lp->getVar(offset+varno); // integer variable
+        GRBVar zv = _lp->getVar(offset++);
+        _lp->addConstr(zv,GRB_GREATER_EQUAL,_wvars[i]);
+        _lp->addConstr(zv,GRB_GREATER_EQUAL,-_wvars[i]);
+        _lp->addConstr(kv,GRB_GREATER_EQUAL,zv/ret_bound);
+    }
+
+    _lp->update();
+    //write LP to stdout
+    LOG_INFO("Generated LP with " << _lp->get(GRB_IntAttr_NumVars) << " variables and " << _lp->get(GRB_IntAttr_NumConstrs) << " constraints.");
+    return 0; // success
+
+  } catch(const GRBException& e) {
+    LOG_ERROR(e.getErrorCode() << ": " << e.getMessage());
+  } catch(...) {
+    LOG_ERROR("Unknown exception thrown");
+  }
+
+  return 2;
 }
 
 namespace testing {

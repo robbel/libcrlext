@@ -182,6 +182,7 @@ public:
  * The Vanilla (V) approximate linear program (ALP) planner along with a factored value function.
  * This planner is not smart about generating constraints with variable elimination but enumerates over all S, A
  * Further, it does not exploit local scopes in the basis functions (no efficient backprojections).
+ * \note Only used for debugging purposes.
  */
 class _VLPPlanner : public _ALPPlanner {
 public:
@@ -195,6 +196,32 @@ public:
   virtual int plan() override;
 };
 #endif
+/**
+ * The SC-ALP (SCope-regularized Approximate integer Linear Program) planner along with a factored value function.
+ * A generalization of the RALP in Petrik, Taylor, Parr, and Zilberstein, 2010, to support regularization of basis function scopes.
+ * Constraints are enumerated via variable elimination to avoid exponential LP size for large multi-agent problems.
+ */
+class _SCALPPlanner : public _ALPPlanner {
+protected:
+  /// The L_1 regularization factor
+  double _lambda;
+  /// The basis function scope regularization factor
+  double _beta;
+  /// An upper bound on the maximum return (not reward) possible in this domain
+  double _retBound;
+public:
+  _SCALPPlanner(const FactoredMDP& fmdp, float gamma, double lambda = 0., double beta = 0.)
+  : _ALPPlanner(fmdp, gamma), _lambda(lambda), _beta(beta) {
+    // compute upper bound on return
+    _retBound = _domain->getRewardRange().getMax()/(1-_gamma);
+  }
+
+  ///
+  /// \brief Compute weights for \a FactoredValueFunction via the scope-regularized approximate LP
+  ///
+  virtual int plan() override;
+};
+
 } // namespace crl
 
 #endif

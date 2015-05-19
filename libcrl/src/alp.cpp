@@ -267,7 +267,7 @@ int _VLPPlanner::plan() {
 #if HAS_GUROBI
     gurobi::_LP lp(_domain);
 #else
-    lpsolve::_LP lp(_domain);
+    static_assert(false, "VLPPlanner not available.");
 #endif
     int res = lp.generateVLP(_value_fn->getBasis(), _fmdp->getLRFs(), _alpha, _fmdp->T(), _gamma);
     if(res != 0) {
@@ -286,4 +286,34 @@ int _VLPPlanner::plan() {
     return 0; // success
 }
 #endif
+int _SCALPPlanner::plan() {
+    precompute();
+
+    // build the lp constraints from the target functions above
+    // create a basic elimination order (sorted state variables, followed by sorted action variables)
+    SizeVec elim_order = cpputil::ordered_vec<Size>(_domain->getNumStateFactors() + _domain->getNumActionFactors());
+
+    long start_time = cpputil::time_in_milli();
+#if HAS_GUROBI
+    gurobi::_LP lp(_domain);
+#else
+    static_assert(false, "SCALPPlanner not available.");
+#endif
+    int res = lp.generateSCALP(_C_set, _fmdp->getLRFs(), _alpha, elim_order, _lambda, _beta, _retBound);
+    if(res != 0) {
+      LOG_ERROR("generateSCALP() error code: " << res);
+      return 1;
+    }
+    long end_time = cpputil::time_in_milli();
+    LOG_INFO("generateSCALP() returned after " << end_time - start_time << "ms");
+
+    res = lp.solve(_value_fn.get());
+    if(res != 0) {
+      LOG_ERROR("solve() error code: " << res);
+      return 2;
+    }
+
+    return 0; // success
+}
+
 } // namespace crl
