@@ -463,25 +463,29 @@ int _LP::generateSCALP(const RFunctionVec& C, const RFunctionVec& b, const vecto
     // add additional (non-negative) variables to objective for L_1 regularization
     for(vector<double>::size_type i = 0; i < alpha.size(); i++) {
       _lp->addVar(0., GRB_INFINITY, lambda, GRB_CONTINUOUS, "z"+to_string(i));
+//    _lp->addVar(0., GRB_INFINITY, 1., GRB_CONTINUOUS, "z"+to_string(i)); // alternative implementation
     }
+#if 0
     // add additional integer variables to objective for basis function scope regularization
     // Note: here, proportional regularization to C state factor scope size
     for(vector<double>::size_type i = 0; i < alpha.size(); i++) {
       const double reg = beta * C[i]->getSubdomain()->getNumStateFactors();
-      _lp->addVar(0, 1, reg, GRB_BINARY, "k"+to_string(i));
+      _lp->addVar(0., 1., reg, GRB_BINARY, "k"+to_string(i));
     }
+#endif
     _lp->update();
     LOG_INFO("Objective: " << _lp->getObjective());
 
     // add absolute value and integer constraints
     int offset = v_offset;
-    const int varno = alpha.size();
+//  const int varno = alpha.size();
     for(vector<double>::size_type i = 0; i < alpha.size(); i++) {
-        GRBVar kv = _lp->getVar(offset+varno); // integer variable
-        GRBVar zv = _lp->getVar(offset++);
-        _lp->addConstr(zv,GRB_GREATER_EQUAL,_wvars[i]);
-        _lp->addConstr(zv,GRB_GREATER_EQUAL,-_wvars[i]);
-        _lp->addConstr(kv,GRB_GREATER_EQUAL,zv/ret_bound);
+//      GRBVar ki = _lp->getVar(offset+varno); // integer variable
+        GRBVar zi = _lp->getVar(offset++);
+        _lp->addConstr(zi, GRB_GREATER_EQUAL,  _wvars[i]); // absolute value constraint
+        _lp->addConstr(zi, GRB_GREATER_EQUAL, -_wvars[i]);
+//      _lp->addConstr(ki, GRB_GREATER_EQUAL, zi/ret_bound); // integer constraint
+//      _lp->addConstr(zi, GRB_LESS_EQUAL, lambda); // alternative implementation
     }
 
     _lp->update();
