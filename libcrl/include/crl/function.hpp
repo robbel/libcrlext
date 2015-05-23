@@ -455,6 +455,14 @@ public:
     }
     return vec;
   }
+  /// \brief Return a vector of all unique functions contained in this set
+  std::vector<DiscreteFunction<T>> getFunctions() const {
+    std::vector<DiscreteFunction<T>> vec;
+    for(auto it = reverse_lookup.begin(), end = reverse_lookup.end(); it != end; it = reverse_lookup.upper_bound(it->first)) {
+        vec.push_back(it->first);
+    }
+    return vec;
+  }
   /// \brief Compute number of unique (both state and action) factors contained in this set
   typename std::multimap<Size, DiscreteFunction<T>>::size_type getNumFactors() const {
     return getFactors().size();

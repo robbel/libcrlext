@@ -96,12 +96,14 @@ TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
     fval->addBasisFunction(std::move(I), 0.);
   }
 #endif
+
   // exhaustive indicator basis
   _StateIncrementIterator sitr(domain);
   while(sitr.hasNext()) {
       auto I = boost::make_shared<_Indicator<Reward>>(domain, cpputil::ordered_vec<Size>(domain->getNumStateFactors()), sitr.next());
       fval->addBasisFunction(std::move(I), 0.);
   }
+
 #if 0
   for(Size fa = 0; fa < ranges.size(); fa+=2) { // assumption: DBN covers all domain variables
       auto I_o = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa,fa+1}), State(domain,0));
@@ -155,7 +157,7 @@ TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
     js.setFactor(0,2);
     js.setFactor(1,2);
     // eliminate only action variables, in order
-    SizeVec elim_order = cpputil::ordered_vec<Size>(domain->getNumActionFactors(), domain->getNumStateFactors());
+    const SizeVec elim_order = cpputil::ordered_vec<Size>(domain->getNumActionFactors(), domain->getNumStateFactors());
     tuple<Action,Reward> res = fval->getBestAction(js, elim_order);
     LOG_INFO("Maximum value in " << js << " after variable elimination: " << std::get<1>(res));
     EXPECT_DOUBLE_EQ(std::get<1>(res), fval->getQ(js,std::get<0>(res)));
@@ -166,5 +168,23 @@ TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
     oa.setIndex(0);
     LOG_DEBUG("Q value in " << js << " and another action " << oa << ": " << fval->getQ(js,oa));
     EXPECT_TRUE(fval->getV(js) >= fval->getQ(js,oa));
+
+    // compare value function with max-Q function
+    FunctionSet<Reward> f_set = fval->getMaxQ(elim_order);
+    auto qfns = f_set.getFunctions();
+    LOG_INFO("MaxQ-Function has " << qfns.size() << " local terms.");
+    _StateIncrementIterator sitr(domain);
+    while(sitr.hasNext()) {
+      const State& s = sitr.next();
+      double ret = 0.;
+      for(auto& qf : qfns) {
+          State ms = qf->mapState(s);
+          ret += qf->eval(ms,Action());
+      }
+      double v = fval->getV(s);
+      LOG_INFO("V_alp=(" << s << ")=" << v << " -- maxQ=" << ret << " -- delta=" << v-ret);
+      // small padding to counter numeric issues
+      EXPECT_TRUE(v + 1e-10 >= ret);
+    }
   }
 }

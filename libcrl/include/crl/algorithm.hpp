@@ -222,13 +222,13 @@ DiscreteFunction<T> join(std::initializer_list<DiscreteFunction<T>> funcs) {
 // Variable elimination with argmax
 //
 
-/// \brief Runs variable elimination on the provided \a FunctionSet and computes the argmax in a second pass
-/// \return The maximizing variable setting and the (maximal) value
+/// \brief Runs variable elimination on the provided \a FunctionSet (the forward pass).
+/// The function set itself is modified in the process.
+/// \return A tuple of (0) the generated intermediate functions, and (1) the generated functions with empty scope
 template<class T>
-std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F, const crl::SizeVec& elimination_order) {
-  // Make sure we can eliminate all variables in function set
-  assert(elimination_order.size() >= F.getNumFactors());
-  LOG_DEBUG("Numer of unique variables to eliminate: " << F.getNumFactors());
+std::tuple<std::vector<DiscreteFunction<T>>, std::vector<DiscreteFunction<T>>>
+variableElimination(FunctionSet<T>& F, const crl::SizeVec& elimination_order) {
+  LOG_DEBUG("Numer of variables to eliminate: " << elimination_order.size() << " out of " << F.getNumFactors());
 
   std::vector<DiscreteFunction<T>> elim_cache;
   // store for functions that have reached empty scope
@@ -255,8 +255,22 @@ std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F, const crl::SizeVe
       }
   }
 
+  return std::make_tuple(elim_cache,empty_fns);
+}
+
+/// \brief Runs variable elimination on the provided \a FunctionSet and computes the argmax (in a backward pass)
+/// \return The maximizing variable setting and the (maximal) value
+template<class T>
+std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F, const crl::SizeVec& elimination_order) {
+  // Make sure we can eliminate all variables in function set
+  assert(elimination_order.size() >= F.getNumFactors());
+  // run variable elimination
+  auto retFns = variableElimination(F, elimination_order);
+  const std::vector<DiscreteFunction<T>>& elim_cache = std::get<0>(retFns);
+  const std::vector<DiscreteFunction<T>>& empty_fns  = std::get<1>(retFns);
+
   if(!F.empty()) {
-      throw cpputil::InvalidException("Functions remain in function set: variable elimination failed");
+      throw cpputil::InvalidException("Functions remain in function set: argVariableElimination failed");
   }
 
   // sum over all empty functions defines the maximum value

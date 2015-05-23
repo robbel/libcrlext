@@ -93,6 +93,34 @@ std::tuple<Action,Reward> _FactoredValueFunction::getBestAction(const State& js,
     return tpl;
 }
 
+FunctionSet<Reward> _FactoredValueFunction::getMaxQ(const SizeVec& elimination_order) {
+  assert(_backprojection.size() == _basis.size());
+  assert(!_lrfs.empty());
+
+  // Discount stored backprojections once to form local Q functions
+  if(!_bp_discounted) {
+      discount();
+  }
+
+  // run variableElimination over joint action space
+  FunctionSet<Reward> F(_domain);
+  for(auto& bp : _backprojection) {
+      assert(bp->getSubdomain()->getNumStateFactors() != 0);
+      F.insert(bp);
+  }
+  for(auto& b : _lrfs) {
+      assert(b->getSubdomain()->getNumStateFactors() != 0);
+      F.insert(b);
+  }
+
+  auto retFns = algorithm::variableElimination(F, elimination_order);
+  const std::vector<DiscreteFunction<Reward>>& empty_fns = std::get<1>(retFns);
+  // every term should still be a function of x
+  assert(empty_fns.empty());
+
+  return F;
+}
+
 Reward _FactoredValueFunction::getQ(const State& js, const Action& ja) {
     assert(_backprojection.size() == _basis.size());
     assert(!_lrfs.empty());

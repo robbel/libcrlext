@@ -106,6 +106,10 @@ public:
   /// \note The elimination order is over action factors only
   std::tuple<Action,Reward> getBestAction(const State& js, const SizeVec& elimination_order);
 
+  /// \brief Returns the Q-function maximized over all actions
+  /// Runs variable elimination (given an \a elimination order for actions)
+  /// \note used during (factored) Bellman Error computations
+  FunctionSet<Reward> getMaxQ(const SizeVec& elimination_order);
 };
 typedef boost::shared_ptr<_FactoredValueFunction> FactoredValueFunction;
 
