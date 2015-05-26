@@ -114,10 +114,11 @@ FunctionSet<Reward> _FactoredValueFunction::getMaxQ(const SizeVec& elimination_o
   }
 
   auto retFns = algorithm::variableElimination(F, elimination_order);
+#if !NDEBUG
   const std::vector<DiscreteFunction<Reward>>& empty_fns = std::get<1>(retFns);
   // every term should still be a function of x
   assert(empty_fns.empty());
-
+#endif
   return F;
 }
 
