@@ -59,7 +59,7 @@ if has_crl:
                                    LIBS=['crl', 'strxml'])
         lib_targets += [libgraphprop]
 
-	gtest = env.Program(bin.Entry('gtests'), gtest_sources, LIBS=['crl','pthread','gtest','gtest_main'])
+	gtest = env.Program(bin.Entry('gtests'), gtest_sources, LIBS=['graphprop','crl', 'pthread','gtest','gtest_main'])
         bin_targets += [gtest]
 
 else:
@@ -68,7 +68,7 @@ else:
 # Networked executables
 if has_crl and has_glue:
 	glue_graphprop = env.Program(bin.Entry('glue_graphprop'), glue_graphprop_sources,
-                                   LIBS=['libgraphprop', 'crl', 'rlgnmenv', 'rlcrlenv', 
+                                   LIBS=['graphprop', 'crl', 'rlgnmenv', 'rlcrlenv', 
                                          'rlutils', 'rlgluenetdev'])
 	bin_targets += [glue_graphprop]
 else:
