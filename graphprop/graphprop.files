@@ -1,0 +1,9 @@
+cfgs/default.xml
+data/Gnp100.txt
+data/reg100k3.txt
+include/crl/env_graphprop.hpp
+src/env_graphprop.cpp
+src/glue_graphprop.cpp
+test/test_graphprop.cpp
+README
+SConstruct
