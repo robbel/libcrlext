@@ -1,0 +1,9 @@
+A specific domain (disease propagation over a graph), utilizing the glue-crl 
+interface (and therefore available in rl-glue). Additionally networked
+through usage of the rlgnm library.
+
+Note: also includes a graph generator (GraphGen.py) that utilizes the 
+python-igraph library.
+
+Note: graphprop problems contain a graph specification (see `data') and a model 
+configuration (see `cfgs').
