@@ -63,6 +63,24 @@ public:
 	virtual std::vector<T>& values() {
 	  return _ss_values;
 	}
+	/// \brief Return iterator to row `i' of this matrix
+	virtual typename std::vector<T>::const_iterator getRow(Size r) {
+	  return _ss_values.begin()+r*_num_states;
+	}
+	/// \brief Transpose this matrix
+	std::vector<T> transpose() {
+	  std::vector<T> ret_vec(_ss_values.size());
+	  #pragma omp parallel for
+	  for(Size r = 0; r<_num_states; r++) {
+	      auto rit = getRow(r);
+	      Size c = 0;
+	      std::for_each(rit,rit+_num_states,[&] (T n){
+		ret_vec[c*_num_states+r] = n;
+		c++;
+	      });
+	    }
+	  return ret_vec;
+	}
 };
 template<class T>
 using FSizeSizeTable = boost::shared_ptr<_FSizeSizeTable<T>>;
