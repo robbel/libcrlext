@@ -27,7 +27,7 @@ void parseLocation(std::string s, Size ub, SizeVec& dest) {
   std::stringstream stream(s);
   string tok;
   while(std::getline(stream, tok, ',')) {
-      Size uloc = std::stoul(tok);
+      Size uloc = std::stoull(tok);
       if(in_pos_interval(uloc, ub)) {
           dest.push_back(uloc);
       } else {
@@ -72,12 +72,12 @@ void _GraphProp::setTargetLocs(Size num_targets, std::string locs) {
   parseLocation(locs, _num_nodes, _target_locs);
 }
 
-State _GraphProp::begin() {
-  return State();
+BigState _GraphProp::begin() {
+  return BigState();
 }
 
-Observation _GraphProp::getObservation(const Action& a) {
-  return Observation();
+BigObservation _GraphProp::getObservation(const Action& a) {
+  return BigObservation();
 }
 
 // The GraphProp layout:
@@ -152,6 +152,7 @@ GraphProp readGraphProp(std::istream& cfg, std::istream& graph) {
   // read graph description
   AdjacencyMap adj_map = boost::make_shared<_AdjacencyMap>(domain);
   std::vector<int>& vals = adj_map->values();
+  vals.reserve(num_nodes*num_nodes);
   // read the first line
   std::string header;
   std::getline(graph, header);
@@ -162,7 +163,15 @@ GraphProp readGraphProp(std::istream& cfg, std::istream& graph) {
   // read the graph adjacency description
   std::copy(std::istream_iterator<int>(graph),
             std::istream_iterator<int>(),
-            vals.begin());
+            std::back_inserter(vals));
+  assert(vals.size() == num_nodes*num_nodes);
+
+  State si(domain,0);
+  State sj(domain);
+  sj.setFactor(20, 1);
+  LOG_DEBUG("state factors: " << domain->getNumStateFactors());
+  LOG_DEBUG(sj.getIndex());
+  LOG_DEBUG("value: " << adj_map->getValue(si,sj));
 
   // instantiate grp problem
   GraphProp grp = boost::make_shared<_GraphProp>(std::move(domain), std::move(adj_map));

@@ -276,7 +276,7 @@ typedef boost::shared_ptr<_FQTable> FQTable;
 ///
 class _FStateDistribution : public _Distribution<State> {
 	const Domain _domain;
-	std::vector<Probability> _prob_vec;
+	ProbabilityVec _prob_vec;
 	/// \brief The set of states from the \a Domain that have their probability set to something other than 0
 	/// FIXME Not really used...
 	_StateSet _known_states;

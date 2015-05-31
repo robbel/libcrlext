@@ -25,10 +25,10 @@ else:
 BuildDir(build, src, duplicate=0)
 
 # The following are put into a library (can be used without glue)
-build_sources    = [build.File('env_graphprop.cpp')]
-headers          = [inc.File('crl/env_graphprop.hpp')]
+build_sources    = [build.File('env_graphprop.cpp'), build.File('bigindex.cpp')]
+headers          = [inc.File('crl/env_graphprop.hpp'), inc.File('crl/bigindex.hpp'), inc.File('crl/glue_bigenv.hpp')]
 # glue wrappers
-glue_graphprop_sources = [build.File('glue_graphprop.cpp')]
+glue_graphprop_sources = [build.File('glue_graphprop.cpp'), build.File('glue_bigenv.cpp')]
 # test code
 gtest_sources = [testdir.File(test) for test in ['test_graphprop.cpp']]
 
@@ -68,7 +68,7 @@ else:
 # Networked executables
 if has_crl and has_glue:
 	glue_graphprop = env.Program(bin.Entry('glue_graphprop'), glue_graphprop_sources,
-                                   LIBS=['graphprop', 'crl', 'rlgnmenv', 'rlcrlenv', 
+                                   LIBS=['graphprop', 'crl', 'rlgnmenv', 
                                          'rlutils', 'rlgluenetdev'])
 	bin_targets += [glue_graphprop]
 else:

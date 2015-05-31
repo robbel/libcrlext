@@ -10,9 +10,11 @@
  */
 
 #include <iostream>
+#include <fstream>
 #include <rlgnmenv.h>
 #include <rlglue/Environment_common.h>
 #include "crl/env_graphprop.hpp"
+#include "crl/glue_bigenv.hpp"
 
 using namespace std;
 using namespace crl;
@@ -23,6 +25,9 @@ using namespace cpputil;
 // GLUE network wrapper around GraphProp problem
 //
 
+//FIXME: is it ok to have one global ffg or does an episode reset require a fresh one to be constructed?
+GraphProp _graphprop;
+
 namespace crl {
 
 //
@@ -30,15 +35,13 @@ namespace crl {
 //
 
 Domain getCRLEnvironmentDomain() {
-//    assert(_ffg != nullptr);
-//    return _ffg->getDomain();
-  return nullptr;
+    assert(_graphprop != nullptr);
+    return _graphprop->getDomain();
 }
 
-Environment getCRLEnvironment(Domain domain) {
-//    assert(_ffg != nullptr);
-//    return _ffg; // Note: no new copy is constructed
-  return nullptr;
+BigEnvironment getCRLBigEnvironment(Domain domain) {
+    assert(_graphprop != nullptr);
+    return _graphprop; // Note: no new copy is constructed
 }
 
 } // namespace crl
@@ -60,6 +63,29 @@ const char* env_message(const char* inMessage) {
 
 // launch networked rl-glue environment through rlgnm library
 int main(int argc, char** argv) {
+  if (argc != 3) {
+          LOG_ERROR("Usage: " << argv[0] << " <config.xml> <graph.dat>");
+          return EXIT_FAILURE;
+  }
+
+  try {
+    ifstream iscfg(argv[1]);
+    ifstream isdat(argv[2]);
+    if(!(_graphprop = readGraphProp(iscfg, isdat))) {
+      LOG_ERROR("Error while reading from " << argv[1] << " or " << argv[2]);
+      return EXIT_FAILURE;
+    }
+
+    sprintf(paramBuf, "graphprop=%s,%s", argv[1], argv[2]); // todo: print layout and initial state
+    //paramBuf[0] = '\0'; // the empty string
+
+  } catch(const cpputil::Exception& e) {
+      cerr << e << endl;
+      return EXIT_FAILURE;
+  }
+
+  // run main glue environment loop
+  glue_main_env(0, 0);
 
   return EXIT_SUCCESS;
 }

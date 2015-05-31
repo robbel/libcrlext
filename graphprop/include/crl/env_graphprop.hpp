@@ -15,6 +15,7 @@
 #include <iostream>
 #include <crl/crl.hpp>
 #include <crl/factor_learner.hpp> // for FactoredMDP
+#include "crl/bigindex.hpp"
 
 namespace crl {
 
@@ -25,34 +26,34 @@ namespace graphprop {
  * \todo Implement as sparse matrix (e.g., for adjacency map in sparse graph)
  */
 template<class T>
-class _FStateStateTable {
+class _FSizeSizeTable {
 protected:
 	Domain _domain;
 	Size _num_states;
 	std::vector<T> _ss_values;
 public:
-	_FStateStateTable(const Domain& domain)
-	: _domain(domain), _num_states(domain->getNumStates()), _ss_values(_num_states * _num_states) {
+	_FSizeSizeTable(const Domain& domain)
+	: _domain(domain), _num_states(domain->getNumStateFactors()), _ss_values(_num_states * _num_states) {
 	}
-	_FStateStateTable(const Domain& domain, T initial)
-	: _domain(domain), _num_states(domain->getNumStates()), _ss_values(_num_states * _num_states, initial) {
+	_FSizeSizeTable(const Domain& domain, T initial)
+	: _domain(domain), _num_states(domain->getNumStateFactors()), _ss_values(_num_states * _num_states, initial) {
 	}
 	/// \brief copy ctor
-	_FStateStateTable(const _FStateStateTable& rhs) = default;
+	_FSizeSizeTable(const _FSizeSizeTable& rhs) = default;
 	/// \brief move ctor
-	_FStateStateTable(_FStateStateTable&&) = default;
+	_FSizeSizeTable(_FSizeSizeTable&&) = default;
 	/// \brief dtor
-	virtual ~_FStateStateTable() { }
+	virtual ~_FSizeSizeTable() { }
 
 	virtual void clear() {
 	  _ss_values = std::vector<T>(_num_states * _num_states);
 	}
 
-	virtual T& getValue(const State& si, const State& sj) {
-	  return _ss_values[si.getIndex()*_num_states+sj.getIndex()];
+	virtual T& getValue(const Size& si, const Size& sj) {
+	  return _ss_values[si*_num_states+sj];
 	}
-	virtual void setValue(const State& si, const State& sj, T t) {
-	  _ss_values[si.getIndex()*_num_states+sj.getIndex()] = t;
+	virtual void setValue(const Size& si, const Size& sj, T t) {
+	  _ss_values[si*_num_states+sj] = t;
 	}
 	/**
 	 * \brief Returns all values in this table
@@ -64,9 +65,9 @@ public:
 	}
 };
 template<class T>
-using FStateStateTable = boost::shared_ptr<_FStateStateTable<T>>;
-typedef _FStateStateTable<int> _AdjacencyMap;
-typedef FStateStateTable<int>   AdjacencyMap;
+using FSizeSizeTable = boost::shared_ptr<_FSizeSizeTable<T>>;
+typedef _FSizeSizeTable<int> _AdjacencyMap;
+typedef FSizeSizeTable<int>   AdjacencyMap;
 
 /**
  * \brief The GraphProp environment.
@@ -75,7 +76,7 @@ typedef FStateStateTable<int>   AdjacencyMap;
  * Vineet Mehta, and Rajmonda S. Caceres, 2015 (in publication)
  * \note Implemented as an infinite-horizon problem.
  */
-class _GraphProp : public _Environment {
+class _GraphProp : public _BigEnvironment {
 protected:
   Domain _domain;
   FactoredMDP _fmdp;
@@ -130,13 +131,13 @@ public:
   // Environment interface
   //
   /// \brief Return initial state
-  virtual State begin() override;
+  virtual BigState begin() override;
   /// \brief True iff environment has reached a terminating state
   virtual bool isTerminated() override {
     return false;
   }
   /// \brief Apply the \a Action and return the resulting \a Observation
-  virtual Observation getObservation(const Action& a) override;
+  virtual BigObservation getObservation(const Action& a) override;
 };
 typedef boost::shared_ptr<_GraphProp> GraphProp;
 
