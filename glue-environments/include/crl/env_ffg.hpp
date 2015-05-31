@@ -74,6 +74,6 @@ typedef boost::shared_ptr<_FireFightingGraph> FireFightingGraph;
 /// \brief read in ffg details from xml file
 FireFightingGraph readFFG(std::istream& is);
 
-}
+} // namespace crl
 
 #endif /*ENV_FFG_HPP_*/

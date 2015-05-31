@@ -372,7 +372,7 @@ FireFightingGraph readFFG(std::istream& is) {
     for(int i = 0; i < num_agents; i++) {
         domain->addActionFactor(0, 1, "agent_"+to_string(i));
     }
-    domain->setRewardRange(-num_fls+1, 0.);
+    domain->setRewardRange(-num_fls+1, 0.); // FIXME: over all houses!
 
     // instantiate ffg problem
     FireFightingGraph ffg = boost::make_shared<_FireFightingGraph>(std::move(domain));
