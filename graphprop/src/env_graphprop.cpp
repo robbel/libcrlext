@@ -49,7 +49,7 @@ _GraphProp::_GraphProp(Domain domain, AdjacencyMap adj_map)
   setParameters(0., 0., 0., 0., 0., 0.);
 }
 
-Reward _GraphProp::getReward(const State& n) const {
+Reward _GraphProp::getReward(const BigState& n) const {
   Reward r = 0.;
   return r;
 }
@@ -152,7 +152,6 @@ GraphProp readGraphProp(std::istream& cfg, std::istream& graph) {
   // read graph description
   AdjacencyMap adj_map = boost::make_shared<_AdjacencyMap>(domain);
   std::vector<int>& vals = adj_map->values();
-  vals.reserve(num_nodes*num_nodes);
   // read the first line
   std::string header;
   std::getline(graph, header);
@@ -161,17 +160,11 @@ GraphProp readGraphProp(std::istream& cfg, std::istream& graph) {
       throw cpputil::SizeException(num_nodes, h_nodes, "Graph file and cfg file do not match.");
   }
   // read the graph adjacency description
+  vals.reserve(num_nodes*num_nodes);
   std::copy(std::istream_iterator<int>(graph),
             std::istream_iterator<int>(),
-            std::back_inserter(vals));
+            vals.begin());
   assert(vals.size() == num_nodes*num_nodes);
-
-  State si(domain,0);
-  State sj(domain);
-  sj.setFactor(20, 1);
-  LOG_DEBUG("state factors: " << domain->getNumStateFactors());
-  LOG_DEBUG(sj.getIndex());
-  LOG_DEBUG("value: " << adj_map->getValue(si,sj));
 
   // instantiate grp problem
   GraphProp grp = boost::make_shared<_GraphProp>(std::move(domain), std::move(adj_map));

@@ -64,7 +64,20 @@ public:
 	bool operator==(const BigState& r) const {
 		return _values == r._values;
 	}
+	operator bool() const {
+		return !_values.empty();
+	}
 };
+
+inline std::ostream& operator<<(std::ostream& os, const BigState& s) {
+	os << "s[";
+	if (!s)
+		os << ".";
+	else
+		s.print(os);
+	os << "]";
+	return os;
+}
 
 /**
  * A pair of BigState,Reward is referred to as a BigObservation

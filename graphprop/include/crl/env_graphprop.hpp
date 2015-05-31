@@ -83,7 +83,7 @@ protected:
   /// \brief The graph underlying this propagation model
   AdjacencyMap _adj_map;
   /// \brief Current joint state
-  State _current;
+  BigState _current;
   // problem parameters
   Size _num_nodes;
   Size _num_agents;
@@ -97,7 +97,7 @@ protected:
   std::vector<Size> _target_locs;
 
   /// \brief The reward function for the GraphProp problem
-  virtual Reward getReward(const State& n) const;
+  virtual Reward getReward(const BigState& n) const;
 public:
   /// \brief Create a GraphProp environment from the supplied domain
   _GraphProp(Domain domain, AdjacencyMap adj_map);
