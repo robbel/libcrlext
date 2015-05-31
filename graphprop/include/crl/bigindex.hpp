@@ -101,6 +101,7 @@ typedef boost::shared_ptr<_BigObservation> BigObservation;
  * Interface for a big RL environment that starts in one \a BigState and generates successor \a BigObservation
  * given an agent action.
  * \note This is for large environments with more than 2^64 states (e.g., \a GraphProp)
+ * \note A _BigEnvironment is not an _Environment and may potentially only be used through rl-glue wrapper
  */
 class _BigEnvironment {
 public:

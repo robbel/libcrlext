@@ -555,6 +555,22 @@ bool in_pos_interval(const T& val, const T& max) {
 }
 
 ///
+/// \brief Check whether two collections intersect
+///
+template <class InputIterator1, class InputIterator2>
+bool has_intersection (InputIterator1 first1, InputIterator1 last1,
+                       InputIterator2 first2, InputIterator2 last2) {
+  while (first1!=last1 && first2!=last2) {
+    if (*first1<*first2) ++first1;
+    else if (*first2<*first1) ++first2;
+    else {
+        return true;
+    }
+  }
+  return false;
+}
+
+///
 /// \brief Create a vector of consecutive values [start,start+size)
 ///
 template<class T>

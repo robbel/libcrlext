@@ -90,14 +90,18 @@ protected:
   Size _num_targets;
   double _beta0, _del0, _lambda1, _lambda2, _lambda3, _q0;
   /// \brief Sorted location (i.e., node) vector for each agent in the graph
-  /// \note Assumed comparably small to \a _num_nodes.
+  /// \note Assumed disjoint from _target_locs
   std::vector<Size> _agent_locs;
+  /// \brief Array of size `_num_nodes' for quick checks whether agent is present at a node
+  std::vector<bool> _agent_active;
   /// \brief Sorted location (i.e., node) vector for each target in the graph
-  /// \note Assumed comparably small to \a _num_nodes.
+  /// \note Assumed disjoint from _agent_locs
   std::vector<Size> _target_locs;
+  /// \brief Array of size `_num_nodes' for quick checks whether target is present at a node
+  std::vector<bool> _target_active;
 
-  /// \brief The reward function for the GraphProp problem
-  virtual Reward getReward(const BigState& n) const;
+  /// \brief The reward function for the GraphProp problem defined over current state and action
+  virtual Reward getReward(const BigState& s, const Action &a) const;
 public:
   /// \brief Create a GraphProp environment from the supplied domain
   _GraphProp(Domain domain, AdjacencyMap adj_map);

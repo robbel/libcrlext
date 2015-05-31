@@ -23,17 +23,24 @@ namespace {
 
 /// \brief Parse string into location vector.
 /// \param ub Location is tested for inclusion in [0,ub)
-void parseLocation(std::string s, Size ub, SizeVec& dest) {
+void parseLocation(std::string s, Size ub, SizeVec& dest, std::vector<bool>& map) {
+  if(s.empty()) {
+      //TODO: randomize assignment (and enforce that agentLoc != targetLoc
+      throw InvalidException("Location randomization not implemented yet.");
+  }
+  map.reserve(ub);
   std::stringstream stream(s);
   string tok;
   while(std::getline(stream, tok, ',')) {
       Size uloc = std::stoull(tok);
       if(in_pos_interval(uloc, ub)) {
           dest.push_back(uloc);
+          map[uloc] = true;
       } else {
           throw InvalidException("Invalid location in location string.");
       }
   }
+  std::sort(dest.begin(), dest.end());
 }
 
 } // anonymous ns
@@ -49,35 +56,83 @@ _GraphProp::_GraphProp(Domain domain, AdjacencyMap adj_map)
   setParameters(0., 0., 0., 0., 0., 0.);
 }
 
-Reward _GraphProp::getReward(const BigState& n) const {
-  Reward r = 0.;
-  return r;
+Reward _GraphProp::getReward(const BigState& s, const Action& a) const {
+  Reward cost = 0.;
+  Size j = 0;
+  // over all state factors
+  for(Size i = 0; i < s.size(); i++) {
+      if(_agent_active[i]) { // assume non-target node (Vc != Vt)
+          cost += _lambda3*a.getFactor(j++) + _lambda2*s.getFactor(i);
+      }
+      else if(_target_active[i]) { // assume uncontrolled (non-agent) node
+          cost += _lambda1*(1-s.getFactor(i));
+      }
+      else { // a non-target, uncontrolled node
+          cost += _lambda2*s.getFactor(i);
+      }
+  }
+  return -cost;
 }
 
 void _GraphProp::buildFactoredMDP() {
+  assert(!_agent_locs.empty());
+  _fmdp = boost::make_shared<_FactoredMDP>(_domain);
 
+  time_t start_time = time_in_milli();
+
+  // todo..
+
+  time_t end_time = time_in_milli();
+  LOG_INFO("created factored MDP in " << end_time - start_time << "ms.");
 }
 
 void _GraphProp::setAgentLocs(Size num_agents, std::string locs) {
   assert(_num_agents == num_agents);
   _agent_locs.clear();
+  _agent_active.clear();
 
-  parseLocation(locs, _num_nodes, _agent_locs);
+  parseLocation(locs, _num_nodes, _agent_locs, _agent_active);
+  if(cpputil::has_intersection(_agent_locs.begin(), _agent_locs.end(), _target_locs.begin(), _target_locs.end())) {
+    throw InvalidException("Agent set and Target set have to be distinct.");
+  }
 }
 
 void _GraphProp::setTargetLocs(Size num_targets, std::string locs) {
   _num_targets = num_targets;
   _target_locs.clear();
+  _target_active.clear();
 
-  parseLocation(locs, _num_nodes, _target_locs);
+  if(_num_targets > 0) {
+      parseLocation(locs, _num_nodes, _target_locs, _target_active);
+      if(cpputil::has_intersection(_agent_locs.begin(), _agent_locs.end(), _target_locs.begin(), _target_locs.end())) {
+          throw InvalidException("Agent set and Target set have to be distinct.");
+      }
+  }
+  else {
+      LOG_INFO("Non-targeted problem.");
+  }
 }
 
 BigState _GraphProp::begin() {
-  return BigState();
+  _current = BigState(_domain);
+  for(Size i = 0; i < _num_nodes; i++) {
+    _current.setFactor(i, static_cast<Factor>(randDouble() < _q0)); // binary state
+  }
+  return _current;
 }
 
+// apply action, obtain resulting state n, update _current
+// TODO make this a generic getObservation() for a `FactoredMDPEnvironment' (\see _MDPEnvironment)
 BigObservation _GraphProp::getObservation(const Action& a) {
-  return BigObservation();
+  Reward r = getReward(_current, a);
+  // prepare a new state
+  BigState new_current = _current;
+
+  // todo .. (\see env_sysadmin.cpp)
+
+  _current = std::move(new_current);
+  BigObservation o = boost::make_shared<_BigObservation>(_current, r);
+  return o;
 }
 
 // The GraphProp layout:
@@ -112,9 +167,6 @@ GraphProp readGraphProp(std::istream& cfg, std::istream& graph) {
   XMLObject targets = xobj["Targets"];
   int num_targets = std::stoi(targets("count"));
   string targetAssignments = targets.size() != 0 ? targets.getText() : ""; // if an assignment string is given
-  if(targetAssignments.empty()) {
-    LOG_INFO("Non-targeted problem.");
-  }
   XMLObject actions = xobj["Actions"];
   int num_actions = std::stoi(actions("count"));
   if(num_actions != 2) {
@@ -160,7 +212,6 @@ GraphProp readGraphProp(std::istream& cfg, std::istream& graph) {
       throw cpputil::SizeException(num_nodes, h_nodes, "Graph file and cfg file do not match.");
   }
   // read the graph adjacency description
-  vals.reserve(num_nodes*num_nodes);
   std::copy(std::istream_iterator<int>(graph),
             std::istream_iterator<int>(),
             vals.begin());
