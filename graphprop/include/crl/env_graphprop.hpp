@@ -63,11 +63,11 @@ public:
 	virtual std::vector<T>& values() {
 	  return _ss_values;
 	}
-	/// \brief Return iterator to row `i' of this matrix
+	/// \brief Return iterator to row `i' of this table
 	virtual typename std::vector<T>::const_iterator getRow(Size r) {
 	  return _ss_values.begin()+r*_num_states;
 	}
-	/// \brief Transpose this matrix
+	/// \brief Transpose this table
 	std::vector<T> transpose() {
 	  std::vector<T> ret_vec(_ss_values.size());
 	  #pragma omp parallel for
@@ -78,7 +78,7 @@ public:
 		ret_vec[c*_num_states+r] = n;
 		c++;
 	      });
-	    }
+	  }
 	  return ret_vec;
 	}
 };
@@ -98,16 +98,14 @@ class _GraphProp : public _BigEnvironment {
 protected:
   Domain _domain;
   FactoredMDP _fmdp;
-  /// \brief The graph underlying this propagation model
+  /// \brief The (undirected or directed) graph underlying this propagation model (no self-loops)
   AdjacencyMap _adj_map;
+  /// \brief An optimized accessor for parents (including self) in the graph
+  /// \note the mapped element (SizeVec) is in order of increasing indices
+  std::unordered_map<Size,SizeVec> _scope_map;
   /// \brief Current joint state
   BigState _current;
-  // problem parameters
-  Size _num_nodes;
-  Size _num_agents;
-  Size _num_targets;
-  double _beta0, _del0, _lambda1, _lambda2, _lambda3, _q0;
-  /// \brief Sorted location (i.e., node) vector for each agent in the graph
+  /// \brief Sorted location (i.e., node) vector for each agent (i.e., controllable node) in the graph
   /// \note Assumed disjoint from _target_locs
   std::vector<Size> _agent_locs;
   /// \brief Array of size `_num_nodes' for quick checks whether agent is present at a node
@@ -117,9 +115,23 @@ protected:
   std::vector<Size> _target_locs;
   /// \brief Array of size `_num_nodes' for quick checks whether target is present at a node
   std::vector<bool> _target_active;
+  // problem parameters
+  Size _num_nodes;   ///< Nodes in graph
+  Size _num_agents;  ///< Controlled nodes in graph
+  Size _num_targets; ///< Target nodes in graph
+  double _beta0, _del0, _lambda1, _lambda2, _lambda3, _q0;
+  /// \brief Graph diffusion model computed from _beta0 (no self-infusion)
+  /// Stored in transposed fashion: \a getRow(i) returns \a incoming rates to node `i'
+  /// \see setParameters
+  _FSizeSizeTable<double> _beta_t;
+  /// \brief Per-node recovery model computed from _del0
+  /// \see setParameters
+  std::vector<double> _del;
 
   /// \brief The reward function for the GraphProp problem defined over current state and action
   virtual Reward getReward(const BigState& s, const Action &a) const;
+  /// \brief Fill in transition and reward function for a single plate (i.e., node `i') in the graph
+  void buildPlate(Size i, DBNFactor& fai, LRF& lrf);
 public:
   /// \brief Create a GraphProp environment from the supplied domain
   _GraphProp(Domain domain, AdjacencyMap adj_map);
@@ -139,15 +151,7 @@ public:
   virtual void setAgentLocs(Size num_agents, std::string locs = "");
   virtual void setTargetLocs(Size num_targets, std::string locs = "");
   /// \brief Set problem parameters
-  virtual void setParameters(double beta0, double del0, double lambda1, double lambda2, double lambda3, double q0)
-  {
-    _beta0 = beta0;
-    _del0 = del0;
-    _lambda1 = lambda1;
-    _lambda2 = lambda2;
-    _lambda3 = lambda3;
-    _q0 = q0;
-  }
+  virtual void setParameters(double beta0, double del0, double lambda1, double lambda2, double lambda3, double q0);
 
   //
   // Environment interface

@@ -28,7 +28,7 @@ void parseLocation(std::string s, Size ub, SizeVec& dest, std::vector<bool>& map
       //TODO: randomize assignment (and enforce that agentLoc != targetLoc
       throw InvalidException("Location randomization not implemented yet.");
   }
-  map.reserve(ub);
+  map.resize(ub);
   std::stringstream stream(s);
   string tok;
   while(std::getline(stream, tok, ',')) {
@@ -48,12 +48,36 @@ void parseLocation(std::string s, Size ub, SizeVec& dest, std::vector<bool>& map
 namespace crl {
 
 _GraphProp::_GraphProp(Domain domain, AdjacencyMap adj_map)
-  : _domain(std::move(domain)), _adj_map(std::move(adj_map)) {
+  : _domain(std::move(domain)), _adj_map(std::move(adj_map)), _beta_t(_domain) {
   // default initialize this GraphProp
   _num_nodes   = _domain->getNumStateFactors();
   _num_agents  = _domain->getNumActionFactors(),
   _num_targets = 0;
   setParameters(0., 0., 0., 0., 0., 0.);
+
+  // incoming connectivity relations
+  _AdjacencyMap incoming(_domain);
+  incoming.values() = _adj_map->transpose(); // only required for directed graphs
+  // build parent scopes
+  for(Size i = 0; i < _num_nodes; i++) {
+      bool self = true;
+      SizeVec sv;
+      const auto rowIt = incoming.getRow(i);
+      auto iter = rowIt;
+      while((iter = std::find(iter, rowIt+_num_nodes, 1)) != rowIt+_num_nodes) {
+          auto idx = std::distance(rowIt,iter);
+          if(self && idx > i) {
+              sv.push_back(i); // include self in parent set
+              self = false;
+          }
+          sv.push_back(idx);
+          ++iter;
+      }
+      if(self) {
+        sv.push_back(i);
+      }
+      _scope_map.insert({i,sv});
+  }
 }
 
 Reward _GraphProp::getReward(const BigState& s, const Action& a) const {
@@ -74,13 +98,96 @@ Reward _GraphProp::getReward(const BigState& s, const Action& a) const {
   return -cost;
 }
 
+// Holds for both controlled and uncontrolled nodes in graph
+void _GraphProp::buildPlate(Size i, DBNFactor& fai, LRF& lrf) {
+  Domain faidom = fai->getSubdomain();
+  const SizeVec& parents = _scope_map[i]; // Note: includes self
+  auto loc = std::lower_bound(parents.begin(),parents.end(),i);
+  assert(*loc == i);
+  const Size locIdx = std::distance(parents.begin(), loc); // local index of `i' in parent scope
+  const double d = _del[i]; // recovery rate of ego state
+  const auto bIt = _beta_t.getRow(i); // vector of betas (infection rates) from incoming nodes
+
+  _StateIncrementIterator sitr(faidom);
+  while(sitr.hasNext()) {
+    const State& s = sitr.next();
+    const Factor cur = s.getFactor(locIdx);
+
+    // nodes that are uncontrolled have equivalent transitions to controlled ones where action = 0
+    assert(faidom->getNumStateFactors() == _scope_map[i].size());
+    double prod = 1.;
+    Size j = 0;
+    for(Size parIdx : _scope_map[i]) {
+        prod *= 1. - *(bIt+parIdx) * s.getFactor(j++);
+    }
+
+    double pIS = d;        // probability of recovery for this node
+    double pSI = 1 - prod; // infection probability
+
+    if(!cur) {
+        fai->setT(s, Action(faidom,0), 0, 1-pSI);
+        fai->setT(s, Action(faidom,0), 1, pSI);
+    }
+    else {
+        fai->setT(s, Action(faidom,0), 0, pIS);
+        fai->setT(s, Action(faidom,0), 1, 1-pIS);
+    }
+
+    // handle controlled nodes
+    if(_agent_active[i]) {
+        // deterministic switch to `1'
+        fai->setT(s, Action(faidom,1), 1, 1.0);
+    }
+  }
+
+  // Define LRF
+  State dummy_s; // we don't really need Domain here
+  if(_target_active[i]) {
+    lrf->define(dummy_s, Action(), -_lambda1);
+  }
+  else { // either controlled or uncontrolled non-target node
+    dummy_s.setIndex(1);
+    lrf->define(dummy_s, Action(), -_lambda2);
+
+    if(_agent_active[i]) {
+      Action dummy_a;
+      dummy_a.setIndex(1);
+      lrf->define(dummy_s, dummy_a, -_lambda3-_lambda2);
+      lrf->define(State(), dummy_a, -_lambda3);
+    }
+  }
+}
+
 void _GraphProp::buildFactoredMDP() {
   assert(!_agent_locs.empty());
   _fmdp = boost::make_shared<_FactoredMDP>(_domain);
 
   time_t start_time = time_in_milli();
+  Size j = 0;
+  // over all state factors
+  for(Size i = 0; i < _num_nodes; i++) {
+      // create dbn factor for node `i'
+      DBNFactor fai = boost::make_shared<_DBNFactor>(_domain,i);
+      LRF lrf = boost::make_shared<_LRF>(_domain); // those have equivalent scopes here
+      for(Size parent : _scope_map[i]) { // Note: includes self
+        fai->addDelayedDependency(parent);
+      }
+      // LRF
+      lrf->addStateFactor(i);
+      if(_agent_active[i]) {
+        fai->addActionDependency(j);
+        lrf->addActionFactor(j++);
+      }
+      // allocate tabular storage
+      fai->pack();
+      lrf->pack();
 
-  // todo..
+      // Fill transition and reward function
+      buildPlate(i, fai, lrf);
+      // add factors for node `i' to DBN
+      _fmdp->addDBNFactor(std::move(fai));
+      _fmdp->addLRF(std::move(lrf));
+  }
 
   time_t end_time = time_in_milli();
   LOG_INFO("created factored MDP in " << end_time - start_time << "ms.");
@@ -109,8 +216,33 @@ void _GraphProp::setTargetLocs(Size num_targets, std::string locs) {
       }
   }
   else {
+      _target_active.resize(_num_nodes);
       LOG_INFO("Non-targeted problem.");
   }
+}
+
+void _GraphProp::setParameters(double beta0, double del0, double lambda1, double lambda2, double lambda3, double q0) {
+  _beta0 = beta0;
+  _del0 = del0;
+  _lambda1 = lambda1;
+  _lambda2 = lambda2;
+  _lambda3 = lambda3;
+  _q0 = q0;
+
+  // simple, regular diffusion model (consistent across graph) based on _beta0
+  // TODO: add hetero diffusion
+  const auto& adj_vec = _adj_map->values();
+  auto& beta_vec = _beta_t.values();
+  auto iter = adj_vec.begin();
+  while((iter = std::find(iter, adj_vec.end(), 1)) != adj_vec.end()) {
+      auto idx = std::distance(adj_vec.begin(),iter);
+      beta_vec[idx] = _beta0;
+      ++iter;
+  }
+  // transpose beta vector
+  _beta_t.values() = _beta_t.transpose();
+  // simple recovery model based on _del0
+  _del = std::vector<double>(_num_nodes, _del0);
 }
 
 BigState _GraphProp::begin() {
