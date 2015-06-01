@@ -10,6 +10,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <fstream>
 
 #include "crl/env_graphprop.hpp"
 #include "logger.hpp"
@@ -43,6 +44,48 @@ TEST(GraphPropTest, AdjacencyTransposeTest) {
       EXPECT_EQ(tbl.getValue(j,10), 3);
       EXPECT_EQ(tbl.getValue(j,99), 4);
   }
+}
+
+TEST(GraphPropTest, DBNTest) {
+  try {
+    string cfg = "../cfgs/default.xml";
+    string data = "../data/Gnp100.txt";
+    ifstream iscfg(cfg);
+    ifstream isdat(data);
+    graphprop::GraphProp thegrp;
+
+    if(!(thegrp = readGraphProp(iscfg, isdat))) {
+      LOG_ERROR("Error while reading from " << cfg << " or " << data);
+      FAIL();
+    }
+
+    Domain domain = thegrp->getDomain();
+    FactoredMDP fmdp = thegrp->getFactoredMDP();
+    const _DBN& dbn = fmdp->T();
+    LOG_DEBUG(dbn);
+
+    // verify that all probability distributions are normalized
+    FactorIterator fitr = dbn.factors();
+    while(fitr->hasNext()) {
+        // determine relevant action subset for current state factor
+        const DBNFactor& sf = fitr->next();
+        _StateActionIncrementIterator saitr(sf->getSubdomain());
+        while(saitr.hasNext()) {
+            const std::tuple<State,Action>& sa = saitr.next();
+            const State s = std::get<0>(sa);
+            const Action a = std::get<1>(sa);
+            const ProbabilityVec& vec = sf->T(s,a);
+            double d = std::accumulate(vec.begin(),vec.end(),0.);
+            EXPECT_EQ(d,1.);
+        }
+    }
+  }
+  catch(const cpputil::Exception& e) {
+    cerr << e << endl;
+    FAIL();
+  }
+
+  SUCCEED();
 }
 
 TEST(GraphPropTest, BasicGraphPropTest) {
