@@ -20,10 +20,53 @@ using namespace crl;
 using namespace cpputil;
 using namespace graphprop;
 
+namespace {
+
+//
+// Test fixtures
+//
+
+class GraphPropTest : public ::testing::Test {
+protected:
+  GraphPropTest() { }
+//virtual ~GraphPropTest() { }
+  /// \brief Load an example GraphProp instance from filesystem
+  virtual void SetUp() override;
+//virtual void TearDown() override;
+
+  Domain _domain;
+  FactoredMDP _fmdp;
+};
+
+void GraphPropTest::SetUp() {
+  try {
+    string cfg = "../cfgs/default.xml";
+    string data = "../data/Gnp100.txt";
+    ifstream iscfg(cfg);
+    ifstream isdat(data);
+    graphprop::GraphProp thegrp;
+
+    if(!(thegrp = readGraphProp(iscfg, isdat))) {
+      LOG_ERROR("Error while reading from " << cfg << " or " << data);
+      FAIL();
+    }
+
+    _domain = thegrp->getDomain();
+    _fmdp = thegrp->getFactoredMDP();
+  }
+  catch(const cpputil::Exception& e) {
+    cerr << e << endl;
+    FAIL();
+  }
+}
+
+} // anonymous ns
+
+
 ///
 /// \brief Placeholder for some GraphProp experiments
 ///
-TEST(GraphPropTest, AdjacencyTransposeTest) {
+TEST(GraphPropBasicTest, AdjacencyTransposeTest) {
   Domain domain = boost::make_shared<_Domain>();
   for(int i = 0; i < 100; i++) {
     domain->addStateFactor(0,1);
@@ -46,48 +89,43 @@ TEST(GraphPropTest, AdjacencyTransposeTest) {
   }
 }
 
-TEST(GraphPropTest, DBNTest) {
-  try {
-    string cfg = "../cfgs/default.xml";
-    string data = "../data/Gnp100.txt";
-    ifstream iscfg(cfg);
-    ifstream isdat(data);
-    graphprop::GraphProp thegrp;
+TEST_F(GraphPropTest, DBNTest) {
+  // print DBN to stdout
+  const _DBN& dbn = _fmdp->T();
+  LOG_DEBUG(dbn);
 
-    if(!(thegrp = readGraphProp(iscfg, isdat))) {
-      LOG_ERROR("Error while reading from " << cfg << " or " << data);
-      FAIL();
-    }
-
-    Domain domain = thegrp->getDomain();
-    FactoredMDP fmdp = thegrp->getFactoredMDP();
-    const _DBN& dbn = fmdp->T();
-    LOG_DEBUG(dbn);
-
-    // verify that all probability distributions are normalized
-    FactorIterator fitr = dbn.factors();
-    while(fitr->hasNext()) {
-        // determine relevant action subset for current state factor
-        const DBNFactor& sf = fitr->next();
-        _StateActionIncrementIterator saitr(sf->getSubdomain());
-        while(saitr.hasNext()) {
-            const std::tuple<State,Action>& sa = saitr.next();
-            const State s = std::get<0>(sa);
-            const Action a = std::get<1>(sa);
-            const ProbabilityVec& vec = sf->T(s,a);
-            double d = std::accumulate(vec.begin(),vec.end(),0.);
-            EXPECT_EQ(d,1.);
-        }
-    }
+  // verify that all probability distributions are normalized
+  FactorIterator fitr = dbn.factors();
+  while(fitr->hasNext()) {
+      // determine relevant action subset for current state factor
+      const DBNFactor& sf = fitr->next();
+      _StateActionIncrementIterator saitr(sf->getSubdomain());
+      while(saitr.hasNext()) {
+          const std::tuple<State,Action>& sa = saitr.next();
+          const State s = std::get<0>(sa);
+          const Action a = std::get<1>(sa);
+          const ProbabilityVec& vec = sf->T(s,a);
+          double d = std::accumulate(vec.begin(),vec.end(),0.);
+          EXPECT_EQ(d,1.);
+      }
   }
-  catch(const cpputil::Exception& e) {
-    cerr << e << endl;
-    FAIL();
-  }
-
-  SUCCEED();
 }
 
-TEST(GraphPropTest, BasicGraphPropTest) {
-  SUCCEED();
+TEST_F(GraphPropTest, LRFTest) {
+  const RewardRange& range = _domain->getRewardRange();
+  const Reward rmin = range.getMin();
+  const Reward rmax = range.getMax()+std::numeric_limits<double>::epsilon();
+  LOG_DEBUG("rmin/rmax: " << rmin << " " << rmax);
+
+  const std::vector<DiscreteFunction<Reward>>& lrfs = _fmdp->getLRFs();
+  for(auto& f : lrfs) {
+      _StateActionIncrementIterator saitr(f->getSubdomain());
+      while(saitr.hasNext()) {
+          const std::tuple<State,Action>& sa = saitr.next();
+          const State s = std::get<0>(sa);
+          const Action a = std::get<1>(sa);
+          const Reward r = f->eval(s,a);
+          EXPECT_TRUE(cpputil::in_interval(r,rmin,rmax));
+      }
+  }
 }
