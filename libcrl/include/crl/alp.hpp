@@ -110,6 +110,12 @@ public:
   /// Runs variable elimination (given an \a elimination order for actions)
   /// \note used during (factored) Bellman Error computations
   FunctionSet<Reward> getMaxQ(const SizeVec& elimination_order);
+  /// \brief Returns the Q-function maximized over all actions
+  /// Runs variable elimination (default action ordering)
+  FunctionSet<Reward> getMaxQ() {
+    const SizeVec elim_order = cpputil::ordered_vec<Size>(_domain->getNumActionFactors(), _domain->getNumStateFactors());
+    return getMaxQ(elim_order);
+  }
 };
 typedef boost::shared_ptr<_FactoredValueFunction> FactoredValueFunction;
 
