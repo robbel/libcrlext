@@ -45,6 +45,7 @@ config.CheckCXXHeader('cpputil.hpp')
 config.CheckCXXHeader('boost/shared_ptr.hpp')
 config.CheckLibWithHeader('crl', 'crl/crl.hpp', 'cpp')
 config.CheckLibWithHeader('env', 'crl/env_ffg.hpp', 'cpp')
+config.CheckLibWithHeader('graphprop', 'crl/env_graphprop.hpp', 'cpp')
 config.CheckCXXHeader('rlglue/Agent_common.h')
 has_spudd = config.CheckLib('spudd', language='C++')
 env = config.Finish()
@@ -60,7 +61,7 @@ bin_targets += [alp]
 dbn = env.Program(bin.Entry('dbn'), dbn_sources, LIBS=['env','crl','pthread','gtest','gtest_main'])
 bin_targets += [dbn]
 if has_spudd:
-        spudd = env.Program(bin.Entry('spudd'), spudd_sources, LIBS=['env','crl','pthread','gtest','gtest_main'])
+        spudd = env.Program(bin.Entry('spudd'), spudd_sources, LIBS=['env','graphprop','crl','pthread','gtest','gtest_main'])
         bin_targets += [spudd]
 
 if prefix != Dir('.'):

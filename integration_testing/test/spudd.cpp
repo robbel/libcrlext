@@ -10,8 +10,10 @@
  */
 
 #include <gtest/gtest.h>
+#include <fstream>
 
 #include "crl/env_sysadmin.hpp"
+#include "crl/env_graphprop.hpp"
 #include "crl/conversions.hpp"
 #include "logger.hpp"
 
@@ -20,7 +22,7 @@ using namespace crl;
 using namespace cpputil;
 
 //
-// More complex integration test that runs the SPUDD exporter on the SysAdmin problem
+// More complex integration test that runs the SPUDD exporter on the SysAdmin and GraphProp problems
 //
 
 TEST(SPUDDIntegrationTest, TestSysadmin) {
@@ -34,6 +36,36 @@ TEST(SPUDDIntegrationTest, TestSysadmin) {
     LOG_INFO(fmdp->T());
 
     EXPECT_EQ(exportToSpudd(fmdp, domain, 0.99, "sysadmin_ring_4", "sysadmin_ring_4.spudd"), 0);
+
+  }
+  catch(const cpputil::Exception& e) {
+    cerr << e << endl;
+    FAIL();
+  }
+
+  SUCCEED();
+}
+
+TEST(SPUDDIntegrationTest, TestGraphProp) {
+  srand(time(NULL));
+
+  try {
+    string cfg = "../data/default.xml";
+    string data = "../data/Gnp100.txt";
+    ifstream iscfg(cfg);
+    ifstream isdat(data);
+    graphprop::GraphProp thegrp;
+
+    if(!(thegrp = readGraphProp(iscfg, isdat))) {
+      LOG_ERROR("Error while reading from " << cfg << " or " << data);
+      FAIL();
+    }
+
+    Domain domain = thegrp->getDomain();
+    FactoredMDP fmdp = thegrp->getFactoredMDP();
+    LOG_INFO(fmdp->T());
+
+    EXPECT_EQ(exportToSpudd(fmdp, domain, 0.99, "graphprop_gnp_100", "graphprop_gnp_100.spudd"), 0);
 
   }
   catch(const cpputil::Exception& e) {
