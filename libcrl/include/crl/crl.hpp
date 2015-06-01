@@ -44,8 +44,8 @@ public:
 	_Observation(const State& s, Reward r)
 	: _s(s), _r(r) { }
 
-	State getState() const {return _s;}
-	Reward getReward() const {return _r;}
+	virtual const State& getState() const {return _s;}
+	virtual Reward getReward() const {return _r;}
 };
 typedef boost::shared_ptr<_Observation> Observation;
 
@@ -234,6 +234,9 @@ public:
  */
 class _Environment {
 public:
+        typedef State state_t;
+        typedef Observation observation_t;
+
 	virtual ~_Environment() { }
 
 	virtual State begin() = 0;
@@ -245,15 +248,37 @@ typedef boost::shared_ptr<_Environment> Environment;
 /**
  * The compbination of an agent and an environment along with execution code for the experiment.
  */
-class _Experiment {
+template<class T>
+class _ExperimentBase {
 protected:
-	Environment _environment;
+	boost::shared_ptr<T> _environment;
 	Agent _agent;
 	int _num_trials;
 public:
-	_Experiment(const Environment& environment, const Agent& agent, int num_trials=1);
-	Reward runExperiment();
+        _ExperimentBase(const boost::shared_ptr<T>& environment, const Agent& agent, int num_trials=1)
+        : _environment(environment), _agent(agent), _num_trials(num_trials) { }
+
+        Reward runExperiment() {
+          Reward total = 0;
+          for (int trial=0; trial<_num_trials; trial++) {
+  //		cout << "******" << endl;
+                  typename T::state_t s = _environment->begin();
+                  _agent->begin(s);
+                  while (!_environment->isTerminated()) {
+  //			cout << " step" << endl;
+                          Action a = _agent->getAction(s);
+                          typename T::observation_t o = _environment->getObservation(a);
+  //			cout << s << ", " << a << " -> " << o << endl;
+                          s = o->getState();
+                          total += o->getReward();
+                          _agent->observe(o);
+                  }
+                  _agent->end();
+          }
+          return total;
+        }
 };
+typedef _ExperimentBase<_Environment> _Experiment;
 typedef boost::shared_ptr<_Experiment> Experiment;
 
 /**

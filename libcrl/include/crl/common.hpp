@@ -150,7 +150,7 @@ protected:
 	RLType(const RangeVec* ranges, const SizeVec* components, Size index)
 	: _ranges(ranges), _components(components), _index(index) { }
 public:
-	Size size() const {
+	virtual Size size() const {
 		if (!_ranges) {
 			throw NullObjectException();
 		}
@@ -160,7 +160,7 @@ public:
 	///
 	/// \brief set the value associated with the \a Factor at \a index
 	///
-	void setFactor(Size index, Factor data) {
+	virtual void setFactor(Size index, Factor data) {
 		if (!_ranges) {
 			throw NullObjectException();
 		}
@@ -172,7 +172,7 @@ public:
 	///
 	/// \brief get the value associated with the \a Factor at \a index.
 	///
-	const Factor getFactor(Size index) const {
+	virtual const Factor getFactor(Size index) const {
 		if (!_ranges) {
 			throw NullObjectException();
 		}
@@ -192,13 +192,15 @@ public:
 	Size getIndex() const {
 		return _index;
 	}
+
+	virtual void print(std::ostream& os) const;
+
 	/**
 	 * typecast operator for the type Size
 	 */
 	operator Size() const {
 		return _index;
 	}
-	void print(std::ostream& os) const;
 	bool operator<(const RLType& r) const {
 		return getIndex() < r.getIndex();
 	}
@@ -208,7 +210,7 @@ public:
 	/**
 	 * returns true if this is an actual state or action (and not a nullptr)
 	 */
-	operator bool() const {
+	virtual operator bool() const {
 		return _ranges != 0;
 	}
 };

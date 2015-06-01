@@ -34,7 +34,12 @@ void _Domain::addStateFactor(Factor min, Factor max, string name) {
 	FactorRange r(min, max);
 	_state_ranges.push_back(r);
 	_state_index_components.push_back(_num_states);
+	// detect unsigned `overflow' (i.e., modulo) in large domains
+	Size num_states = _num_states;
 	_num_states *= r.getSpan()+1;
+	if(_num_states < num_states) {
+	  _num_states = 0;
+	}
 	_state_names.push_back(name);
 }
 void _Domain::addActionFactor(Factor min, Factor max, string name) {
@@ -119,28 +124,4 @@ bool _Agent::observe(const Observation& o) {
 Action _Agent::getAction(const State& s) {
 	_last_action = _planner->getAction(s);
 	return _last_action;
-}
-
-_Experiment::_Experiment(const Environment& environment, const Agent& agent, int num_trials)
-: _environment(environment), _agent(agent), _num_trials(num_trials) {
-
-}
-Reward _Experiment::runExperiment() {
-	Reward total = 0;
-	for (int trial=0; trial<_num_trials; trial++) {
-//		cout << "******" << endl;
-		State s = _environment->begin();
-		_agent->begin(s);
-		while (!_environment->isTerminated()) {
-//			cout << " step" << endl;
-			Action a = _agent->getAction(s);
-			Observation o = _environment->getObservation(a);
-//			cout << s << ", " << a << " -> " << o << endl;
-			s = o->getState();
-			total += o->getReward();
-			_agent->observe(o);
-		}
-		_agent->end();
-	}
-	return total;
 }

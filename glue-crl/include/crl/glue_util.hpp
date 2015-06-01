@@ -29,7 +29,7 @@
 /// \brief For interfacing with rl-glue: populate an \a observation_t from \a crl::State
 /// \see glue_env.cpp in glue-crl library
 ///
-void populateState(crl::Domain domain, crl::State s, observation_t* obs);
+void populateState(crl::Domain domain, const crl::State& s, observation_t* obs);
 
 ///
 /// \brief For interfacing with rl-glue: populate an \a action_t from \a crl::Action

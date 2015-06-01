@@ -26,7 +26,7 @@
 /// \brief For interfacing with rl-glue: populate an \a observation_t from \a crl::BigState
 /// \see glue_bigenv.cpp in graphprop library
 ///
-void populateBigState(crl::Domain domain, crl::BigState s, observation_t* obs);
+void populateState(crl::Domain domain, const crl::State& s, observation_t* obs);
 
 ///
 /// \brief For interfacing with rl-glue: return an \a crl::Action from an \a action_t

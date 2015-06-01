@@ -22,6 +22,7 @@ namespace crl {
  * \brief A big state in a \a Domain (i.e., as per structure definition there)
  * Unlike a \a State, the \a BigState does not use numerical indexing to support domains with
  * more than 2^64 states.
+ * \note There is still the assumption that all subdomains (e.g., function domains) fit in a regular \a State.
  */
 class BigState : public State {
 private:
@@ -32,6 +33,8 @@ private:
         using RLType::setIndex;
         using RLType::getIndex;
         using RLType::operator Size;
+        using RLType::operator<;
+        using RLType::operator==;
 protected:
         /// \brief The vector of state factor values
         FactorVec _values;
@@ -43,41 +46,31 @@ public:
 	BigState(const Domain& domain, const FactorVec& index)
 	: State(), _values(index) { }
 
-	Size size() const {
+	virtual Size size() const override {
 	  return _values.size();
 	}
 
 	///
 	/// \brief set the value associated with the \a Factor at \a index
 	///
-	void setFactor(Size index, Factor data) {
+	virtual void setFactor(Size index, Factor data) override {
 	  _values[index] = data;
 	}
 	///
 	/// \brief get the value associated with the \a Factor at \a index.
 	///
-	const Factor getFactor(Size index) const {
+	virtual const Factor getFactor(Size index) const override {
 	  return _values[index];
 	}
 
-	void print(std::ostream& os) const;
+	virtual void print(std::ostream& os) const override;
 	bool operator==(const BigState& r) const {
 		return _values == r._values;
 	}
-	operator bool() const {
+	virtual operator bool() const override {
 		return !_values.empty();
 	}
 };
-
-inline std::ostream& operator<<(std::ostream& os, const BigState& s) {
-	os << "s[";
-	if (!s)
-		os << ".";
-	else
-		s.print(os);
-	os << "]";
-	return os;
-}
 
 /**
  * A pair of BigState,Reward is referred to as a BigObservation
@@ -93,7 +86,7 @@ public:
 	_BigObservation(const BigState& s, Reward r)
 	: _Observation(State(), r), _big_s(s) { }
 
-	BigState getState() const {return _big_s;}
+	virtual const State& getState() const override {return _big_s;}
 };
 typedef boost::shared_ptr<_BigObservation> BigObservation;
 
@@ -101,10 +94,13 @@ typedef boost::shared_ptr<_BigObservation> BigObservation;
  * Interface for a big RL environment that starts in one \a BigState and generates successor \a BigObservation
  * given an agent action.
  * \note This is for large environments with more than 2^64 states (e.g., \a GraphProp)
- * \note A _BigEnvironment is not an _Environment and may potentially only be used through rl-glue wrapper
+ * \note A _BigEnvironment is not an _Environment
  */
 class _BigEnvironment {
 public:
+        typedef BigState state_t;
+        typedef BigObservation observation_t;
+
 	virtual ~_BigEnvironment() { }
 
 	virtual BigState begin() = 0;
@@ -112,6 +108,12 @@ public:
 	virtual BigObservation getObservation(const Action& a) = 0;
 };
 typedef boost::shared_ptr<_BigEnvironment> BigEnvironment;
+
+/**
+ * An experiment interface for a \a BigEnvironment.
+ */
+typedef _ExperimentBase<_BigEnvironment> _BigExperiment;
+typedef boost::shared_ptr<_BigExperiment> BigExperiment;
 
 } // namespace crl
 

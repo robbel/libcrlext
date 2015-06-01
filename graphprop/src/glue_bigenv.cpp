@@ -26,7 +26,7 @@ using namespace crl;
 // glue-util replacement
 //
 
-void populateBigState(Domain domain, BigState s, observation_t* obs) {
+void populateState(Domain domain, const State& s, observation_t* obs) {
 	for (Size i=0; i<domain->getNumStateFactors(); i++) {
 		obs->intArray[i] = s.getFactor(i);
 	}
@@ -164,7 +164,7 @@ extern "C" const char* env_init()
 extern "C" const observation_t* env_start()
 {
 	BigState s = _env->begin();
-	populateBigState(_domain_env, s, &this_observation);
+	populateState(_domain_env, s, &this_observation);
 	return &this_observation;
 }
 
@@ -176,7 +176,7 @@ extern "C" const reward_observation_terminal_t* env_step(const action_t* this_ac
 {
 	Action a = getAction(_domain_env, this_action);
 	BigObservation o = _env->getObservation(a);
-	populateBigState(_domain_env, o->getState(), &this_observation);
+	populateState(_domain_env, o->getState(), &this_observation);
 	this_reward_observation.observation = &this_observation;
 	this_reward_observation.reward = o->getReward();
 	this_reward_observation.terminal = _env->isTerminated();

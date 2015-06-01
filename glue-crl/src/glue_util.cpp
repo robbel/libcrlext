@@ -27,7 +27,7 @@ using namespace std;
 
 using namespace crl;
 
-void populateState(Domain domain, State s, observation_t* obs) {
+void populateState(Domain domain, const  State& s, observation_t* obs) {
 	for (Size i=0; i<domain->getNumStateFactors(); i++) {
 		obs->intArray[i] = s.getFactor(i);
 	}

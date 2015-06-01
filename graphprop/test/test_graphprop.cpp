@@ -52,6 +52,7 @@ void GraphPropTest::SetUp() {
     }
 
     _domain = thegrp->getDomain();
+    ASSERT_TRUE(_domain->size() == 0); // by definition of a domain with more than 2^64 states
     _fmdp = thegrp->getFactoredMDP();
   }
   catch(const cpputil::Exception& e) {
@@ -87,6 +88,10 @@ TEST(GraphPropBasicTest, AdjacencyTransposeTest) {
       EXPECT_EQ(tbl.getValue(j,10), 3);
       EXPECT_EQ(tbl.getValue(j,99), 4);
   }
+
+  BigState bs(domain);
+  bs.setFactor(3,1);
+  LOG_INFO(bs);
 }
 
 TEST_F(GraphPropTest, DBNTest) {
