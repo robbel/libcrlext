@@ -51,7 +51,7 @@ Agent crl::getCRLAgent(Domain domain) {
 }
 
 StateMapper crl::getStateMapper() {
-	return StateMapper();
+	return nullptr;
 }
 
 char params[256];

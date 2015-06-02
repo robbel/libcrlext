@@ -111,6 +111,10 @@ public:
 	Size size() const {
 	  return _num_states * _num_actions;
 	}
+	/// \brief True if domain exceeds 2^64 states
+	bool isBig() const {
+	  return !_num_states;
+	}
 
 	void addStateFactor(Factor min, Factor max, std::string name="");
 	void addActionFactor(Factor min, Factor max, std::string name="");

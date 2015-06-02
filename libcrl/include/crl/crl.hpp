@@ -247,6 +247,8 @@ typedef boost::shared_ptr<_Environment> Environment;
 
 /**
  * The compbination of an agent and an environment along with execution code for the experiment.
+ * Currently does not use a \a StateMapper as the glue-crl version.
+ * \note Supports both _Environment and _BigEnvironment as template parameters.
  */
 template<class T>
 class _ExperimentBase {

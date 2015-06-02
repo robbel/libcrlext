@@ -1,10 +1,8 @@
 cfgs/default.xml
 data/Gnp100.txt
 data/reg100k3.txt
-include/crl/bigindex.hpp
 include/crl/env_graphprop.hpp
 include/crl/glue_bigenv.hpp
-src/bigindex.cpp
 src/env_graphprop.cpp
 src/glue_bigenv.cpp
 src/glue_graphprop.cpp

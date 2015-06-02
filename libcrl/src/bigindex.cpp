@@ -13,6 +13,7 @@
 
 namespace crl {
 
+// Note: can be removed
 void BigState::print(std::ostream& os) const {
 	for (Size i=0; i<size(); i++) {
 		if (i != 0)

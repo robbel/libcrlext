@@ -23,6 +23,7 @@
 #define GLUE_AGENT_HPP_
 
 #include <crl/crl.hpp>
+#include <crl/bigindex.hpp>
 #include <rlglue/utils/C/TaskSpec_Parser.h>
 
 namespace crl {
@@ -32,23 +33,32 @@ namespace crl {
 /// This can be used to convert between, e.g., a continuous rl-glue domain to a discretized crl::Domain.
 /// \see _AcrobotMapper
 ///
-class _StateMapper {
+template<class S>
+class _StateMapperBase {
 public:
-	virtual ~_StateMapper() { }
+	using state_t = S;
+
+	virtual ~_StateMapperBase() { }
 	virtual Domain getDomain(Domain old_domain, taskspec_t* task_spec) {
 		return old_domain;
 	}
-	virtual State getState(Domain domain, const observation_t* obs) {
-		State s(domain);
+	virtual S getState(Domain domain, const observation_t* obs) {
+		S s(domain);
 		for (Size i=0; i<domain->getNumStateFactors(); i++)
 			s.setFactor(i, obs->intArray[i]);
 		return s;
 	}
 };
+template<class S>
+using StateMapperBase = boost::shared_ptr<_StateMapperBase<S>>;
+typedef _StateMapperBase<State> _StateMapper;
 typedef boost::shared_ptr<_StateMapper> StateMapper;
+typedef _StateMapperBase<BigState> _BigStateMapper;
+typedef boost::shared_ptr<_BigStateMapper> BigStateMapper;
 
 ///
 /// \brief Construct and obtain \a StateMapper for the desired \a crl::Agent
+/// \note Does not currently support custom state mappers for big domains (> 2^64 states)
 /// \see agent_init()
 ///
 StateMapper getStateMapper();

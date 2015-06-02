@@ -35,7 +35,7 @@ Agent crl::getCRLAgent(Domain domain) {
 }
 
 StateMapper crl::getStateMapper() {
-	return StateMapper();
+	return nullptr;
 }
 
 extern "C" const char* agent_message(const char* inMessage) {

@@ -2,6 +2,7 @@ include/crl/algorithm.hpp
 include/crl/alp.hpp
 include/crl/alp_gurobi.hpp
 include/crl/alp_lpsolve.hpp
+include/crl/bigindex.hpp
 include/crl/common.hpp
 include/crl/conversions.hpp
 include/crl/crl.hpp
@@ -28,6 +29,7 @@ include/logger.hpp
 src/alp.cpp
 src/alp_gurobi.cpp
 src/alp_lpsolve.cpp
+src/bigindex.cpp
 src/conversions.cpp
 src/crl.cpp
 src/dbn.cpp

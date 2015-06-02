@@ -20,6 +20,7 @@
  */
 
 #include <iostream>
+#include <cassert>
 #include <rlglue/Agent_common.h>
 #include <crl/crl.hpp>
 #include <crl/rmax.hpp>
@@ -70,6 +71,7 @@ class _AcrobotMapper : public _StateMapper {
 public:
 	virtual ~_AcrobotMapper() { }
 	virtual Domain getDomain(Domain old_domain, taskspec_t* task_spec) {
+		assert(!old_domain->isBig());
 		_task_spec = task_spec;
 		Domain domain(new _Domain());
 		domain->addStateFactor(-20, 20);
@@ -81,7 +83,7 @@ public:
 		return domain;
 	}
 	virtual State getState(Domain domain, const observation_t* obs) {
-
+		assert(!domain->isBig());
 		State s(domain);
 
 		for (Size i=0; i<domain->getNumStateFactors(); i++) {

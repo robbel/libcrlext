@@ -141,7 +141,7 @@ Agent crl::getCRLAgent(Domain domain) {
 }
 
 StateMapper crl::getStateMapper() {
-	return StateMapper(new _StateMapper());
+	return nullptr;
 }
 
 const char* agent_message(const char* inMessage) {

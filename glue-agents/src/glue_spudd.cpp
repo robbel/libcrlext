@@ -47,7 +47,7 @@ Agent getCRLAgent(Domain domain) {
 }
 
 StateMapper getStateMapper() {
-    return StateMapper();
+    return nullptr;
 }
 
 } // namespace crl
