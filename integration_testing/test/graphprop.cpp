@@ -56,9 +56,13 @@ TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
   string data = "../../graphprop/data/reg100k3.txt";
   ifstream iscfg(cfg);
   ifstream isdat(data);
-  graphprop::GraphProp thegrp = readGraphProp(iscfg, isdat);
-  Domain domain = thegrp->getDomain();
+  graphprop::GraphProp thegrp;
+  if(!(thegrp = readGraphProp(iscfg, isdat))) {
+    LOG_ERROR("Error while reading from " << cfg << " or " << data);
+    FAIL();
+  }
 
+  Domain domain = thegrp->getDomain();
   FactoredMDP fmdp = thegrp->getFactoredMDP();
   LOG_INFO(fmdp->T());
 
@@ -164,7 +168,7 @@ TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
     }
 
     // compute maximum value for a specific state
-    State js(domain);
+    BigState js(domain);
     js.setFactor(0,1);
     js.setFactor(1,1);
     // eliminate only action variables, in order
