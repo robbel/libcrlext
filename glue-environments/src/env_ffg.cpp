@@ -29,7 +29,8 @@ _FireFightingGraph::_FireFightingGraph(Domain domain)
     _num_houses = _domain->getNumStateFactors();
     _num_agents = _domain->getNumActionFactors();
     // some basic parameter checks..
-    if(_num_houses <= 0 ||
+    if(_domain->isBig() ||
+       _num_houses <= 0 ||
        _num_agents <= 0 ||
        !in_pos_interval(_num_agents, _num_houses)) {
       throw InvalidException("House or agent number invalid in supplied domain.");

@@ -1,5 +1,5 @@
 <FFG>
   <Houses count="3"/>
-  <Agents count="2">01</Agents>
+  <Agents count="2">0,1</Agents>
   <FireLevels count="3"/>
 </FFG>
