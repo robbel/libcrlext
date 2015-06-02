@@ -70,8 +70,8 @@ protected:
 	OutcomeClusterLearner _cluster_learner;
 	Size num_steps;
 public:
-	_OutcomeClusterAgent(BOSSPlanner boss_planner, OutcomeClusterLearner cluster_learner)
-	: _Agent(boss_planner, cluster_learner),
+	_OutcomeClusterAgent(const Domain& domain, BOSSPlanner boss_planner, OutcomeClusterLearner cluster_learner)
+	: _Agent(domain, boss_planner, cluster_learner),
 	  _boss_planner(boss_planner), _cluster_learner(cluster_learner) {
 		_cluster_learner->setGSLRandom(gsl_random);
 		num_steps = 0;
@@ -205,7 +205,7 @@ Agent crl::getCRLAgent(Domain domain) {
 	BOSSPlanner planner(new _BOSSPlanner(_epsilon, _gamma, qtable));
 	OutcomeClusterLearner mdp_learner(new _OutcomeClusterLearner(domain, the_outcomes, _alpha, _m, _t_priors, _alpha_prior, _beta_prior));
 
-	Agent agent(new _OutcomeClusterAgent(planner, mdp_learner));
+	Agent agent(new _OutcomeClusterAgent(domain, planner, mdp_learner));
 	return agent;
 }
 

@@ -182,8 +182,8 @@ protected:
 	State& _last_state;
 	Action _last_action;
 public:
-	_Agent(Planner planner);
-	_Agent(Planner planner, Learner learner);
+	_Agent(const Domain& domain, Planner planner);
+	_Agent(const Domain& domain, Planner planner, Learner learner);
 	virtual ~_Agent() { }
 
 	virtual void begin(const State& s);
@@ -205,8 +205,8 @@ typedef boost::shared_ptr<_Agent> Agent;
  */
 class _PolicyAgent : public _Agent {
 public:
-    _PolicyAgent(Policy policy)
-    : _Agent(policy) { }
+    _PolicyAgent(const Domain& domain, Policy policy)
+    : _Agent(domain, policy) { }
     virtual ~_PolicyAgent() { }
     virtual bool observe(const Observation& o) override {
         return false;

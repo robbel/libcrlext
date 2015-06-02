@@ -62,7 +62,7 @@ Agent crl::getCRLAgent(Domain domain) {
 	*/
 
 	VIPlanner planner(new _FlatVIPlanner(domain, rmaxLearner, _epsilon, _gamma));
-	Agent agent(new _Agent(planner, rmaxLearner));
+	Agent agent(new _Agent(domain, planner, rmaxLearner));
 	return agent;
 }
 

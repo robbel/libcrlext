@@ -46,7 +46,6 @@ protected:
 	FCounter _sa_counter;
 	gsl_rng* _gsl_random;
 	Size _m;
-	State _last_state;
 public:
 	_OutcomeClusterLearner(const Domain& domain, const std::vector<Outcome>& outcomes, Probability alpha, Size m, Size t_priors, float alpha_prior, float beta_prior);
 	virtual ~_OutcomeClusterLearner() { }

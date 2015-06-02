@@ -197,14 +197,14 @@ void testExperiment(Domain domain) {
 
 	VIPlanner planner1(new _FlatVIPlanner(domain, mdp, .0001, .9));
 	planner1->plan();
-	Agent agent1(new _Agent(planner1));
+	Agent agent1(new _Agent(domain, planner1));
 
 /*
 	UCTPlanner planner2(new _FlatUCTPlanner(domain, mdp, 1, 1, false, true));
 	planner2->setRunLimit(0);
 	planner2->setTimeLimit(100);
 	planner2->setConfidenceCoeff(1);
-	Agent agent2(new _Agent(planner2));
+	Agent agent2(new _Agent(domain, planner2));
 */
 	Environment env(new _MDPEnvironment(mdp, s));
 

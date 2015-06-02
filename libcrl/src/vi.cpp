@@ -109,8 +109,8 @@ QTable _VIPlanner::getQTable() {
 	return _qtable;
 }
 
-_VIPlannerAgent::_VIPlannerAgent(VIPlanner planner, Learner learner)
-: _Agent(planner, learner) {
+_VIPlannerAgent::_VIPlannerAgent(const Domain& domain, VIPlanner planner, Learner learner)
+: _Agent(domain, planner, learner) {
 
 }
 

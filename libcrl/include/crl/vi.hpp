@@ -116,7 +116,7 @@ typedef boost::shared_ptr<_HashedVIPlanner> HashedVIPlanner;
  */
 class _VIPlannerAgent : public _Agent {
 public:
-	_VIPlannerAgent(VIPlanner planner, Learner learner);
+	_VIPlannerAgent(const Domain& domain, VIPlanner planner, Learner learner);
 	virtual ~_VIPlannerAgent() { }
 	virtual bool observe(const Observation& o);
 };

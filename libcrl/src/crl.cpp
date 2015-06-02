@@ -100,12 +100,12 @@ void _MDP::printXML(std::ostream& os) {
 	os << "</MDP>" << endl;
 }
 
-_Agent::_Agent(Planner planner)
-: _planner(planner), _last_state(stateImpl._s) {
+_Agent::_Agent(const Domain& domain, Planner planner)
+: _planner(planner), _last_state(domain->isBig() ? stateImpl._big_s : stateImpl._s) {
 
 }
-_Agent::_Agent(Planner planner, Learner learner)
-: _planner(planner), _learner(learner), _last_state(stateImpl._s) {
+_Agent::_Agent(const Domain& domain, Planner planner, Learner learner)
+: _planner(planner), _learner(learner), _last_state(domain->isBig() ? stateImpl._big_s : stateImpl._s) {
 
 }
 void _Agent::begin(const State& s) {

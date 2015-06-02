@@ -36,7 +36,7 @@ Agent getCRLAgent(Domain domain) {
     try {
         Learner learner;
         Policy policy(new _SpuddPolicy(domain, _policy_file));
-        agent = boost::make_shared<_Agent>(policy, learner);
+        agent = boost::make_shared<_Agent>(domain, policy, learner);
     }
     catch(const cpputil::Exception& e) {
         LOG_FATAL(e);

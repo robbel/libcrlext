@@ -136,7 +136,7 @@ Agent crl::getCRLAgent(Domain domain) {
 		planner = uct_planner;
 	}
 
-	Agent agent(new _Agent(planner));
+	Agent agent(new _Agent(domain, planner));
 	return agent;
 }
 

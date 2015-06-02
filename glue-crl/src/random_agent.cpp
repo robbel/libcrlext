@@ -30,7 +30,7 @@ using namespace crl;
 Agent crl::getCRLAgent(Domain domain) {
 	Learner learner;
 	Policy policy(new _RandomPolicy(domain));
-	Agent agent(new _Agent(policy, learner));
+	Agent agent(new _Agent(domain, policy, learner));
 	return agent;
 }
 

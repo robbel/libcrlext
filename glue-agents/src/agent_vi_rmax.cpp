@@ -46,7 +46,7 @@ Agent crl::getCRLAgent(Domain domain) {
 
 	RMaxMDPLearner rmaxLearner(new _RMaxMDPLearner(mdp_learner, classifier, itr, vmax));
 	VIPlanner planner(new _FlatVIPlanner(domain, rmaxLearner, _epsilon, _gamma));
-	VIPlannerAgent agent(new _VIPlannerAgent(planner, rmaxLearner));
+	VIPlannerAgent agent(new _VIPlannerAgent(domain, planner, rmaxLearner));
 	return agent;
 }
 

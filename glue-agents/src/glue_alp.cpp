@@ -46,7 +46,7 @@ Agent getCRLAgent(Domain domain) {
   Agent agent;
   try {
     Learner learner;
-    agent = boost::make_shared<_Agent>(_alpp, learner);
+    agent = boost::make_shared<_Agent>(domain, _alpp, learner);
   }
   catch(const cpputil::Exception& e) {
     LOG_FATAL(e);

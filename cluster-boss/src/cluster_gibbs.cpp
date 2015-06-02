@@ -54,7 +54,6 @@ void _OutcomeClusterLearner::print() {
 	_outcome_table->print();
 }
 bool _OutcomeClusterLearner::observe(const State& s, const Action& a, const Observation& o) {
-	_last_state = s;
 	_sa_counter->observe(s, a, o);
 	bool learned = false;
 	if (_sa_counter->getCount(s, a) <= _m)// && _sa_counter->getCount(s, a) >= _m/2)
