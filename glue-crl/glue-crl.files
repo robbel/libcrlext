@@ -4,6 +4,7 @@ include/crl/glue_util.hpp
 src/glue_agent.cpp
 src/glue_env.cpp
 src/glue_util.cpp
+src/null_agent.cpp
 src/random_agent.cpp
 src/walk_env.cpp
 README

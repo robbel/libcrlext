@@ -41,6 +41,9 @@ crl/glue_util.hpp
 random_agent_sources = """
 random_agent.cpp
 """.split()
+null_agent_sources = """
+null_agent.cpp
+""".split()
 walk_env_sources = """
 walk_env.cpp
 """.split()
@@ -49,6 +52,7 @@ walk_env.cpp
 agent_sources = [build.File(source) for source in agent_sources]
 env_sources = [build.File(source) for source in env_sources]
 random_agent_sources = [build.File(source) for source in random_agent_sources]
+null_agent_sources = [build.File(source) for source in null_agent_sources]
 walk_env_sources = [build.File(source) for source in walk_env_sources]
 
 env = Environment(tools = ["default", "tools"], toolpath = '.',
@@ -79,11 +83,12 @@ librlcrlagent = env.SharedLibrary(lib.File('librlcrlagent'+shared_lib_suffix), a
 librlcrlenv = env.SharedLibrary(lib.File('librlcrlenv'+shared_lib_suffix), env_sources)
 lib_targets += [librlcrlagent, librlcrlenv]
 random_agent = env.Program(bin.Entry('random_agent'), random_agent_sources, LIBS=['crl', 'rlgnmagent', 'librlcrlagent', 'rlutils', 'rlgluenetdev'])
+null_agent = env.Program(bin.Entry('null_agent'), null_agent_sources, LIBS=['crl', 'rlgnmagent', 'librlcrlagent', 'rlutils', 'rlgluenetdev'])
 walk_env = env.Program(bin.Entry('walk_env'), walk_env_sources,
                        LIBS=['crl', 'rlgnmenv', 'librlcrlenv',
                              'rlutils',
                              'rlgluenetdev'])
-bin_targets += [random_agent, walk_env]
+bin_targets += [random_agent, null_agent, walk_env]
 
 	
 if prefix != Dir('.'):
@@ -105,12 +110,13 @@ dist_files += [inc.Entry(header) for header in headers+invis_headers]
 agent_sources = [build.File(source) for source in agent_sources]
 env_sources = [build.File(source) for source in env_sources]
 random_agent_sources = [build.File(source) for source in random_agent_sources]
+null_agent_sources = [build.File(source) for source in null_agent_sources]
 walk_env_sources = [build.File(source) for source in walk_env_sources]
 
 dist_files += [src.Entry(s) for s in agent_sources] 
 dist_files += [src.Entry(s) for s in env_sources] 
 dist_files += [src.Entry(s) for s in random_agent_sources] 
+dist_files += [src.Entry(s) for s in null_agent_sources] 
 dist_files += [src.Entry(s) for s in walk_env_sources] 
 
 env.Alias('dist', env.DistTar('glue-crl.tar.gz', dist_files))
-	

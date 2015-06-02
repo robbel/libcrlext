@@ -152,6 +152,22 @@ public:
 typedef boost::shared_ptr<_RandomPolicy> RandomPolicy;
 
 /**
+ * A simple policy (no planning) that always chooses 0 (no action)
+ */
+class _NullPolicy : public _Policy {
+protected:
+	Domain _domain;
+public:
+	_NullPolicy(const Domain& domain)
+	: _domain(domain) { }
+	virtual ~_NullPolicy() { }
+	virtual Action getAction(const State& s) override {
+		return Action(_domain,0);
+	}
+};
+typedef boost::shared_ptr<_NullPolicy> NullPolicy;
+
+/**
  * Interface for something that learns from experience.
  * \note State and Observation are polymorphic types (e.g., also BigState, BigObservation)
  */
