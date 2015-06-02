@@ -243,12 +243,12 @@ void _FireFightingGraph::setAgentLocs(std::string locs) {
     if(locs.empty()) {
         //TODO: randomize assignment
         cerr << "Location randomization not implemented yet" << endl;
-    } else if(locs.length() != _num_agents) {
-        throw InvalidException("Agent number is different from length of location string.");
     }
 
-    for(auto c : locs) {
-        Size loc = c - '0'; // convert char to unsigned
+    std::stringstream stream(locs);
+    string tok;
+    while(std::getline(stream, tok, ',')) {
+        Size loc = std::stoull(tok);
         if(in_pos_interval(loc, _num_houses-1)) {
             _house_map.emplace(loc, _agent_locs.size());
             _house_map.emplace(loc+1, _agent_locs.size());
@@ -256,6 +256,9 @@ void _FireFightingGraph::setAgentLocs(std::string locs) {
         } else {
             throw InvalidException("Invalid agent location in location string.");
         }
+    }
+    if(_agent_locs.size() != _num_agents) {
+      throw InvalidException("Agent number is different from those in location string.");
     }
 }
 

@@ -202,6 +202,9 @@ void _GraphProp::setAgentLocs(Size num_agents, std::string locs) {
   if(cpputil::has_intersection(_agent_locs.begin(), _agent_locs.end(), _target_locs.begin(), _target_locs.end())) {
     throw InvalidException("Agent set and Target set have to be distinct.");
   }
+  if(_agent_locs.size() != num_agents) {
+    throw InvalidException("Agent number is different from those in location string.");
+  }
 }
 
 void _GraphProp::setTargetLocs(Size num_targets, std::string locs) {
@@ -213,6 +216,9 @@ void _GraphProp::setTargetLocs(Size num_targets, std::string locs) {
       parseLocation(locs, _num_nodes, _target_locs, _target_active);
       if(cpputil::has_intersection(_agent_locs.begin(), _agent_locs.end(), _target_locs.begin(), _target_locs.end())) {
           throw InvalidException("Agent set and Target set have to be distinct.");
+      }
+      if(_target_locs.size() != num_targets) {
+        throw InvalidException("Target number is different from those in location string.");
       }
   }
   else {
