@@ -22,4 +22,27 @@ void BigState::print(std::ostream& os) const {
 	}
 }
 
+State& BigState::operator=(const State& rhs) noexcept {
+  const BigState* p = dynamic_cast<const BigState*>(&rhs);
+  if(p) {
+      return operator=(*p);
+  }
+//  else {
+//  }
+
+  return *this;
+}
+
+State& BigState::operator=(State&& rhs) noexcept {
+  BigState* p = dynamic_cast<BigState*>(&rhs);
+  if(p) {
+      return operator=(std::move(*p));
+  }
+//  else {
+//  }
+
+  return *this;
+}
+
+
 } // namespace crl

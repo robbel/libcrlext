@@ -235,6 +235,12 @@ public:
 	: RLType(&(domain->getStateRanges()),
 		 &(domain->getStateIndexComponents()),
 		 index) { }
+	/// \brief Support polymorphic assignments in derived classes
+	/// \see BigState
+	State(const State& rhs) = default;
+	virtual State& operator=(const State&) = default;
+	State(State&& rhs) = default;
+	virtual State& operator=(State&&) = default;
 };
 
 ///
@@ -272,6 +278,28 @@ inline std::ostream& operator<<(std::ostream& os, const Action& a) {
 	else
 		a.print(os);
 	os << "]";
+	return os;
+}
+
+///
+/// A pair of state,reward is referred to as an observation
+///
+class _Observation {
+protected:
+	State _s;
+	Reward _r;
+public:
+	_Observation(const State& s, Reward r)
+	: _s(s), _r(r) { }
+
+	virtual const State& getState() const {return _s;}
+	virtual Reward getReward() const {return _r;}
+};
+typedef boost::shared_ptr<_Observation> Observation;
+
+/// \brief Stream output of an \a Observation
+inline std::ostream& operator<<(std::ostream& os, const Observation& o) {
+	os << "o{" << o->getState() << "," << o->getReward() << "}";
 	return os;
 }
 

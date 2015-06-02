@@ -101,11 +101,11 @@ void _MDP::printXML(std::ostream& os) {
 }
 
 _Agent::_Agent(Planner planner)
-: _planner(planner) {
+: _planner(planner), _last_state(stateImpl._s) {
 
 }
 _Agent::_Agent(Planner planner, Learner learner)
-: _planner(planner), _learner(learner) {
+: _planner(planner), _learner(learner), _last_state(stateImpl._s) {
 
 }
 void _Agent::begin(const State& s) {

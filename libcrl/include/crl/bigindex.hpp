@@ -14,7 +14,6 @@
 
 #include <iostream>
 #include <crl/common.hpp>
-#include <crl/crl.hpp>
 
 namespace crl {
 
@@ -70,6 +69,9 @@ public:
 	virtual operator bool() const override {
 		return !_values.empty();
 	}
+	/// \brief Support polymorphic assignments to base class
+	virtual State& operator=(const State&) noexcept override;
+	virtual State& operator=(State&&) noexcept override;
 };
 
 /**
@@ -112,6 +114,7 @@ typedef boost::shared_ptr<_BigEnvironment> BigEnvironment;
 /**
  * An experiment interface for a \a BigEnvironment.
  */
+template<class T> class _ExperimentBase;
 typedef _ExperimentBase<_BigEnvironment> _BigExperiment;
 typedef boost::shared_ptr<_BigExperiment> BigExperiment;
 

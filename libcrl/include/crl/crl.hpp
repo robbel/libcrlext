@@ -30,30 +30,9 @@
 #include <cpputil.hpp>
 #include "crl/util.hpp"
 #include "crl/common.hpp"
+#include "crl/bigindex.hpp"
 
 namespace crl {
-
-/**
- * A pair of state,reward is referred to as an observation
- */
-class _Observation {
-protected:
-	State _s;
-	Reward _r;
-public:
-	_Observation(const State& s, Reward r)
-	: _s(s), _r(r) { }
-
-	virtual const State& getState() const {return _s;}
-	virtual Reward getReward() const {return _r;}
-};
-typedef boost::shared_ptr<_Observation> Observation;
-
-/// \brief Stream output of an \a Observation
-inline std::ostream& operator<<(std::ostream& os, const Observation& o) {
-	os << "o{" << o->getState() << "," << o->getReward() << "}";
-	return os;
-}
 
 /**
  * \brief An abstract interface for an MDP (implemented elsewhere).
@@ -174,6 +153,7 @@ typedef boost::shared_ptr<_RandomPolicy> RandomPolicy;
 
 /**
  * Interface for something that learns from experience.
+ * \note State and Observation are polymorphic types (e.g., also BigState, BigObservation)
  */
 class _Learner {
 public:
@@ -189,12 +169,17 @@ typedef boost::shared_ptr<_Learner> Learner;
 /**
  * \brief Interface for classes that make observations and take actions
  * An Agent can encapsulate both a \a Planner and \b Learner component.
+ * \note State and Observation are polymorphic types (e.g., also BigState, BigObservation)
  */
 class _Agent {
 protected:
 	Planner _planner;
 	Learner _learner;
-	State _last_state;
+	struct {
+	  State _s;
+	  BigState _big_s;
+	} stateImpl;
+	State& _last_state;
 	Action _last_action;
 public:
 	_Agent(Planner planner);
@@ -237,7 +222,7 @@ public:
         typedef State state_t;
         typedef Observation observation_t;
 
-	virtual ~_Environment() { }
+        virtual ~_Environment() { }
 
 	virtual State begin() = 0;
 	virtual bool isTerminated() = 0;
