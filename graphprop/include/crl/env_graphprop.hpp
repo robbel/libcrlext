@@ -163,7 +163,7 @@ public:
     return false;
   }
   /// \brief Apply the \a Action and return the resulting \a Observation
-  virtual BigObservation getObservation(const Action& a) override;
+  virtual BigObservation getObservation(const Action& ja) override;
 };
 typedef boost::shared_ptr<_GraphProp> GraphProp;
 

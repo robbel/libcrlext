@@ -255,12 +255,32 @@ BigState _GraphProp::begin() {
 
 // apply action, obtain resulting state n, update _current
 // TODO make this a generic getObservation() for a `FactoredMDPEnvironment' (\see _MDPEnvironment)
-BigObservation _GraphProp::getObservation(const Action& a) {
-  Reward r = getReward(_current, a);
+BigObservation _GraphProp::getObservation(const Action& ja) {
+  Reward r = getReward(_current, ja);
   // prepare a new state
   BigState new_current = _current;
 
-  // todo .. (\see env_sysadmin.cpp)
+  const _DBN& T = _fmdp->T();
+  for(int f = 0; f < T.size(); f++) {
+      const DBNFactor& fa = T.factor(f);
+      const ProbabilityVec& pvec = fa->T(_current, ja);
+#if 0
+      Probability sum = std::accumulate(pvec.begin(), pvec.end(), 0.);
+      assert(approxEq(sum,1.));
+#endif
+      // determine a new bin (i.e., Factor value) according to transition function
+      const Probability r = randDouble();
+      Probability acc     = 0;
+      Factor bin          = 0;
+      do {
+          acc += pvec[bin++];
+      }
+      while(bin < pvec.size() && r > acc);
+      assert(r <= acc);
+
+      // update new state
+      new_current.setFactor(f, bin-1);
+  }
 
   _current = std::move(new_current);
   BigObservation o = boost::make_shared<_BigObservation>(_current, r);
