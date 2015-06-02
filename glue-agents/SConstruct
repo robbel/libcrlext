@@ -36,6 +36,7 @@ vi_rmax_sources    = [build.File('agent_vi_rmax.cpp')]
 # glue wrappers
 glue_spudd_sources = [build.File('glue_spudd.cpp')]
 glue_alp_sources = [build.File('glue_alp.cpp')]
+glue_bigalp_sources = [build.File('glue_bigalp.cpp')]
 
 	
 env = Environment(tools = ["default", "tools"], toolpath = '.',
@@ -76,6 +77,9 @@ if has_crl and has_glue:
         glue_alp = env.Program(bin.Entry('glue_alp'), glue_alp_sources, LIBS=['env', 'crl', 'rlgnmagent', 'rlcrlagent', 'rlutils', 'rlgluenetdev'])
         bin_targets += [glue_alp]
 
+        glue_bigalp = env.Program(bin.Entry('glue_bigalp'), glue_bigalp_sources, LIBS=['graphprop', 'crl', 'rlgnmagent', 'rlcrlagent', 'rlutils', 'rlgluenetdev'])
+        bin_targets += [glue_bigalp]
+
 	if has_spudd:
 		glue_spudd = env.Program(bin.Entry('glue_spudd'), glue_spudd_sources, LIBS=['crl', 'rlgnmagent', 'rlcrlagent', 'rlutils', 'rlgluenetdev'])
 		bin_targets += [glue_spudd]
@@ -104,5 +108,6 @@ dist_files += [inc.Entry(header) for header in headers]
 dist_files += [src.Entry(s) for s in vi_rmax_sources]
 dist_files += [src.Entry(s) for s in glue_spudd_sources]
 dist_files += [src.Entry(s) for s in glue_alp_sources]
+dist_files += [src.Entry(s) for s in glue_bigalp_sources]
 
 env.Alias('dist', env.DistTar('glue-agents.tar.gz', dist_files))
