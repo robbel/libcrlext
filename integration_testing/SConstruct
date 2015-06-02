@@ -27,6 +27,7 @@ BuildDir(build, src, duplicate=0)
 example_sources = [build.File('example.cpp')]
 alp_sources = [build.File('alp.cpp')]
 dbn_sources = [build.File('dbn.cpp')]
+graphprop_sources = [build.File('graphprop.cpp')]
 spudd_sources = [build.File('spudd.cpp')]
 headers = []
 
@@ -60,6 +61,8 @@ alp = env.Program(bin.Entry('alp'), alp_sources, LIBS=['env','crl','pthread','gt
 bin_targets += [alp]
 dbn = env.Program(bin.Entry('dbn'), dbn_sources, LIBS=['env','crl','pthread','gtest','gtest_main'])
 bin_targets += [dbn]
+graphprop = env.Program(bin.Entry('graphprop'), graphprop_sources, LIBS=['graphprop','crl','pthread','gtest','gtest_main'])
+bin_targets += [graphprop]
 if has_spudd:
         spudd = env.Program(bin.Entry('spudd'), spudd_sources, LIBS=['env','graphprop','crl','pthread','gtest','gtest_main'])
         bin_targets += [spudd]
@@ -79,6 +82,7 @@ env.PrependENVPath('LD_LIBRARY_PATH', lib_paths)
 gtest_alias = env.Alias('test', example, example[0].abspath)
 gtest_alias = env.Alias('test', alp, alp[0].abspath)
 gtest_alias = env.Alias('test', dbn, dbn[0].abspath)
+gtest_alias = env.Alias('test', graphprop, alp[0].abspath)
 if has_spudd:
         gtest_alias = env.Alias('test', spudd, spudd[0].abspath)
 env.AlwaysBuild(gtest_alias)
@@ -92,6 +96,7 @@ dist_files += [inc.Entry(header) for header in headers]
 dist_files += [src.Entry(example_source) for example_source in example_sources] 
 dist_files += [src.Entry(alp_source) for alp_source in alp_sources] 
 dist_files += [src.Entry(dbn_source) for dbn_source in dbn_sources] 
+dist_files += [src.Entry(graphprop_source) for graphprop_source in graphprop_sources] 
 dist_files += [src.Entry(spudd_source) for spudd_source in spudd_sources] 
 
 env.Alias('dist', env.DistTar('integration_testing.tar.gz', dist_files))

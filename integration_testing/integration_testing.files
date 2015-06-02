@@ -1,6 +1,7 @@
 test/alp.cpp
 test/dbn.cpp
 test/example.cpp
+test/graphprop.cpp
 test/spudd.cpp
 README
 SConstruct
