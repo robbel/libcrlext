@@ -5,8 +5,8 @@
   <Actions count="2"/>
   <beta0   value="0.2"/>
   <del0    value="0.2"/>
-  <lambda1 value="25"/>
+  <lambda1 value="300"/>
   <lambda2 value="10"/>
-  <lambda3 value="300"/>
+  <lambda3 value="25"/>
   <q0      value="0.5"/>
 </GraphProp>

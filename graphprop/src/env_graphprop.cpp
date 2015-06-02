@@ -295,9 +295,9 @@ BigObservation _GraphProp::getObservation(const Action& ja) {
 //      <Actions count="2"/>              <!-- Number of actions for each controlled node (currently assumed binary) -->
 //      <beta0   value="0.2"/>            <!-- Default infection transmission probability -->
 //      <del0    value="0.2"/>            <!-- Default recovery probability -->
-//      <lambda1 value="25"/>             <!-- Reward model: scaler missing a target node (per target) -->
+//      <lambda1 value="300"/>            <!-- Reward model: scaler missing a target node (per target) -->
 //      <lambda2 value="10"/>             <!-- Reward model: scaler for reaching a non-target (per non-target) -->
-//      <lambda3 value="300"/>            <!-- Reward model: scaler for action cost (per node) -->
+//      <lambda3 value="25"/>             <!-- Reward model: scaler for action cost (per node) -->
 //      <q0      value="0.5"/>            <!-- Default infection probability -->
 //    </GraphProp>
 
