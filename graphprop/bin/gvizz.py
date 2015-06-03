@@ -14,8 +14,9 @@
 
 """Animated visualization for the graphprop problem.
 
-TODO 
+Reads state information from STDIN and animates the graph accordingly.
 
+Run as ./graphprop <config> <graph_file> --enable-stdout | ./gvizz <graph_file> [<offscreen>]
 """
 
 __author__ = 'Philipp Robbel'
@@ -43,22 +44,16 @@ def update_state():
   global g, S, I, R
   global win
 
-  counter = 0
   try:
     tmp = raw_input().strip().split()
     data = np.array(tmp, dtype=np.double)
   except EOFError:
-    print "Input has terminated! Exiting"
-    exit()
+    print "STDIN input has terminated. Close window to exit."
+    return False
   except ValueError:
-    print "Invalid input, skipping.  Input was: %s"%tmp
+    print "Invalid input, skipping. Input was: %s" % tmp
     #return True
  
-  #print "Plotting plot number %d"%counter
-  #plot_data(data)
-  #counter += 1
-
-
   newly_infected.a = False
 
   # The following will force the re-drawing of the graph, and issue a
@@ -66,7 +61,7 @@ def update_state():
   win.graph.regenerate_surface(lazy=False)
   win.graph.queue_draw()
 
-  # if doing an offscreen animation, dump frame to disk
+  # If doing an offscreen animation, dump frame to disk
   if offscreen:
     global count, max_count
     pixbuf = win.get_pixbuf()
@@ -75,14 +70,11 @@ def update_state():
       sys.exit(0)
     count += 1
 
-  # We need to return True so that the main loop will call this function more
-  # than once.
+  # Return True so that the main loop will call this function more than once.
   return True
 
-#   py.clf()
-#   py.plot(data)
-#   py.draw()
-#   #py.savefig("data-%.8d.png"%counter)
+  # TODO: Add keyboard handler to save figure
+  #py.savefig("data-%.8d.png"%counter)
 
    
 if __name__ == "__main__":
@@ -92,7 +84,7 @@ if __name__ == "__main__":
 
   # Read file with numpy 
   Adj = np.loadtxt(sys.argv[1],skiprows=1,dtype=np.int);
-  # detect directed or undirected graph
+  # Detect directed or undirected graph
   if (Adj == np.transpose(Adj)).all():
     g.set_directed(False)
     Adj = np.triu(Adj)
@@ -134,11 +126,10 @@ if __name__ == "__main__":
     win.add(win.graph)
 
 
-  # TODO: add properties to graph (agent/target) -- can be stored to file
-  # Note: can filter instead of remove edges/vertices during animation
+  # TODO: add properties to graph (agent/target/vertex layout) -- can be stored to file
+  # Note: can filter instead of removing edges/vertices during animation
 
-
-  # Bind the function above as an 'idle' callback.
+  # Bind the 'idle' callback.
   cid = GObject.idle_add(update_state)
 
   # We will give the user the ability to stop the program by closing the window.
