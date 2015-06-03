@@ -1,7 +1,13 @@
-#!/bin/env python
+#!/usr/bin/python
+
+#
+#
+#
+#
 
 import numpy as np
 import pylab as py
+from graph_tool.all import *
 
 py.ion()
 
@@ -18,8 +24,15 @@ def plot_data(data):
 #   #py.savefig("data-%.8d.png"%counter)
  
 if __name__ == "__main__":
-  #read file with numpy and lay out graph (directed graph)
-  #A = numpy.loadtxt("Gnp100.txt",skiprows=1,dtype=np.int); # adjacency matrix
+  # Read file with numpy 
+  Adj = np.loadtxt("Gnp100.txt",skiprows=1,dtype=np.int);
+  # Generate graph from adjacency matrix
+  g = Graph()
+  g.add_edge_list(np.transpose(Adj.nonzero()))
+
+  # perhaps add properties to graph (agent/target) -- can be stored to file, btw
+  # note: can filter instead of remove edges/vertices
+
   counter = 0
   while True:
     try:
