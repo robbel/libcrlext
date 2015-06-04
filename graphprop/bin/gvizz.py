@@ -37,30 +37,34 @@ count = 0
 max_count = 0
 # The main output window
 win = 0
+curstate = 0
 
 # Main gtk loop
 def update_state():
   """Highlight the current state and action in the graph"""
-  global g, S, I, R
+  global g, S, I, R, curstate
   global win
   data = np.empty(shape=(0,0), dtype=np.int)
 
   try:
     tmp = raw_input().strip()
     if tmp.startswith("S: "):
-      data = np.array(tmp[4:-1].split(), dtype=np.int)
+      data = np.array(tmp[5:-1].split(), dtype=np.int)
   except EOFError:
     print "STDIN input has terminated. Close window to exit."
     return False
   except ValueError:
     print "Invalid input, skipping. Input was: %s" % tmp
     #return True
- 
-  #newly_infected.a = False
+
+  # Mark newly infected nodes
   if data.size < g.num_vertices():
-    print "Warning: input array size does not match number of graph vertices."
-    data = np.append(data,np.zeros(g.num_vertices()-data.size))
-  newly_infected.a = data.astype(bool)
+    #data = np.append(data,np.zeros(g.num_vertices()-data.size))
+    print "Invalid input size, skipping."
+    return True
+  #newly_infected.a = data.astype(bool)
+  newly_infected.a = data == curstate
+  #state.a =
 
   # The following will force the re-drawing of the graph, and issue a
   # re-drawing of the GTK window.
@@ -75,6 +79,9 @@ def update_state():
     if count > max_count:
       sys.exit(0)
     count += 1
+
+  # Save current state
+  curstate = data
 
   # Return True so that the main loop will call this function more than once.
   return True
@@ -106,6 +113,8 @@ if __name__ == "__main__":
 
   # Newly infected nodes will be highlighted in red
   newly_infected = g.new_vertex_property("bool")
+  # Initialize state
+  curstate = np.zeros(g.num_vertices(), dtype=np.int)
 
   # If True, the frames will be dumped to disk as images.
   offscreen = sys.argv[2] == "offscreen" if len(sys.argv) > 2 else False
