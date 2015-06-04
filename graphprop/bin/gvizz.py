@@ -50,21 +50,24 @@ def update_state():
     tmp = raw_input().strip()
     if tmp.startswith("S: "):
       data = np.array(tmp[5:-1].split(), dtype=np.int)
+    else:
+      return True
   except EOFError:
     print "STDIN input has terminated. Close window to exit."
     return False
   except ValueError:
     print "Invalid input, skipping. Input was: %s" % tmp
-    #return True
+    return True
 
   # Mark newly infected nodes
   if data.size < g.num_vertices():
     #data = np.append(data,np.zeros(g.num_vertices()-data.size))
-    print "Invalid input size, skipping."
+    print "Invalid input size, skipping. Input was: %s" % tmp
     return True
   #newly_infected.a = data.astype(bool)
   newly_infected.a = data == curstate
-  #state.a =
+  for i, v in zip(range(g.num_vertices()), g.vertices()):
+    state[v] = I if data[i] == 1 else S
 
   # The following will force the re-drawing of the graph, and issue a
   # re-drawing of the GTK window.
@@ -124,7 +127,7 @@ if __name__ == "__main__":
     
   # This creates a GTK+ window with the initial graph layout
   if not offscreen:
-    win = GraphWindow(g, pos, geometry=(500, 400),
+    win = GraphWindow(g, pos, geometry=(1024, 768),
                       edge_color=[0.6, 0.6, 0.6, 1],
                       vertex_fill_color=state,
                       vertex_halo=newly_infected,
@@ -132,14 +135,13 @@ if __name__ == "__main__":
   else:
     count = 0
     win = Gtk.OffscreenWindow()
-    win.set_default_size(500, 400)
+    win.set_default_size(1024, 768)
     win.graph = GraphWidget(g, pos,
                             edge_color=[0.6, 0.6, 0.6, 1],
                             vertex_fill_color=state,
                             vertex_halo=newly_infected,
                             vertex_halo_color=[0.8, 0, 0, 0.6])
     win.add(win.graph)
-
 
   # TODO: add properties to graph (agent/target/vertex layout) -- can be stored to file
   # Note: can filter instead of removing edges/vertices during animation
