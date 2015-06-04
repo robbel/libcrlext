@@ -6,7 +6,7 @@
   <beta0   value="0.1"/>
   <del0    value="0.3"/>
   <lambda1 value="300"/>
-  <lambda2 value="10"/>
-  <lambda3 value="25"/>
+  <lambda2 value="1"/>
+  <lambda3 value="3"/>
   <q0      value="0.5"/>
 </GraphProp>

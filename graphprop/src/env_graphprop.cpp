@@ -118,7 +118,7 @@ void _GraphProp::buildPlate(Size i, DBNFactor& fai, LRF& lrf) {
     double prod = 1.;
     Size j = 0;
     for(Size parIdx : _scope_map[i]) {
-        prod *= 1. - *(bIt+parIdx) * s.getFactor(j++);
+        prod *= 1. - *(bIt+parIdx) * s.getFactor(j++); // note: no infection without neighbors active
     }
 
     double pIS = d;        // probability of recovery for this node
@@ -273,9 +273,19 @@ BigObservation _GraphProp::getObservation(const Action& ja) {
   for(int f = 0; f < T.size(); f++) {
       const DBNFactor& fa = T.factor(f);
       const ProbabilityVec& pvec = fa->T(_current, ja);
-#if 0
-      Probability sum = std::accumulate(pvec.begin(), pvec.end(), 0.);
-      assert(approxEq(sum,1.));
+#if !_NDEBUG
+//      Probability sum = std::accumulate(pvec.begin(), pvec.end(), 0.);
+//      assert(approxEq(sum,1.));
+//      std::cout << "i:" << f << " [ ";
+//      const SizeVec& parents = _scope_map[f];
+//      for(auto pa : parents) {
+//          std::cout << pa << " ";
+//      }
+//      std::cout << "]=" << fa->mapState(_current, State()) << " " << fa->mapAction(ja) << ": " << std::endl;
+//      for(auto pr : pvec) {
+//          std::cout << pr << " ";
+//      }
+//      std::cout << std::endl;
 #endif
       // determine a new bin (i.e., Factor value) according to transition function
       const Probability r = randDouble();
@@ -308,9 +318,9 @@ BigObservation _GraphProp::getObservation(const Action& ja) {
 //      <Actions count="2"/>              <!-- Number of actions for each controlled node (currently assumed binary) -->
 //      <beta0   value="0.2"/>            <!-- Default infection transmission probability -->
 //      <del0    value="0.2"/>            <!-- Default recovery probability -->
-//      <lambda1 value="300"/>            <!-- Reward model: scaler missing a target node (per target) -->
+//      <lambda1 value="300"/>            <!-- Reward model: scaler missing a target node (per missed target) -->
 //      <lambda2 value="10"/>             <!-- Reward model: scaler for reaching a non-target (per non-target) -->
-//      <lambda3 value="25"/>             <!-- Reward model: scaler for action cost (per node) -->
+//      <lambda3 value="25"/>             <!-- Reward model: scaler for action cost (per agent with action=1) -->
 //      <q0      value="0.5"/>            <!-- Default infection probability -->
 //    </GraphProp>
 
