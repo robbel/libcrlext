@@ -48,7 +48,7 @@ void parseLocation(std::string s, Size ub, SizeVec& dest, std::vector<bool>& map
 namespace crl {
 
 _GraphProp::_GraphProp(Domain domain, AdjacencyMap adj_map)
-  : _domain(std::move(domain)), _adj_map(std::move(adj_map)), _beta_t(_domain) {
+  : _domain(std::move(domain)), _enable_stdout(false), _adj_map(std::move(adj_map)), _beta_t(_domain) {
   // default initialize this GraphProp
   _num_nodes   = _domain->getNumStateFactors();
   _num_agents  = _domain->getNumActionFactors(),
@@ -256,6 +256,9 @@ BigState _GraphProp::begin() {
   for(Size i = 0; i < _num_nodes; i++) {
     _current.setFactor(i, static_cast<Factor>(randDouble() < _q0)); // binary state
   }
+  if(_enable_stdout) {
+      std::cout << "S: " << _current << std::endl;
+  }
   return _current;
 }
 
@@ -286,6 +289,10 @@ BigObservation _GraphProp::getObservation(const Action& ja) {
 
       // update new state
       new_current.setFactor(f, bin-1);
+  }
+
+  if(_enable_stdout) {
+      std::cout << "S: " << new_current << std::endl;
   }
 
   _current = std::move(new_current);

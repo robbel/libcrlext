@@ -43,10 +43,12 @@ def update_state():
   """Highlight the current state and action in the graph"""
   global g, S, I, R
   global win
+  data = np.empty(shape=(0,0), dtype=np.int)
 
   try:
-    tmp = raw_input().strip().split()
-    data = np.array(tmp, dtype=np.double)
+    tmp = raw_input().strip()
+    if tmp.startswith("S: "):
+      data = np.array(tmp[4:-1].split(), dtype=np.int)
   except EOFError:
     print "STDIN input has terminated. Close window to exit."
     return False
@@ -54,7 +56,11 @@ def update_state():
     print "Invalid input, skipping. Input was: %s" % tmp
     #return True
  
-  newly_infected.a = False
+  #newly_infected.a = False
+  if data.size < g.num_vertices():
+    print "Warning: input array size does not match number of graph vertices."
+    data = np.append(data,np.zeros(g.num_vertices()-data.size))
+  newly_infected.a = data.astype(bool)
 
   # The following will force the re-drawing of the graph, and issue a
   # re-drawing of the GTK window.

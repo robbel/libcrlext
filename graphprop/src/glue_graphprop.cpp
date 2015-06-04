@@ -63,8 +63,8 @@ const char* env_message(const char* inMessage) {
 
 // launch networked rl-glue environment through rlgnm library
 int main(int argc, char** argv) {
-  if (argc != 3) {
-          LOG_ERROR("Usage: " << argv[0] << " <config.xml> <graph.dat>");
+  if (argc != 3 && argc != 4) {
+          LOG_ERROR("Usage: " << argv[0] << " <config.xml> <graph.dat> [--enable-stdout]");
           return EXIT_FAILURE;
   }
 
@@ -74,6 +74,10 @@ int main(int argc, char** argv) {
     if(!(_graphprop = readGraphProp(iscfg, isdat))) {
       LOG_ERROR("Error while reading from " << argv[1] << " or " << argv[2]);
       return EXIT_FAILURE;
+    }
+
+    if(argc == 4 && std::string(argv[3]) == "--enable-stdout") {
+      _graphprop->enableStdout();
     }
 
     sprintf(paramBuf, "graphprop=%s,%s", argv[1], argv[2]); // todo: print layout and initial state

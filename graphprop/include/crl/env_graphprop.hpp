@@ -98,6 +98,7 @@ class _GraphProp : public _BigEnvironment {
 protected:
   Domain _domain;
   FactoredMDP _fmdp;
+  bool _enable_stdout;
   /// \brief The (undirected or directed) graph underlying this propagation model (no self-loops)
   AdjacencyMap _adj_map;
   /// \brief An optimized accessor for parents (including self) in the graph
@@ -164,6 +165,13 @@ public:
   }
   /// \brief Apply the \a Action and return the resulting \a Observation
   virtual BigObservation getObservation(const Action& ja) override;
+  //
+  // Enable stdout for visualization
+  //
+  /// \brief Enable state output for visualization
+  void enableStdout() {
+    _enable_stdout = true;
+  }
 };
 typedef boost::shared_ptr<_GraphProp> GraphProp;
 
