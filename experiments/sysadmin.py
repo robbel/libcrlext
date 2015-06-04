@@ -14,7 +14,7 @@ glue_sysadmin1 = Environment("glue_sysadmin ring 6")
 
 num_steps = 200
 num_trials = 50
-num_runs = 1
+num_runs = 5
 
 #instance names must be unique
 instances = [

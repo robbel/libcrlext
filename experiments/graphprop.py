@@ -9,6 +9,7 @@ agent_bigalp = Agent("glue_bigalp cfgs/default.xml data/reg100k3.txt", cwd="/hom
 
 env_echo = Environment("echo run an environment")
 glue_graphprop1 = Environment("glue_graphprop cfgs/default.xml data/reg100k3.txt", cwd="/home/philipp/Builds/maastricht/3rdParty/libcrlext/graphprop")
+#glue_graphprop1_viz = Environment("glue_graphprop cfgs/default.xml data/reg100k3.txt --enable-stdout | ./bin/gvizz.py cfgs/default.xml data/reg100k3.txt", cwd="/home/philipp/Builds/maastricht/3rdParty/libcrlext/graphprop")
 
 
 num_steps = 200

@@ -13,7 +13,6 @@
 #include <fstream>
 
 #include "crl/alp.hpp"
-#include "crl/env_sysadmin.hpp"
 #include "crl/env_graphprop.hpp"
 #include "crl/vi.hpp"
 #include "crl/conversions.hpp"
@@ -24,7 +23,7 @@ using namespace crl;
 using namespace cpputil;
 
 //
-// More complex integration test that runs the ALP solver on the SysAdmin environment
+// More complex integration test that runs the ALP solver on the GraphProp environment
 //
 
 namespace {
@@ -44,14 +43,9 @@ QTable testVI(MDP mdp, Domain domain, float gamma) {
 
 } // anonymous ns
 
-TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
+TEST(ALPIntegrationTest, TestGraphpropExhaustiveBasis) {
   srand(time(NULL));
-#if 0
-  sysadmin::Sysadmin thesys = buildSysadmin("ring", 4);
-  Domain domain = thesys->getDomain();
 
-  FactoredMDP fmdp = thesys->getFactoredMDP();
-#endif
   string cfg = "../../graphprop/cfgs/default.xml";
   string data = "../../graphprop/data/reg100k3.txt";
   ifstream iscfg(cfg);
@@ -109,14 +103,6 @@ TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
     dummy_s.setIndex((Factor)sysadmin::Status::GOOD);
     I->setState(dummy_s);
     fval->addBasisFunction(std::move(I), 0.);
-  }
-#endif
-#if 0
-  // exhaustive indicator basis
-  _StateIncrementIterator sitr(domain);
-  while(sitr.hasNext()) {
-      auto I = boost::make_shared<_Indicator<Reward>>(domain, cpputil::ordered_vec<Size>(domain->getNumStateFactors()), sitr.next());
-      fval->addBasisFunction(std::move(I), 0.);
   }
 #endif
 #if 0

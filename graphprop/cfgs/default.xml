@@ -1,10 +1,10 @@
 <GraphProp>
   <Nodes   count="100"/>
   <Agents  count="3">0,1,2</Agents>
-  <Targets count="0"></Targets>
+  <Targets count="4">42,43,51,23</Targets>
   <Actions count="2"/>
-  <beta0   value="0.2"/>
-  <del0    value="0.2"/>
+  <beta0   value="0.1"/>
+  <del0    value="0.3"/>
   <lambda1 value="300"/>
   <lambda2 value="10"/>
   <lambda3 value="25"/>
