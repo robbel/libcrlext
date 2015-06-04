@@ -16,7 +16,7 @@
 
 Reads state information from STDIN and animates the graph accordingly.
 
-Run as ./graphprop <config> <graph_file> --enable-stdout | ./gvizz <graph_file> [<offscreen>]
+Run as ./graphprop <config> <graph_file> --enable-stdout | ./gvizz <config> <graph_file> [<offscreen>]
 """
 
 __author__ = 'Philipp Robbel'
@@ -24,6 +24,7 @@ __author__ = 'Philipp Robbel'
 import numpy as np
 from graph_tool.all import *
 import sys, os, os.path
+from xml.etree.ElementTree import ElementTree
 from gi.repository import Gtk, Gdk, GdkPixbuf, GObject
 
 # The one and only graph instance
@@ -94,12 +95,12 @@ def update_state():
 
    
 if __name__ == "__main__":
-  if len(sys.argv) < 2:
-    print "Usage: python gvizz.py <filename> [<offscreen>]"
+  if len(sys.argv) < 3:
+    print "Usage: python gvizz.py <config> <graph_file> [<offscreen>]"
     sys.exit(0)
 
-  # Read file with numpy 
-  Adj = np.loadtxt(sys.argv[1],skiprows=1,dtype=np.int);
+  # Read graph file with numpy 
+  Adj = np.loadtxt(sys.argv[2],skiprows=1,dtype=np.int);
   # Detect directed or undirected graph
   if (Adj == np.transpose(Adj)).all():
     g.set_directed(False)
@@ -108,8 +109,20 @@ if __name__ == "__main__":
   g.add_edge_list(np.transpose(Adj.nonzero()))
   # Initialize all vertices to the S state
   state = g.new_vertex_property("vector<double>")
+  view = g.new_vertex_property("int")
   for v in g.vertices():
     state[v] = S
+
+  # Read config xml file for agent locations
+  xml_parser = ElementTree()
+  tree = xml_parser.parse(sys.argv[1])
+  locs = tree.find('Agents').text
+  # Size nodes by their "importance"
+  deg = g.degree_property_map("in")
+  deg.a = 5 * (np.sqrt(deg.a) * 2 + 0.5)
+  for v in [g.vertex(x) for x in locs.split(',')]:
+    deg[v] = deg[v]*1.8
+    view[v] = 1
 
   # Automatic graph layout
   pos = sfdp_layout(g)
@@ -120,7 +133,7 @@ if __name__ == "__main__":
   curstate = np.zeros(g.num_vertices(), dtype=np.int)
 
   # If True, the frames will be dumped to disk as images.
-  offscreen = sys.argv[2] == "offscreen" if len(sys.argv) > 2 else False
+  offscreen = sys.argv[3] == "offscreen" if len(sys.argv) > 3 else False
   max_count = 500
   if offscreen and not os.path.exists("./frames"):
     os.mkdir("./frames")
@@ -129,6 +142,8 @@ if __name__ == "__main__":
   if not offscreen:
     win = GraphWindow(g, pos, geometry=(1024, 768),
                       edge_color=[0.6, 0.6, 0.6, 1],
+                      vertex_size=deg,
+                      vertex_shape=view,
                       vertex_fill_color=state,
                       vertex_halo=newly_infected,
                       vertex_halo_color=[0.8, 0, 0, 0.6])
@@ -138,6 +153,8 @@ if __name__ == "__main__":
     win.set_default_size(1024, 768)
     win.graph = GraphWidget(g, pos,
                             edge_color=[0.6, 0.6, 0.6, 1],
+                            vertex_size=deg,
+                            vertex_shape=view,
                             vertex_fill_color=state,
                             vertex_halo=newly_infected,
                             vertex_halo_color=[0.8, 0, 0, 0.6])
