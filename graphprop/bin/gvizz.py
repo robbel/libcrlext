@@ -66,7 +66,7 @@ def update_state():
     print "Invalid input size, skipping. Input was: %s" % tmp
     return True
   #newly_infected.a = data.astype(bool)
-  newly_infected.a = data == curstate
+  newly_infected.a = data == curstate+1
   for i, v in zip(range(g.num_vertices()), g.vertices()):
     state[v] = I if data[i] == 1 else S
 
