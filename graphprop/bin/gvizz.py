@@ -118,8 +118,9 @@ if __name__ == "__main__":
   tree = xml_parser.parse(sys.argv[1])
   locs = tree.find('Agents').text
   # Size nodes by their "importance"
-  deg = g.degree_property_map("in")
-  deg.a = 5 * (np.sqrt(deg.a) * 2 + 0.5)
+  deg = g.degree_property_map("out")
+  deg.a = 12*np.sqrt(deg.a/min(deg.a)) # normalize 
+  #deg.a = 5 * (np.sqrt(deg.a) * 2 + 0.5)
   for v in [g.vertex(x) for x in locs.split(',')]:
     deg[v] = deg[v]*1.8
     view[v] = 1
