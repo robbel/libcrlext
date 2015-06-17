@@ -28,7 +28,7 @@ using FStateTable = boost::shared_ptr<_FStateTable<T>>;
 }
 
 namespace {
-#if 0
+
 Domain removeStateFactor(const Domain& d, std::string name) {
   Domain dn;
   dn = boost::make_shared<_Domain>();
@@ -44,7 +44,38 @@ Domain removeStateFactor(const Domain& d, std::string name) {
   }
   return dn;
 }
-#endif
+
+std::tuple<Domain,FStateTable<Reward>> maxStateFactor(const Domain& d, const FStateTable<Reward>& f, std::string name) {
+  Domain dn = removeStateFactor(d, name);
+  // offset of removed factor in original domain
+  auto jitr = std::find(d->getStateNames().begin(), d->getStateNames().end(), name);
+  assert(jitr != d->getStateNames().end());
+  Size j = std::distance(d->getStateNames().begin(), jitr);
+
+  FStateTable<Reward> fn = boost::make_shared<_FStateTable<Reward>>(dn);
+  _StateIncrementIterator sitr(dn);
+  while(sitr.hasNext()) {
+      const State& s = sitr.next();
+      State p1(d);
+      Size offset = 0;
+      for(Size i = 0; i < d->getNumStateFactors(); i++) {
+        if(i == j) {
+            p1.setFactor(i, 0);
+            offset = 1;
+            continue;
+        }
+        p1.setFactor(i, s.getFactor(i-offset));
+      }
+
+      // implement the max (binary state factor)
+      State p2 = p1;
+      p2.setFactor(j, 1);
+      fn->setValue(s, std::max(f->getValue(p1), f->getValue(p2)));
+  }
+
+  return std::make_tuple(dn,fn);
+}
+
 Domain removeCount(const Domain& d, std::string name) {
   Domain dn;
   dn = boost::make_shared<_Domain>();
@@ -98,6 +129,8 @@ std::tuple<Domain,FStateTable<Reward>> maxCount(const Domain& d, const FStateTab
 
 
 TEST(CounterTest, BasicCounterTest) {
+  srand(time(NULL));
+
   // f_LHS(A,B,#_A{A1,A2,A3,A4,A5},#_B{B1,B2,A3,A4})
   Domain d1;
   d1 = boost::make_shared<_Domain>();
@@ -230,6 +263,14 @@ TEST(CounterTest, BasicCounterTest) {
   d1 = dn;
   f_lhs = fn;
 
+  LOG_DEBUG("Removing state factors from f_lhs");
+  ltpl = maxStateFactor(d1, f_lhs, "B");
+  d1 = std::get<0>(ltpl);
+  f_lhs = std::get<1>(ltpl);
+  ltpl = maxStateFactor(d1, f_lhs, "A");
+  d1 = std::get<0>(ltpl);
+  f_lhs = std::get<1>(ltpl);
+
   //
   // f_rhs, all non-shared
   //
@@ -255,8 +296,15 @@ TEST(CounterTest, BasicCounterTest) {
   rtpl = maxCount(d2, f_rhs, "#");
   d2 = std::get<0>(rtpl);
   f_rhs = std::get<1>(rtpl);
+  LOG_DEBUG("Removing state factors from f_rhs");
+  rtpl = maxStateFactor(d2, f_rhs, "B");
+  d2 = std::get<0>(rtpl);
+  f_rhs = std::get<1>(rtpl);
+  rtpl = maxStateFactor(d2, f_rhs, "A");
+  d2 = std::get<0>(rtpl);
+  f_rhs = std::get<1>(rtpl);
 
-  LOG_INFO("Final result:");
+  LOG_INFO("Final result of max operation:");
   _StateIncrementIterator reslitr2(d1);
   _StateIncrementIterator resritr(d2);
   while(resritr.hasNext()) {
