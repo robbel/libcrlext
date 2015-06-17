@@ -334,7 +334,6 @@ TEST(CounterTest, BasicCounterTest) {
 
 ///
 /// \brief Test variable elimination with a variable that is both proper and appears in counter
-/// \note Such a variable has to be removed from counter scope before other operations
 ///
 TEST(CounterTest, SharedProperCountTest) {
   srand(time(NULL));
