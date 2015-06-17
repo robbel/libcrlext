@@ -331,3 +331,134 @@ TEST(CounterTest, BasicCounterTest) {
       LOG_INFO(ls << " " << f_lhs->getValue(ls));
   }
 }
+
+///
+/// \brief Test variable elimination with a variable that is both proper and appears in counter
+/// \note Such a variable has to be removed from counter scope before other operations
+///
+TEST(CounterTest, SharedProperCountTest) {
+  srand(time(NULL));
+
+  // f_LHS(A,#_A{A,B,C}) = f_RHS
+  Domain d1, d2;
+  d1 = boost::make_shared<_Domain>();
+  d2 = boost::make_shared<_Domain>();
+  d1->addStateFactor(0, 1, "A"); // 2 states
+  d2->addStateFactor(0, 1, "A"); // 2 states
+  d1->addStateFactor(0, 3, "#_A"); // 4 states
+  d2->addStateFactor(0, 3, "#_A"); // 4 states
+
+  FStateTable<Reward> f_lhs = boost::make_shared<_FStateTable<Reward>>(d1);
+  FStateTable<Reward> f_rhs = boost::make_shared<_FStateTable<Reward>>(d2);
+  _StateIncrementIterator litr(d1);
+  while(litr.hasNext()) {
+    const State& s = litr.next();
+    Reward r = cpputil::randDouble();
+    f_lhs->setValue(s, r);
+    f_rhs->setValue(s, r);
+  }
+
+#if !NDEBUG
+  LOG_DEBUG("f_lhs:");
+  litr.reset();
+  while(litr.hasNext()) {
+    const State& s = litr.next();
+    LOG_DEBUG(s << " " << f_lhs->getValue(s));
+  }
+#endif
+
+  // manually eliminate A from counter scope (both non-shared counter and proper variable)
+  Domain dn = removeCount(d1, "#_A");
+  const RangeVec& d1_ranges = d1->getStateRanges();
+
+  FStateTable<Reward> fn = boost::make_shared<_FStateTable<Reward>>(dn);
+  _StateIncrementIterator sitr(dn);
+  while(sitr.hasNext()) { // over #f(A,_A{B})
+      const State& s = sitr.next();
+      State p1(d1);
+      for(Size i = 0; i < dn->getNumStateFactors(); i++) {
+        p1.setFactor(i, s.getFactor(i));
+      }
+      // update based on referenced proper variable `A'
+      Factor A_enabled = static_cast<Factor>(s.getFactor(0) != 0);
+      p1.setFactor(1, p1.getFactor(1)+A_enabled); // min value in interval
+      Factor max = d1_ranges[1].getMax() - (1-A_enabled);  // max possible value in interval
+      // implement the max
+      State p2 = p1;
+      if(p2.getFactor(1)+1 <= max) { // if we have room to increment
+          p2.setFactor(1, p2.getFactor(1)+1);
+      }
+      fn->setValue(s, std::max(f_lhs->getValue(p1), f_lhs->getValue(p2)));
+  }
+  // update domain, function
+  d1 = dn;
+  f_lhs = fn;
+
+  // eliminate B from f_lhs #_A (non-shared counter)
+  auto ltpl = maxCount(d1, f_lhs, "#_A");
+  d1 = std::get<0>(ltpl);
+  f_lhs = std::get<1>(ltpl);
+  // eliminate C from f_lhs #_A (non-shared counter)
+  ltpl = maxCount(d1, f_lhs, "#_A");
+  d1 = std::get<0>(ltpl);
+  f_lhs = std::get<1>(ltpl);
+  LOG_DEBUG("Removing state factors from f_lhs");
+  ltpl = maxStateFactor(d1, f_lhs, "A");
+  d1 = std::get<0>(ltpl);
+  f_lhs = std::get<1>(ltpl);
+
+  //
+  // different elimination order for f_RHS
+  //
+
+  // eliminate B from f_rhs #_A (non-shared counter)
+  ltpl = maxCount(d2, f_rhs, "#_A");
+  d2 = std::get<0>(ltpl);
+  f_rhs = std::get<1>(ltpl);
+
+  // manually eliminate A from counter scope (both non-shared counter and proper variable)
+  dn = removeCount(d2, "#_A");
+  const RangeVec& d2_ranges = d2->getStateRanges();
+
+  fn = boost::make_shared<_FStateTable<Reward>>(dn);
+  _StateIncrementIterator sitr2(dn);
+  while(sitr2.hasNext()) { // over #f(A,_A{B})
+      const State& s = sitr2.next();
+      State p1(d2);
+      for(Size i = 0; i < dn->getNumStateFactors(); i++) {
+        p1.setFactor(i, s.getFactor(i));
+      }
+      // update based on referenced proper variable `A'
+      Factor A_enabled = static_cast<Factor>(s.getFactor(0) != 0);
+      p1.setFactor(1, p1.getFactor(1)+A_enabled); // min value in interval
+      Factor max = d2_ranges[1].getMax() - (1-A_enabled);  // max possible value in interval
+      // implement the max
+      State p2 = p1;
+      if(p2.getFactor(1)+1 <= max) { // if we have room to increment
+          p2.setFactor(1, p2.getFactor(1)+1);
+      }
+      fn->setValue(s, std::max(f_rhs->getValue(p1), f_rhs->getValue(p2)));
+  }
+  // update domain, function
+  d2 = dn;
+  f_rhs = fn;
+
+  LOG_DEBUG("Removing state factors from f_rhs");
+  ltpl = maxStateFactor(d2, f_rhs, "A");
+  d2 = std::get<0>(ltpl);
+  f_rhs = std::get<1>(ltpl);
+  // eliminate C from f_rhs #_A (non-shared counter)
+  ltpl = maxCount(d2, f_rhs, "#_A");
+  d2 = std::get<0>(ltpl);
+  f_rhs = std::get<1>(ltpl);
+
+  LOG_INFO("Final result of max operation:");
+  _StateIncrementIterator reslitr(d1);
+  _StateIncrementIterator resritr(d2);
+  while(resritr.hasNext()) {
+      const State& rs = resritr.next();
+      const State& ls = reslitr.next();
+      EXPECT_TRUE(cpputil::approxEq(f_rhs->getValue(rs), f_lhs->getValue(ls)));
+      LOG_INFO(ls << " " << f_lhs->getValue(ls));
+  }
+}
