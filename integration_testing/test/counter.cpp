@@ -29,6 +29,13 @@ using FStateTable = boost::shared_ptr<_FStateTable<T>>;
 
 namespace {
 
+//
+// Helper functions
+//
+
+/// \brief Remove state factor from given domain
+/// \return Resulting \a Domain
+/// \see maxStateFactor
 Domain removeStateFactor(const Domain& d, std::string name) {
   Domain dn;
   dn = boost::make_shared<_Domain>();
@@ -45,6 +52,8 @@ Domain removeStateFactor(const Domain& d, std::string name) {
   return dn;
 }
 
+/// \brief Remove binary state factor from given function and domain (max-marginal)
+/// \return Resulting \a Domain and function
 std::tuple<Domain,FStateTable<Reward>> maxStateFactor(const Domain& d, const FStateTable<Reward>& f, std::string name) {
   Domain dn = removeStateFactor(d, name);
   // offset of removed factor in original domain
@@ -76,6 +85,9 @@ std::tuple<Domain,FStateTable<Reward>> maxStateFactor(const Domain& d, const FSt
   return std::make_tuple(dn,fn);
 }
 
+/// \brief Reduce counter variable from a given domain by 1
+/// \return Resulting \a Domain
+/// \see maxCount
 Domain removeCount(const Domain& d, std::string name) {
   Domain dn;
   dn = boost::make_shared<_Domain>();
@@ -97,6 +109,9 @@ Domain removeCount(const Domain& d, std::string name) {
   return dn;
 }
 
+/// \brief Remove a non-shared counter variable from given function and domain (max-marginal)
+/// \return Resulting \a Domain and function
+/// \note Non-shared counter is assumed, i.e., cannot appear in another counter's domain or as proper variable
 std::tuple<Domain,FStateTable<Reward>> maxCount(const Domain& d, const FStateTable<Reward>& f, std::string name) {
   Domain dn = removeCount(d, name);
   const StrVec& dn_names = dn->getStateNames();
@@ -127,7 +142,9 @@ std::tuple<Domain,FStateTable<Reward>> maxCount(const Domain& d, const FStateTab
 
 } // anonymous ns
 
-
+///
+/// \brief Test variable elimination with proper, (non-shared) counter, and shared counter variables
+///
 TEST(CounterTest, BasicCounterTest) {
   srand(time(NULL));
 
