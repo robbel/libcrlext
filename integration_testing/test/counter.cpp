@@ -421,7 +421,7 @@ TEST(CounterTest, SharedProperCountTest) {
 
   fn = boost::make_shared<_FStateTable<Reward>>(dn);
   _StateIncrementIterator sitr2(dn);
-  while(sitr2.hasNext()) { // over #f(A,_A{B})
+  while(sitr2.hasNext()) { // over #f(A,_A{C})
       const State& s = sitr2.next();
       State p1(d2);
       for(Size i = 0; i < dn->getNumStateFactors(); i++) {
