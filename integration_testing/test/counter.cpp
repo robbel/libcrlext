@@ -177,13 +177,14 @@ TEST(CounterTest, BasicCounterTest) {
   ltpl = maxCount(d1, f_lhs, "#_B");
   d1 = std::get<0>(ltpl);
   f_lhs = std::get<1>(ltpl);
-
-  LOG_INFO("Intermediate result for f_lhs:");
+#if !NDEBUG
+  LOG_DEBUG("Intermediate result for f_lhs:");
   _StateIncrementIterator reslitr(d1);
   while(reslitr.hasNext()) {
       const State& s = reslitr.next();
-      LOG_INFO(s << " " << f_lhs->getValue(s));
+      LOG_DEBUG(s << " " << f_lhs->getValue(s));
   }
+#endif
 
   // manually eliminate shared count A3
   Domain dn = removeCount(d1, "#_A");
@@ -229,13 +230,6 @@ TEST(CounterTest, BasicCounterTest) {
   d1 = dn;
   f_lhs = fn;
 
-  LOG_INFO("Final result for f_lhs:");
-  _StateIncrementIterator reslitr2(d1);
-  while(reslitr2.hasNext()) {
-      const State& s = reslitr2.next();
-      LOG_INFO(s << " " << f_lhs->getValue(s));
-  }
-
   //
   // f_rhs, all non-shared
   //
@@ -262,12 +256,13 @@ TEST(CounterTest, BasicCounterTest) {
   d2 = std::get<0>(rtpl);
   f_rhs = std::get<1>(rtpl);
 
-  LOG_INFO("Final result for f_rhs:");
+  LOG_INFO("Final result:");
+  _StateIncrementIterator reslitr2(d1);
   _StateIncrementIterator resritr(d2);
   while(resritr.hasNext()) {
-      const State& s = resritr.next();
-      LOG_INFO(s << " " << f_rhs->getValue(s));
+      const State& rs = resritr.next();
+      const State& ls = reslitr2.next();
+      EXPECT_TRUE(cpputil::approxEq(f_rhs->getValue(rs), f_lhs->getValue(ls)));
+      LOG_INFO(ls << " " << f_lhs->getValue(ls));
   }
-
-  SUCCEED();
 }
