@@ -368,11 +368,10 @@ TEST(CounterTest, SharedProperCountTest) {
 
   // manually eliminate A from counter scope (both non-shared counter and proper variable)
   Domain dn = removeCount(d1, "#_A");
-  const RangeVec& d1_ranges = d1->getStateRanges();
 
   FStateTable<Reward> fn = boost::make_shared<_FStateTable<Reward>>(dn);
   _StateIncrementIterator sitr(dn);
-  while(sitr.hasNext()) { // over #f(A,_A{B})
+  while(sitr.hasNext()) { // over #f(A,_A{B,C})
       const State& s = sitr.next();
       State p1(d1);
       for(Size i = 0; i < dn->getNumStateFactors(); i++) {
@@ -381,13 +380,7 @@ TEST(CounterTest, SharedProperCountTest) {
       // update based on referenced proper variable `A'
       Factor A_enabled = static_cast<Factor>(s.getFactor(0) != 0);
       p1.setFactor(1, p1.getFactor(1)+A_enabled); // min value in interval
-      Factor max = d1_ranges[1].getMax() - (1-A_enabled);  // max possible value in interval
-      // implement the max
-      State p2 = p1;
-      if(p2.getFactor(1)+1 <= max) { // if we have room to increment
-          p2.setFactor(1, p2.getFactor(1)+1);
-      }
-      fn->setValue(s, std::max(f_lhs->getValue(p1), f_lhs->getValue(p2)));
+      fn->setValue(s, f_lhs->getValue(p1));
   }
   // update domain, function
   d1 = dn;
@@ -417,7 +410,6 @@ TEST(CounterTest, SharedProperCountTest) {
 
   // manually eliminate A from counter scope (both non-shared counter and proper variable)
   dn = removeCount(d2, "#_A");
-  const RangeVec& d2_ranges = d2->getStateRanges();
 
   fn = boost::make_shared<_FStateTable<Reward>>(dn);
   _StateIncrementIterator sitr2(dn);
@@ -430,13 +422,7 @@ TEST(CounterTest, SharedProperCountTest) {
       // update based on referenced proper variable `A'
       Factor A_enabled = static_cast<Factor>(s.getFactor(0) != 0);
       p1.setFactor(1, p1.getFactor(1)+A_enabled); // min value in interval
-      Factor max = d2_ranges[1].getMax() - (1-A_enabled);  // max possible value in interval
-      // implement the max
-      State p2 = p1;
-      if(p2.getFactor(1)+1 <= max) { // if we have room to increment
-          p2.setFactor(1, p2.getFactor(1)+1);
-      }
-      fn->setValue(s, std::max(f_rhs->getValue(p1), f_rhs->getValue(p2)));
+      fn->setValue(s, f_rhs->getValue(p1));
   }
   // update domain, function
   d2 = dn;
