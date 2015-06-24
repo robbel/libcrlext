@@ -273,7 +273,7 @@ BigObservation _GraphProp::getObservation(const Action& ja) {
   for(int f = 0; f < T.size(); f++) {
       const DBNFactor& fa = T.factor(f);
       const ProbabilityVec& pvec = fa->T(_current, ja);
-#if !_NDEBUG
+#if !NDEBUG
 //      Probability sum = std::accumulate(pvec.begin(), pvec.end(), 0.);
 //      assert(approxEq(sum,1.));
 //      std::cout << "i:" << f << " [ ";
