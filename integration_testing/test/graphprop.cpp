@@ -60,7 +60,7 @@ TEST(ALPIntegrationTest, TestGraphpropExhaustiveBasis) {
   FactoredMDP fmdp = thegrp->getFactoredMDP();
   LOG_INFO(fmdp->T());
 
-#if 0
+#if !NDEBUG
   // debug print the CPTs
   for(Size i = 0; i < fmdp->T().size(); i++) {
       const auto& fa = fmdp->T().factor(i);
