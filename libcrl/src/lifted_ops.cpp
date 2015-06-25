@@ -10,9 +10,19 @@
  */
 
 #include <iostream>
+#include "crl/lifted_ops.hpp"
 
 using namespace std;
 
 namespace crl {
+
+void _LiftedFactor::eraseStateFactor(Size i) {
+  //assert(i < _domain->getNumStateFactors());
+  SizeVec::iterator it = std::lower_bound(_state_dom.begin(), _state_dom.end(), i);
+  if(it != _state_dom.end()) {
+    _state_dom.erase(it);
+    _dom_hash = boost::hash_range(_state_dom.begin(), _state_dom.end());
+  }
+}
 
 } // namespace crl

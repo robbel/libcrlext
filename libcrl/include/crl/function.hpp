@@ -16,6 +16,7 @@
 #include <cassert>
 #include "crl/flat_tables.hpp"
 #include "crl/common.hpp"
+#include "crl/lifted_ops.hpp"
 
 namespace crl {
 
@@ -57,7 +58,7 @@ template<class T> std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F,
  * Maps tuples {x_1,...,x_N,a_1,...,a_K} -> val<T>, where X_1,...,X_N are state variables and A_1,...,A_K action variables
  * that have been added to this function
  * \note Variables are sorted internally in ascending order
- * \note All methods in this class expect (s,a) tuples to be in the correct domain, now automatic conversions are applied.
+ * \note All methods in this class expect (s,a) tuples to be in the correct domain, no automatic conversions are applied.
  */
 template<class T>
 class _DiscreteFunction {
@@ -90,6 +91,8 @@ protected:
   SizeVec _state_dom;
   /// \brief The action factors relevant for this function, indicated by their absolute position in the global domain
   SizeVec _action_dom;
+  /// \brief The lifted factors relevant for this function
+  LiftedVec _lifted_dom;
   /// \brief Unique name of this function
   std::string _name;
   /// \brief True iff \a computeSubdomain() has been called

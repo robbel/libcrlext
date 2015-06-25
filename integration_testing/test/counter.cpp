@@ -14,6 +14,7 @@
 #include "cpputil.hpp"
 #include "crl/crl.hpp"
 #include "crl/flat_tables.hpp"
+#include "crl/lifted_ops.hpp"
 #include "logger.hpp"
 
 using namespace std;
@@ -446,4 +447,20 @@ TEST(CounterTest, SharedProperCountTest) {
       EXPECT_TRUE(cpputil::approxEq(f_rhs->getValue(rs), f_lhs->getValue(ls)));
       LOG_INFO(ls << " " << f_lhs->getValue(ls));
   }
+}
+
+///
+/// \brief Basis tests of \a LiftedCounter from libcrl
+///
+TEST(CounterTest, LiftedCounterBasicTest) {
+  _LiftedFactor a = {1,2,5,9,10};
+  _LiftedCounter b = {1,5,2,10,9};
+  EXPECT_TRUE(a == b);
+
+  a.eraseStateFactor(100);
+  EXPECT_TRUE(a == b);
+  a.eraseStateFactor(9);
+  EXPECT_FALSE(a == b);
+
+  EXPECT_EQ(b.getRange().getMax(), 5);
 }
