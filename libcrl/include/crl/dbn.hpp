@@ -309,7 +309,8 @@ public:
     for(Size t : other->getStateFactors()) {
         const SizeVec& delayed_dep = _dbn.factor(t)->getDelayedDependencies();
         const SizeVec& action_dep = _dbn.factor(t)->getActionDependencies();
-        _FDiscreteFunction<T>::join(delayed_dep, action_dep);
+        const LiftedVec& lifted_dep = _dbn.factor(t)->getLiftedFactors();
+        _FDiscreteFunction<T>::join(delayed_dep, action_dep, lifted_dep);
     }
   }
 

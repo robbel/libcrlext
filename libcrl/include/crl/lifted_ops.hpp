@@ -46,6 +46,15 @@ public:
   const SizeVec& getStateFactors() const {
     return _state_dom;
   }
+  /// \todo Return the \a FactorRange corresponding to this lifted operation
+  /// \see Range::getSpan()
+  FactorRange getRange() const {
+    return FactorRange(0,_state_dom.size());
+  }
+  /// \brief Return hash of this factor's domain
+  std::size_t getHash() const {
+    return _dom_hash;
+  }
 
   /// \brief operators
   bool operator==(const _LiftedFactor& other) const {
@@ -68,11 +77,6 @@ public:
   /// \brief ctor
   _LiftedCounter(std::initializer_list<Size> il)
   : _LiftedFactor(std::move(il)) { }
-  /// \todo Return the \a FactorRange corresponding to this lifted counter
-  /// \see Range::getSpan()
-  FactorRange getRange() const {
-    return FactorRange(0,_state_dom.size());
-  }
 };
 typedef boost::shared_ptr<_LiftedCounter> LiftedCounter;
 
