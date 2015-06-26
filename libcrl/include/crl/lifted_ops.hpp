@@ -71,6 +71,9 @@ public:
 typedef boost::shared_ptr<_LiftedFactor> LiftedFactor;
 typedef std::vector<LiftedFactor> LiftedVec;
 
+/// \brief Stream output of a \a LiftedFactor
+std::ostream& operator<<(std::ostream &os, const _LiftedFactor& f);
+
 ///
 /// \todo A lifted counter is a function that summarizes how many state factors in its scope are `enabled'
 /// Defined as #{A,B,C}->R where (for example) #{A=5,B=3,C=1}->3, #{0,0,0}->0, and #{1,0,1}->2.

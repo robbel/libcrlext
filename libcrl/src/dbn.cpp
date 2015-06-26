@@ -47,6 +47,10 @@ void _DBNFactor::addActionDependency(Size index) {
   _FDiscreteFunction::addActionFactor(index);
 }
 
+void _DBNFactor::addLiftedDependency(LiftedFactor lf) {
+  _FDiscreteFunction::addLiftedFactor(std::move(lf));
+}
+
 void _DBNFactor::computeSubdomain() {
   _subdomain = boost::make_shared<_Domain>();
   const RangeVec& state_ranges = _domain->getStateRanges();
@@ -106,9 +110,13 @@ void _DBN::addDBNFactor(DBNFactor dbn_factor) {
   if(dbn_factor->hasConcurrentDependency()) {
     _has_concurrency = true;
   }
+  if(dbn_factor->hasLiftedDependency()) {
+    _has_lifted = true;
+  }
   // insert preserving order
+  auto indirection = [](const DBNFactor& a, const DBNFactor& b) -> bool { return *a < *b; };
   std::vector<DBNFactor>::iterator it = std::lower_bound(_dbn_factors.begin(), _dbn_factors.end(), dbn_factor,
-                                                         [](const DBNFactor &a, const DBNFactor &b) { return *a < *b; });
+                                                         indirection);
   if(it == _dbn_factors.end()) {
     _dbn_factors.insert(it, std::move(dbn_factor)); // overwrite and de-allocate previous if it exists
   }

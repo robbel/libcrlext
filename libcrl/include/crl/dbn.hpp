@@ -69,6 +69,7 @@ public:
       assert(_packed);
       if(s.size() == _delayed_dep.size() && !n) // under these conditions no reduction to local scope performed
           return s;
+      assert(!hasLiftedDependency());
       State ms(_subdomain);
       for (Size i=0; i<_delayed_dep.size(); i++) {
           Size j = _delayed_dep[i];
@@ -95,9 +96,12 @@ public:
   const SizeVec& getDelayedDependencies() const { return _delayed_dep; }
   void addConcurrentDependency(Size index);
   const SizeVec& getConcurrentDependencies() const { return _concurrent_dep; }
+  bool hasConcurrentDependency() const { return !_concurrent_dep.empty(); }
   void addActionDependency(Size index);
   const SizeVec& getActionDependencies() const { return _action_dom; }
-  bool hasConcurrentDependency() const { return !_concurrent_dep.empty(); }
+  void addLiftedDependency(LiftedFactor lf);
+  const LiftedVec& getLiftedDependencies() const { return _lifted_dom; }
+  bool hasLiftedDependency() const { return !_lifted_dom.empty(); }
 
   /// \brief Compute the domain of this DBNFactor
   /// \note This is overloaded from _DiscreteFunction to support both delayed and concurrent dependencies
@@ -224,9 +228,11 @@ protected:
   std::vector<DBNFactor> _dbn_factors;
   /// \brief True iff there are any concurrent dependencies in the DBN (i.e., at time slice t)
   bool _has_concurrency;
+  /// \brief True iff there are any lifted functions in the DBN
+  bool _has_lifted;
 public:
   _DBN()
-  : _has_concurrency(false) { }
+  : _has_concurrency(false), _has_lifted(false) { }
 
   /// \brief Return the number of \a DBNFactors in this DBN
   Size size() const {
@@ -250,6 +256,10 @@ public:
   /// \brief True iff there are any concurrent dependencies in the DBN (at time slice t)
   bool hasConcurrentDependency() const {
     return _has_concurrency;
+  }
+  /// \brief True iff there are any lifted functions in the DBN
+  bool hasLiftedDependency() const {
+    return _has_lifted;
   }
 
   /// \brief Compute the probability of transitioning from (joint) s -> n under (joint) \a Action a

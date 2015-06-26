@@ -25,4 +25,14 @@ void _LiftedFactor::eraseStateFactor(Size i) {
   }
 }
 
+std::ostream& operator<<(std::ostream &os, const _LiftedFactor& factor) {
+  const SizeVec& fs = factor.getStateFactors();
+  os << "#{";
+  for(auto f : fs) {
+    os << f << ",";
+  }
+  os << "}";
+  return os;
+}
+
 } // namespace crl

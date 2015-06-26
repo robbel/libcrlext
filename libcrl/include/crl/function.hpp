@@ -192,15 +192,11 @@ public:
       assert(_computed);
       if(s.size() == _state_dom.size()) // under this condition no reduction to local scope performed
           return s;
+      assert(_lifted_dom.empty());
       State ms(_subdomain);
-      Size i = 0;
-      for (; i<_state_dom.size(); i++) {
+      for (Size i = 0; i<_state_dom.size(); i++) {
           Size j = _state_dom[i];
           ms.setFactor(i, s.getFactor(domain_map_s(j)));
-      }
-      // assume lifted operations are ordered and follow _state_dom
-      for (Size k=0; k<_lifted_dom.size(); k++) {
-          ms.setFactor(i+k, s.getFactor(i+k));
       }
       return ms;
   }
@@ -249,7 +245,7 @@ public:
   }
   /// \brief Add a lifted factor to the scope of this function
   virtual void addLiftedFactor(LiftedFactor lf) {
-    auto indirection = [](const LiftedFactor& l, const LiftedFactor& o) -> bool { return *l == *o; };
+    auto indirection = [](const LiftedFactor& l, const LiftedFactor& o) -> bool { return *l < *o; };
     // insert preserving order
     LiftedVec::iterator it = std::lower_bound(_lifted_dom.begin(), _lifted_dom.end(), lf, indirection);
     if(it == _lifted_dom.end() || *it != lf) {
@@ -273,7 +269,7 @@ public:
     _lifted_dom.erase(_lifted_dom.begin()+i);
     _computed = false;
 /*
-    auto indirection = [](const LiftedFactor& l, const LiftedFactor& o) -> bool { return *l == *o; };
+    auto indirection = [](const LiftedFactor& l, const LiftedFactor& o) -> bool { return *l < *o; };
     LiftedVec::iterator it = std::lower_bound(_lifted_dom.begin(), _lifted_dom.end(), i, indirection);
     if(it != _lifted_dom.end()) {
       _lifted_dom.erase(it);
@@ -307,8 +303,8 @@ public:
         _computed = false;
     }
     // lifted operations
-    auto indirection = [](const LiftedFactor& l, const LiftedFactor& o) -> bool { return *l == *o; };
-    if(!std::equal(_lifted_dom.begin(), _lifted_dom.end(), lifted_dom.begin(), indirection)) {
+    auto indirection = [](const LiftedFactor& l, const LiftedFactor& o) -> bool { return *l < *o; };
+    if(!std::equal(_lifted_dom.begin(), _lifted_dom.end(), lifted_dom.begin(), [](const LiftedFactor& a, const LiftedFactor& b) { return *a == *b; })) {
       LiftedVec joint_l;
       std::set_union(_lifted_dom.begin(), _lifted_dom.end(), lifted_dom.begin(), lifted_dom.end(), std::inserter(joint_l, joint_l.begin()), indirection);
       _lifted_dom = std::move(joint_l);
@@ -330,7 +326,7 @@ public:
   }
   /// \brief True iff lifted factor i is included in the scope of this function
   bool containsLiftedFactor(const LiftedFactor& lf) const {
-    auto indirection = [](const LiftedFactor& l, const LiftedFactor& o) -> bool { return *l == *o; };
+    auto indirection = [](const LiftedFactor& l, const LiftedFactor& o) -> bool { return *l < *o; };
     return std::binary_search(_lifted_dom.begin(), _lifted_dom.end(), lf, indirection); // sorted assumption
   }
   /// \brief The state factor indices (w.r.t. global \a Domain) relevant for this function
@@ -387,7 +383,14 @@ std::ostream& operator<<(std::ostream &os, const _DiscreteFunction<T>& f) {
   for(auto a : f._action_dom) {
     os << a << ", ";
   }
-  os << "})";
+  os << "}";
+  if(!f._lifted_dom.empty()) {
+    os << ",";
+    for(auto l : f._lifted_dom) {
+      os << *l << ", ";
+    }
+  }
+  os << ")";
   return os;
 }
 
