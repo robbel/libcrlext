@@ -55,6 +55,10 @@ public:
   std::size_t getHash() const {
     return _dom_hash;
   }
+  /// \brief Return whether lifted operation contains empty domain
+  bool empty() const {
+    return _state_dom.empty();
+  }
 
   /// \brief operators
   bool operator==(const _LiftedFactor& other) const {

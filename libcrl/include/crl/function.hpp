@@ -329,9 +329,9 @@ public:
     return std::binary_search(_action_dom.begin(), _action_dom.end(), i); // sorted assumption
   }
   /// \brief True iff lifted factor i is included in the scope of this function
-  bool containsLiftedFactor(Size i) const {
+  bool containsLiftedFactor(const LiftedFactor& lf) const {
     auto indirection = [](const LiftedFactor& l, const LiftedFactor& o) -> bool { return *l == *o; };
-    return std::binary_search(_lifted_dom.begin(), _lifted_dom.end(), i, indirection); // sorted assumption
+    return std::binary_search(_lifted_dom.begin(), _lifted_dom.end(), lf, indirection); // sorted assumption
   }
   /// \brief The state factor indices (w.r.t. global \a Domain) relevant for this function
   const SizeVec& getStateFactors() const {
@@ -398,7 +398,6 @@ using FunctionSetIterator = cpputil::MapValueRangeIterator<DiscreteFunction<T>, 
  * \brief A many-to-many mapping from function scopes to particular functions
  * Used to retrieve functions with particular variables during variable elimination.
  * \todo compare with performance of unordered_multimap
- * FIXME check whether shared_ptr is needed to maintain elements in set (vs. raw pointers..)
  */
 template<class T>
 class FunctionSet : private std::multimap<Size, DiscreteFunction<T>> {
@@ -429,7 +428,8 @@ public:
   /// \brief Add a function to this \a FunctionSet
   void insert(DiscreteFunction<T> f) {
     const SizeVec& s_scope = f->getStateFactors();
-    const SizeVec& a_scope(f->getActionFactors());
+    const SizeVec& a_scope = f->getActionFactors();
+    const LiftedVec& l_vec = f->getLiftedFactors();
     for(Size i : s_scope) {
         auto it = this->emplace(i,f);
         reverse_lookup.emplace(f,it);
@@ -437,6 +437,14 @@ public:
     for(Size i : a_scope) {
         auto it = this->emplace(i+_a_offset,f);
         reverse_lookup.emplace(f,it);
+    }
+    // account for lifted operations
+    for(const auto& lf : l_vec) {
+        const SizeVec& s_dom = lf->getStateFactors();
+        for(Size i : s_dom) {
+            auto it = this->emplace(i,f);
+            reverse_lookup.emplace(f,it);
+        }
     }
   }
 
