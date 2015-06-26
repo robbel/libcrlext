@@ -113,7 +113,7 @@ public:
   }
   /// \brief copy ctor
   _DiscreteFunction(const _DiscreteFunction& rhs)
-  : _domain(rhs._domain), _state_dom(rhs._state_dom), _action_dom(rhs._action_dom),
+  : _domain(rhs._domain), _state_dom(rhs._state_dom), _action_dom(rhs._action_dom), _lifted_dom(rhs._lifted_dom),
     _name(rhs._name), _computed(rhs._computed) {
       if(rhs._subdomain) {
           _subdomain = boost::make_shared<_Domain>(*rhs._subdomain); // copy this variable explicitly since it may change
@@ -266,23 +266,31 @@ public:
   }
 
   /// \brief Join state and action factor scopes of this function with the supplied ones
-  virtual void join(const SizeVec& state_dom, const SizeVec& action_dom) {
+  virtual void join(const SizeVec& state_dom, const SizeVec& action_dom, const LiftedVec& lifted_dom) {
     if(_state_dom != state_dom) {
         SizeVec joint_s;
         std::set_union(_state_dom.begin(), _state_dom.end(), state_dom.begin(), state_dom.end(), std::inserter(joint_s, joint_s.begin()));
-        _state_dom = joint_s;
+        _state_dom = std::move(joint_s);
         _computed = false;
     }
     if(_action_dom != action_dom) {
         SizeVec joint_a;
         std::set_union(_action_dom.begin(), _action_dom.end(), action_dom.begin(), action_dom.end(), std::inserter(joint_a, joint_a.begin()));
-        _action_dom = joint_a;
+        _action_dom = std::move(joint_a);
         _computed = false;
+    }
+    // lifted operations
+    auto indirection = [](const LiftedFactor& l, const LiftedFactor& o) -> bool { return *l == *o; };
+    if(!std::equal(_lifted_dom.begin(), _lifted_dom.end(), lifted_dom.begin(), indirection)) {
+      LiftedVec joint_l;
+      std::set_union(_lifted_dom.begin(), _lifted_dom.end(), lifted_dom.begin(), lifted_dom.end(), std::inserter(joint_l, joint_l.begin()), indirection);
+      _lifted_dom = std::move(joint_l);
+      _computed = false;
     }
   }
   /// \brief Join state and action factor scopes of this function with those of another one
   virtual void join(const _DiscreteFunction<T>& func) {
-    join(func._state_dom, func._action_dom);
+    join(func._state_dom, func._action_dom, func._lifted_dom);
   }
 
   /// \brief True iff state factor i is included in the scope of this function
@@ -642,8 +650,8 @@ public:
         _DiscreteFunction<T>::eraseActionFactor(i);
         _packed = _DiscreteFunction<T>::_computed;
     }
-    virtual void join(const SizeVec& state_dom, const SizeVec& action_dom) override {
-      _DiscreteFunction<T>::join(state_dom, action_dom);
+    virtual void join(const SizeVec& state_dom, const SizeVec& action_dom, const LiftedVec& lifted_dom) override {
+      _DiscreteFunction<T>::join(state_dom, action_dom, lifted_dom);
       _packed = _DiscreteFunction<T>::_computed;
     }
     virtual void join(const _DiscreteFunction<T>& func) override {

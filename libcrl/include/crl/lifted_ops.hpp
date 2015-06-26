@@ -51,6 +51,9 @@ public:
   bool operator==(const _LiftedFactor& other) const {
     return _dom_hash == other._dom_hash;
   }
+  bool operator<(const _LiftedFactor& other) const {
+    return _dom_hash < other._dom_hash;
+  }
 };
 typedef boost::shared_ptr<_LiftedFactor> LiftedFactor;
 typedef std::vector<LiftedFactor> LiftedVec;
