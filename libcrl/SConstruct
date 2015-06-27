@@ -41,7 +41,7 @@ crl/tables.hpp      crl/conversions.hpp         crl/dbn.hpp          crl/alp.hpp
 
 build_sources = [build.File(source) for source in sources]
 test_sources = [build.File('test.cpp')]
-gtest_sources = [testdir.File(test) for test in ['test_alp_basic.cpp','test_dbn.cpp','test_set.cpp']]
+gtest_sources = [testdir.File(test) for test in ['test_alp_basic.cpp','test_dbn.cpp','test_set.cpp','test_lifted.cpp']]
 #gtest_sources = Glob('test/*.cpp');
 
 env = Environment(tools = ["default", "tools"], toolpath = '.',

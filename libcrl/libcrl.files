@@ -52,6 +52,7 @@ src/vi.cpp
 test/test_alp_basic.cpp
 test/test_dbn.cpp
 test/test_gurobi.cpp
+test/test_lifted.cpp
 test/test_set.cpp
 test/test_spudd.cpp
 README
