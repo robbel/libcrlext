@@ -161,6 +161,9 @@ std::ostream& operator<<(std::ostream &os, const _DBNFactor& fa) {
     for(Size pa : fa.getActionDependencies()) {
         os << "A" << pa << ", ";
     }
+    for(auto l : fa.getLiftedDependencies()) {
+        os << *l << ", ";
+    }
     os << "}";
     return os;
 }
