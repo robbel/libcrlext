@@ -69,6 +69,11 @@ void _DBNFactor::computeSubdomain() {
       Size j = _action_dom[i];
       this->_subdomain->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax(), action_names[j]);
   }
+  // add lifted operators
+  for (Size i=0; i<_lifted_dom.size(); i++) {
+      FactorRange range = _lifted_dom[i]->getRange();
+      this->_subdomain->addStateFactor(range.getMin(), range.getMax(), "#" + std::to_string(_lifted_dom[i]->getHash()));
+  }
   _computed = true;
 }
 

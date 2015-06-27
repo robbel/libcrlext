@@ -348,9 +348,9 @@ public:
 
       // compute backprojection, i.e., expectation of basis function through DBN
       _StateActionIncrementIterator saitr(this->_subdomain);
-      const subdom_map h_dom(_func->getStateFactors());
-      const subdom_map s_dom(this->getStateFactors());
-      const subdom_map a_dom(this->getActionFactors());
+      const subdom_map h_map(_func->getStateFactors());
+      const subdom_map s_map(this->getStateFactors());
+      const subdom_map a_map(this->getActionFactors());
       // efficient loop over all (s,a) pairs in backprojection domain
       auto& vals = this->values();
       for(T& v : vals) {
@@ -358,13 +358,13 @@ public:
         v = 0.;
         if(I) {
             const State s(hdom,I->getStateIndex());
-            v = h[(Size)s] * _dbn.T(std::get<0>(sa), std::get<1>(sa), s, s_dom, h_dom, a_dom);
+            v = h[(Size)s] * _dbn.T(std::get<0>(sa), std::get<1>(sa), s, s_map, h_map, a_map);
         }
         else {
           hitr.reset();
           while(hitr.hasNext()) {
             const State& s = hitr.next();
-            v += h[(Size)s] * _dbn.T(std::get<0>(sa), std::get<1>(sa), s, s_dom, h_dom, a_dom);
+            v += h[(Size)s] * _dbn.T(std::get<0>(sa), std::get<1>(sa), s, s_map, h_map, a_map);
           }
         }
       }
