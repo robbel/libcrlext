@@ -601,6 +601,10 @@ public:
         _uo.insert({dom[i],i});
     }
   }
+  void append(T i) {
+    _identity = false;
+    _uo.insert({i, _uo.size()});
+  }
   typename std::vector<T>::size_type operator()(T i) const {
     if(!_identity) {
       return _uo.at(i);

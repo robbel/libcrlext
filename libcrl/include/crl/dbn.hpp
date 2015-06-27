@@ -67,9 +67,8 @@ public:
   template <class T>
   State mapState(const State& s, const State& n, T&& domain_map_s, T&& domain_map_n) const {
       assert(_packed);
-      if(s.size() == _delayed_dep.size() && !n) // under these conditions no reduction to local scope performed
+      if(s.size() == _delayed_dep.size() + _lifted_dom.size() && !n) // under these conditions no reduction to local scope performed
           return s;
-      assert(!hasLiftedDependency());
       State ms(_subdomain);
       for (Size i=0; i<_delayed_dep.size(); i++) {
           Size j = _delayed_dep[i];
@@ -79,6 +78,12 @@ public:
       for (Size i=0; i<_concurrent_dep.size(); i++) {
           Size j = _concurrent_dep[i];
           ms.setFactor(i+_delayed_dep.size(), n.getFactor(domain_map_n(j)));
+      }
+      // lifted operators
+      const auto offset = _delayed_dep.size() + _concurrent_dep.size();
+      for (Size i = 0; i<_lifted_dom.size(); i++) {
+          auto hash = _lifted_dom[i]->getHash();
+          ms.setFactor(i+offset, s.getFactor(domain_map_s(hash)));
       }
       return ms;
   }
@@ -349,7 +354,10 @@ public:
       // compute backprojection, i.e., expectation of basis function through DBN
       _StateActionIncrementIterator saitr(this->_subdomain);
       const subdom_map h_map(_func->getStateFactors());
-      const subdom_map s_map(this->getStateFactors());
+      subdom_map s_map(this->getStateFactors());
+      for(const auto& lf : this->getLiftedFactors()) {
+        s_map.append(lf->getHash());
+      }
       const subdom_map a_map(this->getActionFactors());
       // efficient loop over all (s,a) pairs in backprojection domain
       auto& vals = this->values();

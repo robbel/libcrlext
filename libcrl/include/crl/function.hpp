@@ -28,6 +28,8 @@ template<class T> class _DiscreteFunction;
 template<class T> class FunctionSet;
 /// \brief The identity mapping
 static auto identity_map = [](Size i) { return i; };
+/// \brief Comparison object for lifted factors
+static auto lifted_comp = [](const LiftedFactor& l, const LiftedFactor& o) -> bool { return *l < *o; };
 /// \brief A mapping from global factor indices to those in a subdomain
 /// \see mapState(), mapAction()
 typedef cpputil::inverse_map<Size> subdom_map;
@@ -124,10 +126,14 @@ public:
   }
   /// \brief copy ctor
   _DiscreteFunction(const _DiscreteFunction& rhs)
-  : _domain(rhs._domain), _state_dom(rhs._state_dom), _action_dom(rhs._action_dom), _lifted_dom(rhs._lifted_dom),
+  : _domain(rhs._domain), _state_dom(rhs._state_dom), _action_dom(rhs._action_dom),
     _name(rhs._name), _computed(rhs._computed) {
+      // copy these variables explicitly
       if(rhs._subdomain) {
-          _subdomain = boost::make_shared<_Domain>(*rhs._subdomain); // copy this variable explicitly since it may change
+        _subdomain = boost::make_shared<_Domain>(*rhs._subdomain);
+      }
+      for(const auto& lf : rhs._lifted_dom) {
+        _lifted_dom.emplace_back(boost::make_shared<_LiftedFactor>(*lf));
       }
   }
   /// \brief copy assignment
@@ -190,13 +196,17 @@ public:
   template <class C>
   State mapState(const State& s, C&& domain_map_s) const {
       assert(_computed);
-      if(s.size() == _state_dom.size()) // under this condition no reduction to local scope performed
+      if(s.size() == _state_dom.size() + _lifted_dom.size()) // under this condition no reduction to local scope performed
           return s;
-      assert(_lifted_dom.empty());
       State ms(_subdomain);
       for (Size i = 0; i<_state_dom.size(); i++) {
           Size j = _state_dom[i];
           ms.setFactor(i, s.getFactor(domain_map_s(j)));
+      }
+      // lifted operators
+      for (Size i = 0; i<_lifted_dom.size(); i++) {
+          auto hash = _lifted_dom[i]->getHash();
+          ms.setFactor(i+_state_dom.size(), s.getFactor(domain_map_s(hash)));
       }
       return ms;
   }
@@ -245,10 +255,15 @@ public:
   }
   /// \brief Add a lifted factor to the scope of this function
   virtual void addLiftedFactor(LiftedFactor lf) {
-    auto indirection = [](const LiftedFactor& l, const LiftedFactor& o) -> bool { return *l < *o; };
     // insert preserving order
-    LiftedVec::iterator it = std::lower_bound(_lifted_dom.begin(), _lifted_dom.end(), lf, indirection);
+    LiftedVec::iterator it = std::lower_bound(_lifted_dom.begin(), _lifted_dom.end(), lf, lifted_comp);
     if(it == _lifted_dom.end() || *it != lf) {
+#if !NDEBUG
+      // no support for hash collisions between regular state Ids and lifted operations
+      // note: assumes regular states have been added in full
+      SizeVec::iterator sit = std::lower_bound(_state_dom.begin(), _state_dom.end(), lf->getHash());
+      assert(sit == _state_dom.end());
+#endif
       _lifted_dom.emplace(it, lf);
       _computed = false;
     }
@@ -263,20 +278,6 @@ public:
     assert(i < _domain->getNumActionFactors());
     eraseFactor(i, _action_dom);
   }
-  /// \brief Erase a lifted factor from the scope of this function
-  virtual void eraseLiftedFactor(Size i) {
-    assert(i < _lifted_dom.size());
-    _lifted_dom.erase(_lifted_dom.begin()+i);
-    _computed = false;
-/*
-    auto indirection = [](const LiftedFactor& l, const LiftedFactor& o) -> bool { return *l < *o; };
-    LiftedVec::iterator it = std::lower_bound(_lifted_dom.begin(), _lifted_dom.end(), i, indirection);
-    if(it != _lifted_dom.end()) {
-      _lifted_dom.erase(it);
-      _computed = false;
-    }
-*/
-  }
   /// \brief Erase action or state factor `i' from the scope of this function
   /// \note If `i' is greater than the number of state factors in the (global) domain, it is assumed to be an action factor.
   void eraseFactor(Size i) {
@@ -286,6 +287,19 @@ public:
       else {
           eraseActionFactor(i - _domain->getNumStateFactors());
       }
+  }
+  /// \brief Erase a lifted factor from the scope of this function
+  virtual void eraseLiftedFactor(Size i) { // FIXME: needed?
+    assert(i < _lifted_dom.size());
+    _lifted_dom.erase(_lifted_dom.begin()+i);
+    _computed = false;
+  }
+  virtual void eraseLiftedFactor(const LiftedFactor& lf) {
+    LiftedVec::iterator it = std::lower_bound(_lifted_dom.begin(), _lifted_dom.end(), lf, lifted_comp);
+    if(it != _lifted_dom.end()) {
+      _lifted_dom.erase(it);
+      _computed = false;
+    }
   }
 
   /// \brief Join state and action factor scopes of this function with the supplied ones
@@ -303,10 +317,9 @@ public:
         _computed = false;
     }
     // lifted operations
-    auto indirection = [](const LiftedFactor& l, const LiftedFactor& o) -> bool { return *l < *o; };
     if(!std::equal(_lifted_dom.begin(), _lifted_dom.end(), lifted_dom.begin(), [](const LiftedFactor& a, const LiftedFactor& b) { return *a == *b; })) {
       LiftedVec joint_l;
-      std::set_union(_lifted_dom.begin(), _lifted_dom.end(), lifted_dom.begin(), lifted_dom.end(), std::inserter(joint_l, joint_l.begin()), indirection);
+      std::set_union(_lifted_dom.begin(), _lifted_dom.end(), lifted_dom.begin(), lifted_dom.end(), std::inserter(joint_l, joint_l.begin()), lifted_comp);
       _lifted_dom = std::move(joint_l);
       _computed = false;
     }
@@ -326,8 +339,7 @@ public:
   }
   /// \brief True iff lifted factor i is included in the scope of this function
   bool containsLiftedFactor(const LiftedFactor& lf) const {
-    auto indirection = [](const LiftedFactor& l, const LiftedFactor& o) -> bool { return *l < *o; };
-    return std::binary_search(_lifted_dom.begin(), _lifted_dom.end(), lf, indirection); // sorted assumption
+    return std::binary_search(_lifted_dom.begin(), _lifted_dom.end(), lf, lifted_comp); // sorted assumption
   }
   /// \brief The state factor indices (w.r.t. global \a Domain) relevant for this function
   const SizeVec& getStateFactors() const {
@@ -339,7 +351,7 @@ public:
   }
   /// \brief The lifted factors relevant for this function
   const LiftedVec& getLiftedFactors() const {
-    return _lifted_dom;
+      return _lifted_dom;
   }
 
   //
@@ -610,18 +622,18 @@ protected:
           std::transform(vals.begin(), vals.end(), fother->_sa_table->values().begin(), vals.begin(), f);
           return;
       }
-#if 0
-      else if(!known_flat && this->getActionFactors() == other->getActionFactors() && this->getStateFactors() == other->getStateFactors()) {
-          // TODO: brute force evaluation for every (s,a) pair, aka method below
-          return;
-      }
-#endif
-      // apply a function with smaller domain FIXME optimize for fother case
+
+      // apply a function with smaller domain TODO optimize for `other function is flat' case
       if(other->getActionFactors().empty() &&
-              std::includes(this->getStateFactors().begin(), this->getStateFactors().end(), // check if other domain is proper subset
-                            other->getStateFactors().begin(), other->getStateFactors().end())) {
+         std::includes(this->getStateFactors().begin(), this->getStateFactors().end(), // check if other domain is proper subset
+                       other->getStateFactors().begin(), other->getStateFactors().end()) &&
+         std::includes(this->getLiftedFactors().begin(), this->getLiftedFactors().end(),
+                       other->getLiftedFactors().begin(), other->getLiftedFactors().end(), lifted_comp)) {
           const Size num_actions = this->_subdomain->getNumActions();
-          const subdom_map s_dom(this->getStateFactors()); // assumed to subsume all states from function `other'
+          subdom_map s_dom(this->getStateFactors()); // assumed to subsume all states from function `other'
+          for(const auto& lf : this->getLiftedFactors()) { // assumed to subsume all lifted factors from function `other'
+            s_dom.append(lf->getHash());
+          }
           _StateIncrementIterator sitr(this->_subdomain);
           while(sitr.hasNext()) {
               const State& s = sitr.next();
