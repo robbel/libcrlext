@@ -37,8 +37,8 @@ protected:
     Domain _domain;
     State  _s;
     DBN    _dbn;
-    Indicator<> I1;
-    Indicator<> I2;
+    Indicator<> I1; ///< Lifted indicator function
+    Indicator<> I2; ///< Regular indicator function
 };
 
 void LiftedDBNTest::SetUp() {
@@ -74,7 +74,7 @@ DBN LiftedDBNTest::makeSimpleLiftedDBN(Domain domain) {
       fa->addDelayedDependency(y); // dependence on self
       fa->addActionDependency(0); // dependence on first action factor
       // add lifted functions
-      if(y == 1) {
+      if(y == 1) { // Note: not completely kosher since hash collisions are only tested against /current/ state factors
         fa->addLiftedDependency(boost::make_shared<_LiftedFactor>(std::initializer_list<Size>{0}));
       }
       else if(y == 2) {
@@ -115,6 +115,82 @@ DBN LiftedDBNTest::makeSimpleLiftedDBN(Domain domain) {
 
 } // anonymous ns
 
-TEST_F(LiftedDBNTest, BasicLiftedTest) {
-  SUCCEED();
+///
+/// \brief Some basic tests
+///
+TEST_F(LiftedDBNTest, BasicLiftedTests) {
+#if !NDEBUG
+  for(Size i = 0; i < _dbn->size(); i++) {
+    for(const auto& lf : _dbn->factor(i)->getLiftedDependencies()) {
+      std::ostringstream os;
+      os << *lf;
+      LOG_DEBUG(os.str() << ": " << lf->getHash());
+    }
+  }
+#endif
+
+  //
+  // Hash tests
+  //
+  LiftedFactor lf = boost::make_shared<_LiftedFactor>(std::initializer_list<Size>{ 0 });
+  ASSERT_TRUE(lf->containsStateFactor(0));
+  const auto& df = _dbn->factor(1)->getLiftedDependencies()[0];
+  EXPECT_EQ(*lf, *df);
+
+  lf = boost::make_shared<_LiftedFactor>(std::initializer_list<Size>{ 0, 1 });
+  const auto& df2 = _dbn->factor(2)->getLiftedDependencies()[0];
+  EXPECT_EQ(*lf, *df2);
+  EXPECT_NE(*lf, *df);
+
+  //
+  // Domain tests
+  //
+  EXPECT_TRUE(_dbn->hasLiftedDependency() && !_dbn->hasConcurrentDependency());
+  FactorIterator fitr = _dbn->factors();
+  while(fitr->hasNext()) {
+      const DBNFactor& sf = fitr->next();
+      EXPECT_TRUE(sf->getSubdomain()->getNumStateFactors() == sf->getDelayedDependencies().size() + sf->getLiftedDependencies().size());
+  }
+}
+
+///
+/// \brief Some backprojection tests of the indicator functions
+///
+TEST_F(LiftedDBNTest, LiftedBackprojectionTests) {
+  //
+  // Non-lifted basis function backprojection
+  //
+  _Backprojection<double> B(_domain, *_dbn, I2, "bp1");
+  LOG_DEBUG(B.getStateFactors().size() << " " << B.getLiftedFactors().size() << " " << B.getActionFactors().size());
+  EXPECT_TRUE(B.getStateFactors().size() == 3 &&
+              B.getLiftedFactors().size() == 2 &&
+              B.getActionFactors().size() == 1); // based on DBN structure above
+  EXPECT_TRUE(B.getStateFactors()[0] == 0);
+  LiftedFactor lf = boost::make_shared<_LiftedFactor>(std::initializer_list<Size>{ 0 });
+  EXPECT_EQ(*(B.getLiftedFactors()[0]), *lf);
+
+  // compute subdomain and cache values
+  B.cache();
+  EXPECT_TRUE(B.getSubdomain()->getNumStateFactors() == 5 && B.getSubdomain()->getNumActionFactors() == 1); // based on DBN structure above
+
+  // Backprojection is the complete dbn
+  Domain subdomain = B.getSubdomain();
+  subdom_map n_map(cpputil::ordered_vec<Size>(_domain->getNumStateFactors()));
+  subdom_map s_map(cpputil::ordered_vec<Size>(_domain->getNumStateFactors())); // includes lifted (count) factors (unlike original _domain)
+  for(const auto& lf : B.getLiftedFactors()) {
+    s_map.append(lf->getHash());
+  }
+  for (Size state_index=0; state_index<subdomain->getNumStates(); state_index++) {
+          State s(subdomain, state_index);
+          for (Size action_index=0; action_index<subdomain->getNumActions(); action_index++) {
+                  Action a(subdomain, action_index);
+                  double v_dbn = _dbn->T(s, a, _s, s_map, n_map, subdom_map(cpputil::ordered_vec<Size>(_domain->getNumActionFactors())));
+                  EXPECT_DOUBLE_EQ(v_dbn, B(s,a));
+          }
+  }
+
+  //
+  // Lifted basis functions currently not supported
+  //
+  EXPECT_THROW(_Backprojection<double> B2(_domain, *_dbn, I1, "bp2"), cpputil::InvalidException);
 }

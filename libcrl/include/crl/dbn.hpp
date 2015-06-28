@@ -317,8 +317,8 @@ public:
     if(_dbn.hasConcurrentDependency()) {
       throw cpputil::InvalidException("Backprojection does currently not support concurrent dependencies in DBN.");
     }
-    if(!other->getActionFactors().empty()) {
-      throw cpputil::InvalidException("Backprojection does not support function with action factors.");
+    if(!other->getActionFactors().empty() || !other->getLiftedFactors().empty()) {
+      throw cpputil::InvalidException("Backprojection does not support function with action or lifted factors.");
     }
     // determine parent scope via DBN
     for(Size t : other->getStateFactors()) {

@@ -64,6 +64,9 @@ public:
   bool operator==(const _LiftedFactor& other) const {
     return _dom_hash == other._dom_hash;
   }
+  bool operator!=(const _LiftedFactor& other) const {
+    return !(*this == other);
+  }
   bool operator<(const _LiftedFactor& other) const {
     return _dom_hash < other._dom_hash;
   }

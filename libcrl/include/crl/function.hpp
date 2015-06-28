@@ -317,7 +317,8 @@ public:
         _computed = false;
     }
     // lifted operations
-    if(!std::equal(_lifted_dom.begin(), _lifted_dom.end(), lifted_dom.begin(), [](const LiftedFactor& a, const LiftedFactor& b) { return *a == *b; })) {
+    if(_lifted_dom.size() != lifted_dom.size() ||
+       !std::equal(_lifted_dom.begin(), _lifted_dom.end(), lifted_dom.begin(), [](const LiftedFactor& a, const LiftedFactor& b) { return *a == *b; })) {
       LiftedVec joint_l;
       std::set_union(_lifted_dom.begin(), _lifted_dom.end(), lifted_dom.begin(), lifted_dom.end(), std::inserter(joint_l, joint_l.begin()), lifted_comp);
       _lifted_dom = std::move(joint_l);
