@@ -478,8 +478,11 @@ public:
     for(const auto& lf : l_vec) {
         const SizeVec& s_dom = lf->getStateFactors();
         for(Size i : s_dom) {
-            auto it = this->emplace(i,f);
-            reverse_lookup.emplace(f,it);
+            bool insert = this->find(i) == this->end();
+            if(insert) { // enforce uniqueness
+              auto it = this->emplace(i,f);
+              reverse_lookup.emplace(f,it);
+            }
         }
     }
   }
