@@ -175,8 +175,9 @@ TEST_F(LiftedDBNTest, LiftedBackprojectionTests) {
 
   // Backprojection is the complete dbn
   Domain subdomain = B.getSubdomain();
-  subdom_map n_map(cpputil::ordered_vec<Size>(_domain->getNumStateFactors()));
-  subdom_map s_map(cpputil::ordered_vec<Size>(_domain->getNumStateFactors())); // includes lifted (count) factors (unlike original _domain)
+  const subdom_map n_map(cpputil::ordered_vec<Size>(_domain->getNumStateFactors()));
+  const subdom_map a_map(cpputil::ordered_vec<Size>(_domain->getNumActionFactors()));
+  subdom_map s_map(n_map); // includes lifted (count) factors (unlike original _domain)
   for(const auto& lf : B.getLiftedFactors()) {
     s_map.append(lf->getHash());
   }
@@ -184,7 +185,7 @@ TEST_F(LiftedDBNTest, LiftedBackprojectionTests) {
           State s(subdomain, state_index);
           for (Size action_index=0; action_index<subdomain->getNumActions(); action_index++) {
                   Action a(subdomain, action_index);
-                  double v_dbn = _dbn->T(s, a, _s, s_map, n_map, subdom_map(cpputil::ordered_vec<Size>(_domain->getNumActionFactors())));
+                  double v_dbn = _dbn->T(s, a, _s, s_map, n_map, a_map);
                   EXPECT_DOUBLE_EQ(v_dbn, B(s,a));
           }
   }

@@ -288,12 +288,32 @@ public:
           eraseActionFactor(i - _domain->getNumStateFactors());
       }
   }
-  /// \brief Erase a lifted factor from the scope of this function
-  virtual void eraseLiftedFactor(Size i) { // FIXME: needed?
-    assert(i < _lifted_dom.size());
-    _lifted_dom.erase(_lifted_dom.begin()+i);
-    _computed = false;
+  /// \brief Reduce the domain of every lifted factor that contains state factor `i'
+  /// \note If a lifted factor is reduced to the empty domain, it is fully removed from this function
+  /// \return An array of <old_hash,new_hash> (sorted by the former) for those lifted factors modified by this function
+  virtual std::vector<std::pair<std::size_t,std::size_t>> eraseLiftedFactor(Size i) {
+    assert(i < _domain->getNumStateFactors());
+    std::vector<std::pair<std::size_t,std::size_t>> retVec;
+    for(auto it = _lifted_dom.begin(); it != _lifted_dom.end(); ) { // sorted
+      auto o_hash = (*it)->getHash(); // old hash
+      if((*it)->eraseStateFactor(i)) {
+        _computed = false;
+      }
+      auto n_hash = (*it)->getHash(); // new hash
+      if((*it)->empty()) {
+        it = _lifted_dom.erase(it);
+        n_hash = _LiftedFactor::EMPTY_HASH;
+      }
+      else {
+        ++it;
+      }
+      if(o_hash != n_hash) {
+        retVec.emplace_back(std::make_pair(o_hash, n_hash));
+      }
+    }
+    return retVec;
   }
+  /// \brief Erase lifted factor `lf' from the (lifted) scope of the function
   virtual void eraseLiftedFactor(const LiftedFactor& lf) {
     LiftedVec::iterator it = std::lower_bound(_lifted_dom.begin(), _lifted_dom.end(), lf, lifted_comp);
     if(it != _lifted_dom.end()) {
