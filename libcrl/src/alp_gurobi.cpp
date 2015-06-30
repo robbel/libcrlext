@@ -355,14 +355,14 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<d
             }
             // add constraint (including new variables) to LP
             /*GRBConstr constr =*/ _lp->addConstr(lhs,GRB_LESS_EQUAL,v);
-/*
-#if !NDEBUG
-            LOG_DEBUG("Added constraint:");
-            _lp->update();
-            GRBLinExpr ex = _lp->getRow(constr);
-            LOG_DEBUG(ex);
-#endif
-*/
+
+//#if !NDEBUG
+//            LOG_DEBUG("Added constraint:");
+//            _lp->update();
+//            GRBLinExpr ex = _lp->getRow(constr);
+//            LOG_DEBUG(ex);
+//#endif
+
         }
         LOG_DEBUG("Function set F before erase of factor: " << v);
         LOG_DEBUG(F);
@@ -415,11 +415,6 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<d
   return 2;
 }
 
-// Todo: liftedVariableElimination function
-// `-takes into account shared variable scopes (versus variableElimination)
-//
-// Note: up to variable elimination identical to generateLP
-// \see counter.cpp
 int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const vector<double>& alpha, const SizeVec& elim_order) {
   //assert(C.size() == alpha.size());
   F.clear();
@@ -578,8 +573,8 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
           }
           else {
             prl = &a_o;
-            elim_range = _domain->getActionRanges()[v];
-            v_loc = a_dom(v);
+            elim_range = _domain->getActionRanges()[v-_domain->getNumStateFactors()];
+            v_loc = a_dom(v-_domain->getNumStateFactors());
           }
           LOG_DEBUG("Eliminating `proper' variable " << v << " with range [" << elim_range.getMin() << "," << elim_range.getMax() << "]");
         }
@@ -625,7 +620,7 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
                 buildRLType(a, al_dom, a_o, a_dom);
             }
 
-            // iterate over possible s_o values
+            // iterate over possible s_o (or a_o) values
             for(Factor fa = elim_range.getMin(); fa <= elim_range.getMax(); fa++) {
                 if(proper_var) {
                   prl->setFactor(v_loc, fa);
@@ -657,15 +652,15 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
                     lhs += fv;
                 }
                 // add constraint (including new variables) to LP
-                /*GRBConstr constr =*/ _lp->addConstr(lhs,GRB_LESS_EQUAL,v);
-    /*
-    #if !NDEBUG
-                LOG_DEBUG("Added constraint:");
-                _lp->update();
-                GRBLinExpr ex = _lp->getRow(constr);
-                LOG_DEBUG(ex);
-    #endif
-    */
+                /*GRBConstr constr =*/ _lp->addConstr(lhs,GRB_LESS_EQUAL,var);
+
+//#if !NDEBUG
+//                LOG_DEBUG("Added constraint:");
+//                _lp->update();
+//                GRBLinExpr ex = _lp->getRow(constr);
+//                LOG_DEBUG(ex);
+//#endif
+
             }
         }
         LOG_DEBUG("Function set F before erase of factor: " << v);
