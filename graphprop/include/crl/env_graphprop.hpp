@@ -133,6 +133,8 @@ protected:
   virtual Reward getReward(const BigState& s, const Action &a) const;
   /// \brief Fill in transition and reward function for a single plate (i.e., node `i') in the graph
   void buildPlate(Size i, DBNFactor& fai, LRF& lrf);
+  /// \brief Fill in transition and reward function for a single lifted plate (i.e., node `i') in the graph
+  void buildLiftedPlate(Size i, DBNFactor& fai, LRF& lrf);
 public:
   /// \brief Create a GraphProp environment from the supplied domain
   _GraphProp(Domain domain, AdjacencyMap adj_map);
@@ -142,7 +144,8 @@ public:
     return _domain;
   }
   /// \brief Build the factored MDP associated with this GraphProp problem
-  virtual void buildFactoredMDP();
+  /// \param lifted True iff a lifted representation of this problem is to be generated
+  virtual void buildFactoredMDP(bool lifted);
   /// \brief Return the FactoredMDP representing this GraphProp instance
   virtual FactoredMDP getFactoredMDP() const {
       return _fmdp;
@@ -178,7 +181,8 @@ typedef boost::shared_ptr<_GraphProp> GraphProp;
 } // namespace graphprop
 
 /// \brief read in GraphProp details from xml config and graph (matrix-form) file
-graphprop::GraphProp readGraphProp(std::istream& cfg, std::istream& graph);
+/// \param lifted True iff a lifted representation of this problem is to be generated
+graphprop::GraphProp readGraphProp(std::istream& cfg, std::istream& graph, bool lifted);
 
 } // namespace crl
 

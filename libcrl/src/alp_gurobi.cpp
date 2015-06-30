@@ -17,14 +17,17 @@ using namespace crl;
 
 namespace {
 
-/// \todo
+/// \brief Fills rl2 with corresponding entries from rl1, if available (as determined by the respective \a subdom_map)
+/// rl1 and rl2 must have identical type (i.e., either \a State or \a Action)
+/// \see _LP::generateLiftedLP
 void buildRLType(const RLType& rl1, const subdom_map& s1, RLType& rl2, const subdom_map& s2) {
   const auto& fullmap = s2.map();
   const auto& submap = s1.map();
   for(auto kv : fullmap) {
       auto search = submap.find(kv.first);
       //kv.first: the global factor Id
-      if(search != submap.end()) { // subdomain includes element
+      if(search != submap.end()) { // s1's subdomain includes the element
+        //kv.second: the local mapping in the given rl2
         rl2.setFactor(kv.second, rl1.getFactor(search->second));
       }
   }

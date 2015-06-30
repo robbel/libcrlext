@@ -71,7 +71,7 @@ int main(int argc, char** argv) {
   try {
     ifstream iscfg(argv[1]);
     ifstream isdat(argv[2]);
-    if(!(_graphprop = readGraphProp(iscfg, isdat))) {
+    if(!(_graphprop = readGraphProp(iscfg, isdat, false))) {
       LOG_ERROR("Error while reading from " << argv[1] << " or " << argv[2]);
       return EXIT_FAILURE;
     }

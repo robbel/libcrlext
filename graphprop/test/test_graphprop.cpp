@@ -46,7 +46,7 @@ void GraphPropTest::SetUp() {
     ifstream isdat(data);
     graphprop::GraphProp thegrp;
 
-    if(!(thegrp = readGraphProp(iscfg, isdat))) {
+    if(!(thegrp = readGraphProp(iscfg, isdat, false))) {
       LOG_ERROR("Error while reading from " << cfg << " or " << data);
       FAIL();
     }

@@ -98,6 +98,11 @@ Reward _GraphProp::getReward(const BigState& s, const Action& a) const {
   return -cost;
 }
 
+/// \todo
+void _GraphProp::buildLiftedPlate(Size i, DBNFactor& fai, LRF& lrf) {
+  // TODO
+}
+
 // Holds for both controlled and uncontrolled nodes in graph
 void _GraphProp::buildPlate(Size i, DBNFactor& fai, LRF& lrf) {
   Domain faidom = fai->getSubdomain();
@@ -158,7 +163,7 @@ void _GraphProp::buildPlate(Size i, DBNFactor& fai, LRF& lrf) {
   }
 }
 
-void _GraphProp::buildFactoredMDP() {
+void _GraphProp::buildFactoredMDP(bool lifted) {
   assert(!_agent_locs.empty());
   _fmdp = boost::make_shared<_FactoredMDP>(_domain);
 
@@ -169,8 +174,16 @@ void _GraphProp::buildFactoredMDP() {
       // create dbn factor for node `i'
       DBNFactor fai = boost::make_shared<_DBNFactor>(_domain,i);
       LRF lrf = boost::make_shared<_LRF>(_domain); // those have equivalent scopes here
-      for(Size parent : _scope_map[i]) { // Note: includes self
-        fai->addDelayedDependency(parent);
+      if(!lifted) {
+          for(Size parent : _scope_map[i]) { // Note: includes self
+              fai->addDelayedDependency(parent);
+          }
+      }
+      else {
+//          LiftedFactor lf = boost::make_shared<_LiftedFactor>
+//          fai->addDelayedDependency(parent);
+//          fai-
+
       }
       // LRF
       lrf->addStateFactor(i);
@@ -264,6 +277,7 @@ BigState _GraphProp::begin() {
 
 // apply action, obtain resulting state n, update _current
 // TODO make this a generic getObservation() for a `FactoredMDPEnvironment' (\see _MDPEnvironment)
+// FIXME: adjust for `lifted' version of problem
 BigObservation _GraphProp::getObservation(const Action& ja) {
   Reward r = getReward(_current, ja);
   // prepare a new state
@@ -324,7 +338,7 @@ BigObservation _GraphProp::getObservation(const Action& ja) {
 //      <q0      value="0.5"/>            <!-- Default infection probability -->
 //    </GraphProp>
 
-GraphProp readGraphProp(std::istream& cfg, std::istream& graph) {
+GraphProp readGraphProp(std::istream& cfg, std::istream& graph, bool lifted) {
   if(!cfg || !graph) {
       return nullptr;
   }
@@ -397,7 +411,7 @@ GraphProp readGraphProp(std::istream& cfg, std::istream& graph) {
   grp->setAgentLocs(num_agents, agentAssignments);
   grp->setTargetLocs(num_targets, targetAssignments);
   grp->setParameters(beta0, del0, lambda1, lambda2, lambda3, q0);
-  grp->buildFactoredMDP();
+  grp->buildFactoredMDP(lifted);
 
   return grp;
 }
