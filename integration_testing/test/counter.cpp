@@ -454,7 +454,7 @@ TEST(CounterTest, SharedProperCountTest) {
 ///
 TEST(CounterTest, LiftedCounterBasicTest) {
   _LiftedFactor a = {1,2,5,9,10};
-  _LiftedCounter b = {1,5,2,10,9};
+  _LiftedFactor b = {1,5,2,10,9};
   EXPECT_TRUE(a == b);
 
   a.eraseStateFactor(100);
