@@ -35,7 +35,10 @@ public:
 
   /// \brief ctor
   _LiftedFactor(std::initializer_list<Size> il)
-  : _state_dom(std::move(il)) {
+  : _LiftedFactor(SizeVec(il)) { }
+  /// \brief ctor
+  _LiftedFactor(const SizeVec& vec)
+  : _state_dom(std::move(vec)) {
     std::sort(_state_dom.begin(), _state_dom.end());
     _dom_hash = boost::hash_range(_state_dom.begin(), _state_dom.end());
   }
