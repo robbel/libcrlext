@@ -105,7 +105,7 @@ protected:
   /// \brief Helper function to erase either state or action factor from this function's subdomain
   void eraseFactor(Size i, SizeVec& vec) {
     SizeVec::iterator it = std::lower_bound(vec.begin(), vec.end(), i);
-    if(it != vec.end()) {
+    if(it != vec.end() && (*it) == i) {
       vec.erase(it);
       _computed = false;
     }
@@ -262,7 +262,7 @@ public:
       // no support for hash collisions between regular state Ids and lifted operations
       // note: assumes regular states have been added in full
       SizeVec::iterator sit = std::lower_bound(_state_dom.begin(), _state_dom.end(), lf->getHash());
-      assert(sit == _state_dom.end());
+      assert(sit == _state_dom.end() || (*sit) != lf->getHash());
 #endif
       _lifted_dom.emplace(it, lf);
       _computed = false;
@@ -316,7 +316,7 @@ public:
   /// \brief Erase lifted factor `lf' from the (lifted) scope of the function
   virtual void eraseLiftedFactor(const LiftedFactor& lf) {
     LiftedVec::iterator it = std::lower_bound(_lifted_dom.begin(), _lifted_dom.end(), lf, lifted_comp);
-    if(it != _lifted_dom.end()) {
+    if(it != _lifted_dom.end() && *(*it) == *lf) {
       _lifted_dom.erase(it);
       _computed = false;
     }
@@ -341,7 +341,11 @@ public:
        !std::equal(_lifted_dom.begin(), _lifted_dom.end(), lifted_dom.begin(), [](const LiftedFactor& a, const LiftedFactor& b) { return *a == *b; })) {
       LiftedVec joint_l;
       std::set_union(_lifted_dom.begin(), _lifted_dom.end(), lifted_dom.begin(), lifted_dom.end(), std::inserter(joint_l, joint_l.begin()), lifted_comp);
-      _lifted_dom = std::move(joint_l);
+      // copy these variables explicitly
+      _lifted_dom.clear();
+      for(const auto& lf : joint_l) {
+        _lifted_dom.emplace_back(boost::make_shared<_LiftedFactor>(*lf));
+      }
       _computed = false;
     }
   }
@@ -478,8 +482,8 @@ public:
     for(const auto& lf : l_vec) {
         const SizeVec& s_dom = lf->getStateFactors();
         for(Size i : s_dom) {
-            bool insert = this->find(i) == this->end();
-            if(insert) { // enforce uniqueness
+            // enforce uniqueness
+            if(!std::binary_search(s_scope.begin(), s_scope.end(), i)) {
               auto it = this->emplace(i,f);
               reverse_lookup.emplace(f,it);
             }

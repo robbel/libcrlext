@@ -21,7 +21,7 @@ const std::size_t _LiftedFactor::EMPTY_HASH = 0;
 bool _LiftedFactor::eraseStateFactor(Size i) {
   bool ret = false;
   SizeVec::iterator it = std::lower_bound(_state_dom.begin(), _state_dom.end(), i);
-  if(it != _state_dom.end()) {
+  if(it != _state_dom.end() && (*it) == i) {
     _state_dom.erase(it);
     _dom_hash = boost::hash_range(_state_dom.begin(), _state_dom.end());
     ret = true;

@@ -637,7 +637,7 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
                     if(n_hash != _LiftedFactor::EMPTY_HASH) {
                       val = s.getFactor(sl_dom(n_hash));
                     }
-                    prl->setFactor(s_dom(o_hash), val+enabled);
+                    s_o.setFactor(s_dom(o_hash), val+enabled);
                 }
 
                 GRBLinExpr lhs = 0;

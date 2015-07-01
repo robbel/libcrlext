@@ -122,8 +122,11 @@ void _DBN::addDBNFactor(DBNFactor dbn_factor) {
   auto indirection = [](const DBNFactor& a, const DBNFactor& b) -> bool { return *a < *b; };
   std::vector<DBNFactor>::iterator it = std::lower_bound(_dbn_factors.begin(), _dbn_factors.end(), dbn_factor,
                                                          indirection);
-  if(it == _dbn_factors.end()) {
-    _dbn_factors.insert(it, std::move(dbn_factor)); // overwrite and de-allocate previous if it exists
+  if(it == _dbn_factors.end() || (*it)->getTarget() != dbn_factor->getTarget()) {
+    _dbn_factors.insert(it, std::move(dbn_factor));
+  }
+  else {
+    LOG_WARN("DBN Factor not added. Factor with target variable `" << dbn_factor->getTarget() << "' already exists in DBN.");
   }
 }
 
