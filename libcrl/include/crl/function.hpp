@@ -257,7 +257,7 @@ public:
   virtual void addLiftedFactor(LiftedFactor lf) {
     // insert preserving order
     LiftedVec::iterator it = std::lower_bound(_lifted_dom.begin(), _lifted_dom.end(), lf, lifted_comp);
-    if(it == _lifted_dom.end() || *it != lf) {
+    if(it == _lifted_dom.end() || *(*it) != *lf) {
 #if !NDEBUG
       // no support for hash collisions between regular state Ids and lifted operations
       // note: assumes regular states have been added in full
@@ -309,6 +309,23 @@ public:
       }
       if(o_hash != n_hash) {
         retVec.emplace_back(std::make_pair(o_hash, n_hash));
+      }
+    }
+
+    if(!retVec.empty()) {
+      // resort lifted op vector if it was modified
+      std::sort(_lifted_dom.begin(),_lifted_dom.end(),lifted_comp);
+      // check whether duplicate counter scope has been created
+      LiftedFactor lf = boost::make_shared<_LiftedFactor>(std::initializer_list<Size>{});
+      for(const auto& p : retVec) {
+        if(p.second == _LiftedFactor::EMPTY_HASH) {
+            continue;
+        }
+        lf->setHash(p.second);
+        auto r = std::equal_range(_lifted_dom.begin(),_lifted_dom.end(),lf,lifted_comp);
+        if(std::distance(r.first,r.second)>1) { // duplicate counter
+          _lifted_dom.erase(r.first);
+        }
       }
     }
     return retVec;

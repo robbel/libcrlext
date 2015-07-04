@@ -62,6 +62,11 @@ public:
   std::size_t getHash() const {
     return _dom_hash;
   }
+  /// \brief Set hash of this factor's domain
+  /// \warning Can be set out-of-sync to \a _state_dom with this method.
+  void setHash(std::size_t hash) {
+    _dom_hash = hash;
+  }
   /// \brief Return whether lifted operation contains empty domain
   bool empty() const {
     return _state_dom.empty();
