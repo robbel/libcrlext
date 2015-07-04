@@ -608,7 +608,7 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
 
             // translate this (s,a) pair into an LP variable offset (laid out as <s0,a0>,<s0,a1>,...,<s1,a0>,...)
             const int offset_E = var + s.getIndex() * E->getSubdomain()->getNumActions() + a.getIndex();
-            LOG_DEBUG("Current offset: " << offset_E);
+            //LOG_DEBUG("Current offset: " << offset_E);
             // build constraint
             GRBVar var = _lp->getVar(offset_E);
             var.set(GRB_DoubleAttr_LB, -GRB_INFINITY);
@@ -705,6 +705,7 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
 
     //write LP to stdout
     LOG_INFO("Generated LP with " << _lp->get(GRB_IntAttr_NumVars) << " variables and " << _lp->get(GRB_IntAttr_NumConstrs) << " constraints.");
+    //_lp->write("test.lp");
     return 0;
   }
   catch(const GRBException& e) {

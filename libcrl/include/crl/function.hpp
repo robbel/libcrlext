@@ -479,14 +479,18 @@ public:
         reverse_lookup.emplace(f,it);
     }
     // account for lifted operations
+    SizeVec unique_lf;
     for(const auto& lf : l_vec) {
         const SizeVec& s_dom = lf->getStateFactors();
-        for(Size i : s_dom) {
-            // enforce uniqueness
-            if(!std::binary_search(s_scope.begin(), s_scope.end(), i)) {
-              auto it = this->emplace(i,f);
-              reverse_lookup.emplace(f,it);
-            }
+        unique_lf.insert(unique_lf.end(),s_dom.begin(),s_dom.end());
+    }
+    std::sort(unique_lf.begin(),unique_lf.end());
+    auto last = std::unique(unique_lf.begin(), unique_lf.end());
+    for(auto uit = unique_lf.begin(); uit != last; ++uit) {
+        // enforce uniqueness w.r.t. `proper' variables
+        if(!std::binary_search(s_scope.begin(), s_scope.end(), *uit)) {
+          auto it = this->emplace(*uit,f);
+          reverse_lookup.emplace(f,it);
         }
     }
   }
