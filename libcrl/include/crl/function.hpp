@@ -631,7 +631,6 @@ protected:
     /// \brief General in-place transformation method with another function
     /// \param known_flat True iff `other' is known to be a _FDiscreteFunction and special optimizations apply
     /// \note Supports the case that function \a other is defined over a (proper) subset of factors from this function
-    /// (in this case it may not contain any action factors as per the current implementation, however)
     template<class F>
     void transform(const _DiscreteFunction<T>* other, F f, bool known_flat) {
       auto& vals = _sa_table->values();
@@ -652,24 +651,40 @@ protected:
       }
 
       // apply a function with smaller domain TODO optimize for `other function is flat' case
-      if(other->getActionFactors().empty() &&
-         std::includes(this->getStateFactors().begin(), this->getStateFactors().end(), // check if other domain is proper subset
+      if(std::includes(this->getStateFactors().begin(), this->getStateFactors().end(), // check if other domain is proper subset
                        other->getStateFactors().begin(), other->getStateFactors().end()) &&
          std::includes(this->getLiftedFactors().begin(), this->getLiftedFactors().end(),
                        other->getLiftedFactors().begin(), other->getLiftedFactors().end(), lifted_comp)) {
           const Size num_actions = this->_subdomain->getNumActions();
           subdom_map s_dom(this->getStateFactors()); // assumed to subsume all states from function `other'
           for(const auto& lf : this->getLiftedFactors()) { // assumed to subsume all lifted factors from function `other'
-            s_dom.append(lf->getHash());
+              s_dom.append(lf->getHash());
           }
-          _StateIncrementIterator sitr(this->_subdomain);
-          while(sitr.hasNext()) {
-              const State& s = sitr.next();
-              State ms = other->mapState(s, s_dom);
-              T val = other->eval(ms); // evaluate `other' function
-              T& start = vals[s.getIndex()*num_actions]; // fill from here
-              auto start_it = vals.begin() + (&start - vals.data());
-              std::transform(start_it, start_it+num_actions, start_it, std::bind2nd(f, val));
+          if(other->getActionFactors().empty()) {
+              _StateIncrementIterator sitr(this->_subdomain);
+              while(sitr.hasNext()) {
+                  const State& s = sitr.next();
+                  State ms = other->mapState(s, s_dom);
+                  T val = other->eval(ms); // evaluate `other' function
+                  T& start = vals[s.getIndex()*num_actions]; // fill from here
+                  auto start_it = vals.begin() + (&start - vals.data());
+                  std::transform(start_it, start_it+num_actions, start_it, std::bind2nd(f, val));
+              }
+          }
+          else if(std::includes(this->getActionFactors().begin(), this->getActionFactors().end(), // check if other domain is proper subset
+                                other->getActionFactors().begin(), other->getActionFactors().end())) {
+              subdom_map a_dom(this->getActionFactors()); // assumed to subsume all states from function `other'
+              _StateActionIncrementIterator saitr(this->_subdomain);
+              while(saitr.hasNext()) {
+                  const std::tuple<State,Action>& sa = saitr.next();
+                  const State& s = std::get<0>(sa);
+                  const Action& a = std::get<1>(sa);
+                  State ms = other->mapState(s, s_dom);
+                  Action ma = other->mapAction(a, a_dom);
+                  T val = other->eval(ms,ma); // evaluate `other' function
+                  const auto idx = s.getIndex()*num_actions+a.getIndex();
+                  vals[idx] = f(vals[idx],val);
+              }
           }
       }
       else {
