@@ -521,10 +521,36 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
       LOG_WARN("Elimination order set has different size from available factors to eliminate");
     }
 
+    // Using greedy heuristic for elimination order
+    std::list<Size> mutable_elim;
+    std::copy(elim_order.begin(), elim_order.end(), std::back_inserter(mutable_elim));
+
     using range = decltype(F)::range;
-    for(Size v : elim_order) {
+    while(!mutable_elim.empty()) {
+        // determine next variable to delete
+        auto bestIt = mutable_elim.end();
+        Size bestVal = std::numeric_limits<Size>::max();
+        for(auto it = mutable_elim.begin(); it != mutable_elim.end(); ++it) {
+            range r = F.getFactor(*it);
+            if(!r.hasNext()) {
+                continue;
+            }
+            _EmptyFunction<Reward> testFn(r);
+            Size testSc = testFn.getStateFactors().size() + testFn.getActionFactors().size() + testFn.getLiftedFactors().size();
+//            Size testSc = (testFn.getStateFactors().size() + testFn.getActionFactors().size())*
+//                testFn.getStateFactors().size() + testFn.getActionFactors().size();
+//            for(const auto& lf : testFn.getLiftedFactors()) {
+//                testSc *= lf->getStateFactors().size();
+//            }
+            if(testSc < bestVal) {
+              bestVal = testSc;
+              bestIt = it;
+            }
+        }
+        Size v = *bestIt;
+        mutable_elim.erase(bestIt);
         assert(v < _domain->getNumStateFactors() + _domain->getNumActionFactors());
-        LOG_DEBUG("Eliminating variable " << v);
+        LOG_DEBUG("Eliminating variable " << v << " (" << mutable_elim.size() << " to go)");
         // eliminate variable `v' (either state, action, or lifted factor)
         range r = F.getFactor(v);
         if(!r.hasNext()) {
