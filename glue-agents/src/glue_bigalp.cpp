@@ -91,7 +91,7 @@ int main(int argc, char** argv) {
       ifstream iscfg(argv[1]);
       ifstream isdat(argv[2]);
       graphprop::GraphProp thegrp;
-      if(!(thegrp = readGraphProp(iscfg, isdat))) {
+      if(!(thegrp = readGraphProp(iscfg, isdat, false))) {
         LOG_ERROR("Instantiation of Multi-agent GraphProp problem failed: error while reading from " << argv[1] << " or " << argv[2]);
         return EXIT_FAILURE;
       }

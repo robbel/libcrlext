@@ -99,6 +99,62 @@ Reward _GraphProp::getReward(const BigState& s, const Action& a) const {
 }
 
 // Holds for both controlled and uncontrolled nodes in graph
+void _GraphProp::buildLiftedPlate(Size i, DBNFactor& fai, LRF& lrf) {
+  Domain faidom = fai->getSubdomain();
+  assert(faidom->getNumStateFactors() == 2);
+  const double d = _del[i]; // recovery rate of ego state
+  //const auto bIt = _beta_t.getRow(i); // assume identical infection transmission likelihoods from parents
+
+  _StateIncrementIterator sitr(faidom);
+  while(sitr.hasNext()) {
+    const State& s = sitr.next();
+    const Factor cur = s.getFactor(0); // self is always located at index 0
+    const Factor activeNo = s.getFactor(1); // number of active parents
+
+    // nodes that are uncontrolled have equivalent transitions to controlled ones where action = 0
+    double prod = 1.;
+    for(Factor j = 0; j < activeNo; j++) { // note: no infection without neighbors active
+      prod *= 1. - _beta0;
+    }
+
+    double pIS = d;        // probability of recovery for this node
+    double pSI = 1 - prod; // infection probability
+
+    if(!cur) {
+        fai->setT(s, Action(faidom,0), 0, 1-pSI);
+        fai->setT(s, Action(faidom,0), 1, pSI);
+    }
+    else {
+        fai->setT(s, Action(faidom,0), 0, pIS);
+        fai->setT(s, Action(faidom,0), 1, 1-pIS);
+    }
+
+    // handle controlled nodes
+    if(_agent_active[i]) {
+        // deterministic switch to `1'
+        fai->setT(s, Action(faidom,1), 1, 1.0);
+    }
+  }
+
+  // Define LRF
+  State dummy_s; // we don't really need Domain here
+  if(_target_active[i]) {
+    lrf->define(dummy_s, Action(), -_lambda1);
+  }
+  else { // either controlled or uncontrolled non-target node
+    dummy_s.setIndex(1);
+    lrf->define(dummy_s, Action(), -_lambda2);
+
+    if(_agent_active[i]) {
+      Action dummy_a;
+      dummy_a.setIndex(1);
+      lrf->define(dummy_s, dummy_a, -_lambda3-_lambda2);
+      lrf->define(State(), dummy_a, -_lambda3);
+    }
+  }
+}
+
+// Holds for both controlled and uncontrolled nodes in graph
 void _GraphProp::buildPlate(Size i, DBNFactor& fai, LRF& lrf) {
   Domain faidom = fai->getSubdomain();
   const SizeVec& parents = _scope_map[i]; // Note: includes self
@@ -158,7 +214,7 @@ void _GraphProp::buildPlate(Size i, DBNFactor& fai, LRF& lrf) {
   }
 }
 
-void _GraphProp::buildFactoredMDP() {
+void _GraphProp::buildFactoredMDP(bool lifted) {
   assert(!_agent_locs.empty());
   _fmdp = boost::make_shared<_FactoredMDP>(_domain);
 
@@ -169,8 +225,19 @@ void _GraphProp::buildFactoredMDP() {
       // create dbn factor for node `i'
       DBNFactor fai = boost::make_shared<_DBNFactor>(_domain,i);
       LRF lrf = boost::make_shared<_LRF>(_domain); // those have equivalent scopes here
-      for(Size parent : _scope_map[i]) { // Note: includes self
-        fai->addDelayedDependency(parent);
+      if(!lifted) {
+        for(Size parent : _scope_map[i]) { // Note: includes self
+          fai->addDelayedDependency(parent);
+        }
+      }
+      else {
+        fai->addDelayedDependency(i);
+        auto it = std::lower_bound(_scope_map[i].begin(), _scope_map[i].end(), i);
+        assert(it != _scope_map[i].end() && (*it) == i);
+        _scope_map[i].erase(it);
+        // lifted factor summarizing all parents (except self)
+        LiftedFactor lf = boost::make_shared<_LiftedFactor>(_scope_map[i]);
+        fai->addLiftedDependency(std::move(lf));
       }
       // LRF
       lrf->addStateFactor(i);
@@ -183,7 +250,12 @@ void _GraphProp::buildFactoredMDP() {
       lrf->pack();
 
       // Fill transition and reward function
-      buildPlate(i, fai, lrf);
+      if(!lifted) {
+        buildPlate(i, fai, lrf);
+      }
+      else {
+        buildLiftedPlate(i, fai, lrf);
+      }
       // add factors for node `i' to DBN
       _fmdp->addDBNFactor(std::move(fai));
       _fmdp->addLRF(std::move(lrf));
@@ -264,6 +336,7 @@ BigState _GraphProp::begin() {
 
 // apply action, obtain resulting state n, update _current
 // TODO make this a generic getObservation() for a `FactoredMDPEnvironment' (\see _MDPEnvironment)
+// FIXME: adjust for `lifted' version of problem
 BigObservation _GraphProp::getObservation(const Action& ja) {
   Reward r = getReward(_current, ja);
   // prepare a new state
@@ -324,7 +397,7 @@ BigObservation _GraphProp::getObservation(const Action& ja) {
 //      <q0      value="0.5"/>            <!-- Default infection probability -->
 //    </GraphProp>
 
-GraphProp readGraphProp(std::istream& cfg, std::istream& graph) {
+GraphProp readGraphProp(std::istream& cfg, std::istream& graph, bool lifted) {
   if(!cfg || !graph) {
       return nullptr;
   }
@@ -397,7 +470,7 @@ GraphProp readGraphProp(std::istream& cfg, std::istream& graph) {
   grp->setAgentLocs(num_agents, agentAssignments);
   grp->setTargetLocs(num_targets, targetAssignments);
   grp->setParameters(beta0, del0, lambda1, lambda2, lambda3, q0);
-  grp->buildFactoredMDP();
+  grp->buildFactoredMDP(lifted);
 
   return grp;
 }

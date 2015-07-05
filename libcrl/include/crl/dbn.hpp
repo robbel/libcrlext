@@ -67,7 +67,7 @@ public:
   template <class T>
   State mapState(const State& s, const State& n, T&& domain_map_s, T&& domain_map_n) const {
       assert(_packed);
-      if(s.size() == _delayed_dep.size() && !n) // under these conditions no reduction to local scope performed
+      if(s.size() == _delayed_dep.size() + _lifted_dom.size() && !n) // under these conditions no reduction to local scope performed
           return s;
       State ms(_subdomain);
       for (Size i=0; i<_delayed_dep.size(); i++) {
@@ -78,6 +78,12 @@ public:
       for (Size i=0; i<_concurrent_dep.size(); i++) {
           Size j = _concurrent_dep[i];
           ms.setFactor(i+_delayed_dep.size(), n.getFactor(domain_map_n(j)));
+      }
+      // lifted operators
+      const auto offset = _delayed_dep.size() + _concurrent_dep.size();
+      for (Size i = 0; i<_lifted_dom.size(); i++) {
+          auto hash = _lifted_dom[i]->getHash();
+          ms.setFactor(i+offset, s.getFactor(domain_map_s(hash)));
       }
       return ms;
   }
@@ -95,9 +101,12 @@ public:
   const SizeVec& getDelayedDependencies() const { return _delayed_dep; }
   void addConcurrentDependency(Size index);
   const SizeVec& getConcurrentDependencies() const { return _concurrent_dep; }
+  bool hasConcurrentDependency() const { return !_concurrent_dep.empty(); }
   void addActionDependency(Size index);
   const SizeVec& getActionDependencies() const { return _action_dom; }
-  bool hasConcurrentDependency() const { return !_concurrent_dep.empty(); }
+  void addLiftedDependency(LiftedFactor lf);
+  const LiftedVec& getLiftedDependencies() const { return _lifted_dom; }
+  bool hasLiftedDependency() const { return !_lifted_dom.empty(); }
 
   /// \brief Compute the domain of this DBNFactor
   /// \note This is overloaded from _DiscreteFunction to support both delayed and concurrent dependencies
@@ -224,9 +233,11 @@ protected:
   std::vector<DBNFactor> _dbn_factors;
   /// \brief True iff there are any concurrent dependencies in the DBN (i.e., at time slice t)
   bool _has_concurrency;
+  /// \brief True iff there are any lifted functions in the DBN
+  bool _has_lifted;
 public:
   _DBN()
-  : _has_concurrency(false) { }
+  : _has_concurrency(false), _has_lifted(false) { }
 
   /// \brief Return the number of \a DBNFactors in this DBN
   Size size() const {
@@ -250,6 +261,10 @@ public:
   /// \brief True iff there are any concurrent dependencies in the DBN (at time slice t)
   bool hasConcurrentDependency() const {
     return _has_concurrency;
+  }
+  /// \brief True iff there are any lifted functions in the DBN
+  bool hasLiftedDependency() const {
+    return _has_lifted;
   }
 
   /// \brief Compute the probability of transitioning from (joint) s -> n under (joint) \a Action a
@@ -302,14 +317,15 @@ public:
     if(_dbn.hasConcurrentDependency()) {
       throw cpputil::InvalidException("Backprojection does currently not support concurrent dependencies in DBN.");
     }
-    if(!other->getActionFactors().empty()) {
-      throw cpputil::InvalidException("Backprojection does not support function with action factors.");
+    if(!other->getActionFactors().empty() || !other->getLiftedFactors().empty()) {
+      throw cpputil::InvalidException("Backprojection does not support function with action or lifted factors.");
     }
     // determine parent scope via DBN
     for(Size t : other->getStateFactors()) {
         const SizeVec& delayed_dep = _dbn.factor(t)->getDelayedDependencies();
         const SizeVec& action_dep = _dbn.factor(t)->getActionDependencies();
-        _FDiscreteFunction<T>::join(delayed_dep, action_dep);
+        const LiftedVec& lifted_dep = _dbn.factor(t)->getLiftedFactors();
+        _FDiscreteFunction<T>::join(delayed_dep, action_dep, lifted_dep);
     }
   }
 
@@ -337,9 +353,12 @@ public:
 
       // compute backprojection, i.e., expectation of basis function through DBN
       _StateActionIncrementIterator saitr(this->_subdomain);
-      const subdom_map h_dom(_func->getStateFactors());
-      const subdom_map s_dom(this->getStateFactors());
-      const subdom_map a_dom(this->getActionFactors());
+      const subdom_map h_map(_func->getStateFactors());
+      subdom_map s_map(this->getStateFactors());
+      for(const auto& lf : this->getLiftedFactors()) {
+        s_map.append(lf->getHash());
+      }
+      const subdom_map a_map(this->getActionFactors());
       // efficient loop over all (s,a) pairs in backprojection domain
       auto& vals = this->values();
       for(T& v : vals) {
@@ -347,13 +366,13 @@ public:
         v = 0.;
         if(I) {
             const State s(hdom,I->getStateIndex());
-            v = h[(Size)s] * _dbn.T(std::get<0>(sa), std::get<1>(sa), s, s_dom, h_dom, a_dom);
+            v = h[(Size)s] * _dbn.T(std::get<0>(sa), std::get<1>(sa), s, s_map, h_map, a_map);
         }
         else {
           hitr.reset();
           while(hitr.hasNext()) {
             const State& s = hitr.next();
-            v += h[(Size)s] * _dbn.T(std::get<0>(sa), std::get<1>(sa), s, s_dom, h_dom, a_dom);
+            v += h[(Size)s] * _dbn.T(std::get<0>(sa), std::get<1>(sa), s, s_map, h_map, a_map);
           }
         }
       }

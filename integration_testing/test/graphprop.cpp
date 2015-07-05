@@ -47,11 +47,11 @@ TEST(ALPIntegrationTest, TestGraphpropExhaustiveBasis) {
   srand(time(NULL));
 
   string cfg = "../../graphprop/cfgs/default.xml";
-  string data = "../../graphprop/data/reg100k3.txt";
+  string data = "../../graphprop/data/Gnp100.txt";
   ifstream iscfg(cfg);
   ifstream isdat(data);
   graphprop::GraphProp thegrp;
-  if(!(thegrp = readGraphProp(iscfg, isdat))) {
+  if(!(thegrp = readGraphProp(iscfg, isdat, true))) {
     LOG_ERROR("Error while reading from " << cfg << " or " << data);
     FAIL();
   }
@@ -60,7 +60,7 @@ TEST(ALPIntegrationTest, TestGraphpropExhaustiveBasis) {
   FactoredMDP fmdp = thegrp->getFactoredMDP();
   LOG_INFO(fmdp->T());
 
-#if 0
+#if !NDEBUG
   // debug print the CPTs
   for(Size i = 0; i < fmdp->T().size(); i++) {
       const auto& fa = fmdp->T().factor(i);
@@ -77,8 +77,8 @@ TEST(ALPIntegrationTest, TestGraphpropExhaustiveBasis) {
 
   FactoredValueFunction fval = boost::make_shared<_FactoredValueFunction>(domain);
   // add the constant basis (to guarantee LP feasibility)
-  auto cfn = boost::make_shared<_ConstantFn<Reward>>(domain);
-  fval->addBasisFunction(std::move(cfn), 0.);
+  //auto cfn = boost::make_shared<_ConstantFn<Reward>>(domain);
+  //fval->addBasisFunction(std::move(cfn), 0.);
   // add more basis functions
   //const RangeVec& ranges = domain->getStateRanges();
 #if 0
@@ -115,6 +115,15 @@ TEST(ALPIntegrationTest, TestGraphpropExhaustiveBasis) {
       }
   }
 #endif
+
+  for(Size fa = 0; fa < 10; fa+=2) { // assumption: DBN covers all domain variables
+      auto I_o = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa,fa+1}), State(domain,0));
+      _StateIncrementIterator sitr(I_o->getSubdomain());
+      while(sitr.hasNext()) {
+          auto I = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa,fa+1}), sitr.next());
+          fval->addBasisFunction(std::move(I), 0.);
+      }
+  }
 
   // run the ALP planner
   _ALPPlanner planner(fmdp, 0.9);

@@ -373,3 +373,26 @@ TEST_F(FunctionSetTest, FunctionSliceTest) {
     }
 #endif
 }
+
+///
+/// \brief Lifted operations (#) tests
+///
+TEST_F(FunctionSetTest, LiftedOperationTest) {
+  FDiscreteFunction<double> f = boost::make_shared<_FDiscreteFunction<double>>(_domain);
+  f->addStateFactor(0);
+  f->addLiftedFactor(boost::make_shared<_LiftedFactor>(std::initializer_list<Size>{1,0}));
+  f->pack();
+  // check allocated size for generated subdomain
+  EXPECT_EQ(f->values().size(), 4 * 3);
+
+  boost::shared_ptr<FunctionSet<double>> f_set = boost::make_shared<FunctionSet<double>>(_domain);
+  f_set->insert(f);
+  EXPECT_EQ(f_set->getFunctions().size(), 1);
+  EXPECT_EQ(f_set->getNumFactors(), 2); // includes lifted operation
+
+  LOG_DEBUG("Function set:");
+  LOG_DEBUG(*f_set);
+
+  f_set->eraseStateFactor(1);
+  EXPECT_TRUE(f_set->empty());
+}

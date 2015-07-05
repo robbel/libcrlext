@@ -16,6 +16,7 @@
 #include <cassert>
 #include "crl/flat_tables.hpp"
 #include "crl/common.hpp"
+#include "crl/lifted_ops.hpp"
 
 namespace crl {
 
@@ -27,6 +28,8 @@ template<class T> class _DiscreteFunction;
 template<class T> class FunctionSet;
 /// \brief The identity mapping
 static auto identity_map = [](Size i) { return i; };
+/// \brief Comparison object for lifted factors
+static auto lifted_comp = [](const LiftedFactor& l, const LiftedFactor& o) -> bool { return *l < *o; };
 /// \brief A mapping from global factor indices to those in a subdomain
 /// \see mapState(), mapAction()
 typedef cpputil::inverse_map<Size> subdom_map;
@@ -48,6 +51,10 @@ template<class T> std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F,
 
 }
 
+// forward declarations
+template<class T> std::ostream& operator<<(std::ostream& os, const _DiscreteFunction<T>& f);
+template<class T> std::ostream& operator<<(std::ostream &os, const FunctionSet<T>& fset);
+
 //
 // Function definitions
 //
@@ -55,9 +62,9 @@ template<class T> std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F,
 /**
  * \brief An abstract interface for a discrete function defined over a subset of (either state or action) variables.
  * Maps tuples {x_1,...,x_N,a_1,...,a_K} -> val<T>, where X_1,...,X_N are state variables and A_1,...,A_K action variables
- * that have been added to this function
+ * that have been added to this function. Additionally, lifted operations (e.g., generalized counters over variables) are supported.
  * \note Variables are sorted internally in ascending order
- * \note All methods in this class expect (s,a) tuples to be in the correct domain, now automatic conversions are applied.
+ * \note All methods in this class expect (s,a) tuples to be in the correct domain, no automatic conversions are applied.
  */
 template<class T>
 class _DiscreteFunction {
@@ -67,19 +74,8 @@ class _DiscreteFunction {
   friend DiscreteFunction<T> algorithm::join<T>(cpputil::Iterator<DiscreteFunction<T>>& funcs);
   friend std::vector<T> algorithm::slice<T>(const _DiscreteFunction<T>* pf, Size i, const State&s, const Action& a);
   friend std::tuple<Action,T> algorithm::argVariableElimination<T>(FunctionSet<T>& F, const crl::SizeVec& elimination_order);
-  /// \brief template operator<< declared in place
-  friend std::ostream& operator<<(std::ostream &os, const _DiscreteFunction<T>& f) {
-    os << "f(S,A)=f({";
-    for(auto s : f._state_dom) {
-      os << s << ", ";
-    }
-    os << "},{";
-    for(auto a : f._action_dom) {
-      os << a << ", ";
-    }
-    os << "})";
-    return os;
-  }
+  // operator overloads
+  friend std::ostream& operator<< <>(std::ostream& os, const _DiscreteFunction<T>& f);
 protected:
   /// \brief The (global) domain which includes all state and action factors
   Domain _domain;
@@ -90,10 +86,30 @@ protected:
   SizeVec _state_dom;
   /// \brief The action factors relevant for this function, indicated by their absolute position in the global domain
   SizeVec _action_dom;
+  /// \brief The lifted factors relevant for this function, sorted by their std::size_t hash value
+  LiftedVec _lifted_dom;
   /// \brief Unique name of this function
   std::string _name;
   /// \brief True iff \a computeSubdomain() has been called
   bool _computed;
+
+  /// \brief Helper function to add either state or action factor to this function's subdomain
+  void addFactor(Size i, SizeVec& vec) {
+    // insert preserving order
+    SizeVec::iterator it = std::lower_bound(vec.begin(), vec.end(), i);
+    if(it == vec.end() || *it != i) {
+      vec.insert(it, i);
+      _computed = false;
+    }
+  }
+  /// \brief Helper function to erase either state or action factor from this function's subdomain
+  void eraseFactor(Size i, SizeVec& vec) {
+    SizeVec::iterator it = std::lower_bound(vec.begin(), vec.end(), i);
+    if(it != vec.end() && (*it) == i) {
+      vec.erase(it);
+      _computed = false;
+    }
+  }
 public:
   /// \brief ctor
   _DiscreteFunction(const Domain& domain, std::string name = "")
@@ -112,8 +128,12 @@ public:
   _DiscreteFunction(const _DiscreteFunction& rhs)
   : _domain(rhs._domain), _state_dom(rhs._state_dom), _action_dom(rhs._action_dom),
     _name(rhs._name), _computed(rhs._computed) {
+      // copy these variables explicitly
       if(rhs._subdomain) {
-          _subdomain = boost::make_shared<_Domain>(*rhs._subdomain); // copy this variable explicitly since it may change
+        _subdomain = boost::make_shared<_Domain>(*rhs._subdomain);
+      }
+      for(const auto& lf : rhs._lifted_dom) {
+        _lifted_dom.emplace_back(boost::make_shared<_LiftedFactor>(*lf));
       }
   }
   /// \brief copy assignment
@@ -153,6 +173,11 @@ public:
         Size j = _action_dom[i];
         this->_subdomain->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax(), action_names[j]);
     }
+    // add lifted operators
+    for (Size i=0; i<_lifted_dom.size(); i++) {
+        FactorRange range = _lifted_dom[i]->getRange();
+        this->_subdomain->addStateFactor(range.getMin(), range.getMax(), "#" + std::to_string(_lifted_dom[i]->getHash()));
+    }
     _computed = true;
   }
 
@@ -171,12 +196,17 @@ public:
   template <class C>
   State mapState(const State& s, C&& domain_map_s) const {
       assert(_computed);
-      if(s.size() == _state_dom.size()) // under this condition no reduction to local scope performed
+      if(s.size() == _state_dom.size() + _lifted_dom.size()) // under this condition no reduction to local scope performed
           return s;
       State ms(_subdomain);
-      for (Size i=0; i<_state_dom.size(); i++) {
+      for (Size i = 0; i<_state_dom.size(); i++) {
           Size j = _state_dom[i];
           ms.setFactor(i, s.getFactor(domain_map_s(j)));
+      }
+      // lifted operators
+      for (Size i = 0; i<_lifted_dom.size(); i++) {
+          auto hash = _lifted_dom[i]->getHash();
+          ms.setFactor(i+_state_dom.size(), s.getFactor(domain_map_s(hash)));
       }
       return ms;
   }
@@ -216,40 +246,37 @@ public:
   /// \brief Add state factor `i' to the scope of this function.
   virtual void addStateFactor(Size i) {
     assert(i < _domain->getNumStateFactors());
-    // insert preserving order
-    SizeVec::iterator it = std::lower_bound(_state_dom.begin(), _state_dom.end(), i);
-    if(it == _state_dom.end() || *it != i) {
-      _state_dom.insert(it, i);
-      _computed = false;
-    }
+    addFactor(i, _state_dom);
   }
   /// \brief Add action factor `i' to the scope of this function
   virtual void addActionFactor(Size i) {
     assert(i < _domain->getNumActionFactors());
+    addFactor(i, _action_dom);
+  }
+  /// \brief Add a lifted factor to the scope of this function
+  virtual void addLiftedFactor(LiftedFactor lf) {
     // insert preserving order
-    SizeVec::iterator it = std::lower_bound(_action_dom.begin(), _action_dom.end(), i);
-    if(it == _action_dom.end() || *it != i) {
-      _action_dom.insert(it, i);
+    LiftedVec::iterator it = std::lower_bound(_lifted_dom.begin(), _lifted_dom.end(), lf, lifted_comp);
+    if(it == _lifted_dom.end() || *(*it) != *lf) {
+#if !NDEBUG
+      // no support for hash collisions between regular state Ids and lifted operations
+      // note: assumes regular states have been added in full
+      SizeVec::iterator sit = std::lower_bound(_state_dom.begin(), _state_dom.end(), lf->getHash());
+      assert(sit == _state_dom.end() || (*sit) != lf->getHash());
+#endif
+      _lifted_dom.emplace(it, lf);
       _computed = false;
     }
   }
   /// \brief Erase state factor `i' from the scope of this function
   virtual void eraseStateFactor(Size i) {
     assert(i < _domain->getNumStateFactors());
-    SizeVec::iterator it = std::lower_bound(_state_dom.begin(), _state_dom.end(), i);
-    if(it != _state_dom.end()) {
-      _state_dom.erase(it);
-      _computed = false;
-    }
+    eraseFactor(i, _state_dom);
   }
   /// \brief Erase action factor `i' from the scope of this function
   virtual void eraseActionFactor(Size i) {
     assert(i < _domain->getNumActionFactors());
-    SizeVec::iterator it = std::lower_bound(_action_dom.begin(), _action_dom.end(), i);
-    if(it != _action_dom.end()) {
-      _action_dom.erase(it);
-      _computed = false;
-    }
+    eraseFactor(i, _action_dom);
   }
   /// \brief Erase action or state factor `i' from the scope of this function
   /// \note If `i' is greater than the number of state factors in the (global) domain, it is assumed to be an action factor.
@@ -261,25 +288,87 @@ public:
           eraseActionFactor(i - _domain->getNumStateFactors());
       }
   }
+  /// \brief Reduce the domain of every lifted factor that contains state factor `i'
+  /// \note If a lifted factor is reduced to the empty domain, it is fully removed from this function
+  /// \return An array of <old_hash,new_hash> (sorted by the former) for those lifted factors modified by this function
+  virtual std::vector<std::pair<std::size_t,std::size_t>> eraseLiftedFactor(Size i) {
+    assert(i < _domain->getNumStateFactors());
+    std::vector<std::pair<std::size_t,std::size_t>> retVec;
+    for(auto it = _lifted_dom.begin(); it != _lifted_dom.end(); ) { // sorted
+      auto o_hash = (*it)->getHash(); // old hash
+      if((*it)->eraseStateFactor(i)) {
+        _computed = false;
+      }
+      auto n_hash = (*it)->getHash(); // new hash
+      if((*it)->empty()) {
+        it = _lifted_dom.erase(it);
+        n_hash = _LiftedFactor::EMPTY_HASH;
+      }
+      else {
+        ++it;
+      }
+      if(o_hash != n_hash) {
+        retVec.emplace_back(std::make_pair(o_hash, n_hash));
+      }
+    }
+
+    if(!retVec.empty()) {
+      // resort lifted op vector if it was modified
+      std::sort(_lifted_dom.begin(),_lifted_dom.end(),lifted_comp);
+      // check whether duplicate counter scope has been created
+      LiftedFactor lf = boost::make_shared<_LiftedFactor>(std::initializer_list<Size>{});
+      for(const auto& p : retVec) {
+        if(p.second == _LiftedFactor::EMPTY_HASH) {
+            continue;
+        }
+        lf->setHash(p.second);
+        auto r = std::equal_range(_lifted_dom.begin(),_lifted_dom.end(),lf,lifted_comp);
+        if(std::distance(r.first,r.second)>1) { // duplicate counter
+          _lifted_dom.erase(r.first);
+        }
+      }
+    }
+    return retVec;
+  }
+  /// \brief Erase lifted factor `lf' from the (lifted) scope of the function
+  virtual void eraseLiftedFactor(const LiftedFactor& lf) {
+    LiftedVec::iterator it = std::lower_bound(_lifted_dom.begin(), _lifted_dom.end(), lf, lifted_comp);
+    if(it != _lifted_dom.end() && *(*it) == *lf) {
+      _lifted_dom.erase(it);
+      _computed = false;
+    }
+  }
 
   /// \brief Join state and action factor scopes of this function with the supplied ones
-  virtual void join(const SizeVec& state_dom, const SizeVec& action_dom) {
+  virtual void join(const SizeVec& state_dom, const SizeVec& action_dom, const LiftedVec& lifted_dom) {
     if(_state_dom != state_dom) {
         SizeVec joint_s;
         std::set_union(_state_dom.begin(), _state_dom.end(), state_dom.begin(), state_dom.end(), std::inserter(joint_s, joint_s.begin()));
-        _state_dom = joint_s;
+        _state_dom = std::move(joint_s);
         _computed = false;
     }
     if(_action_dom != action_dom) {
         SizeVec joint_a;
         std::set_union(_action_dom.begin(), _action_dom.end(), action_dom.begin(), action_dom.end(), std::inserter(joint_a, joint_a.begin()));
-        _action_dom = joint_a;
+        _action_dom = std::move(joint_a);
         _computed = false;
+    }
+    // lifted operations
+    if(_lifted_dom.size() != lifted_dom.size() ||
+       !std::equal(_lifted_dom.begin(), _lifted_dom.end(), lifted_dom.begin(), [](const LiftedFactor& a, const LiftedFactor& b) { return *a == *b; })) {
+      LiftedVec joint_l;
+      std::set_union(_lifted_dom.begin(), _lifted_dom.end(), lifted_dom.begin(), lifted_dom.end(), std::inserter(joint_l, joint_l.begin()), lifted_comp);
+      // copy these variables explicitly
+      _lifted_dom.clear();
+      for(const auto& lf : joint_l) {
+        _lifted_dom.emplace_back(boost::make_shared<_LiftedFactor>(*lf));
+      }
+      _computed = false;
     }
   }
   /// \brief Join state and action factor scopes of this function with those of another one
   virtual void join(const _DiscreteFunction<T>& func) {
-    join(func._state_dom, func._action_dom);
+    join(func._state_dom, func._action_dom, func._lifted_dom);
   }
 
   /// \brief True iff state factor i is included in the scope of this function
@@ -290,6 +379,10 @@ public:
   bool containsActionFactor(Size i) const {
     return std::binary_search(_action_dom.begin(), _action_dom.end(), i); // sorted assumption
   }
+  /// \brief True iff lifted factor i is included in the scope of this function
+  bool containsLiftedFactor(const LiftedFactor& lf) const {
+    return std::binary_search(_lifted_dom.begin(), _lifted_dom.end(), lf, lifted_comp); // sorted assumption
+  }
   /// \brief The state factor indices (w.r.t. global \a Domain) relevant for this function
   const SizeVec& getStateFactors() const {
       return _state_dom;
@@ -297,6 +390,10 @@ public:
   /// \brief The action factor indices (w.r.t. global \a Domain) relevant for this function
   const SizeVec& getActionFactors() const {
       return _action_dom;
+  }
+  /// \brief The lifted factors relevant for this function
+  const LiftedVec& getLiftedFactors() const {
+      return _lifted_dom;
   }
 
   //
@@ -331,25 +428,38 @@ public:
 };
 
 template<class T>
+std::ostream& operator<<(std::ostream &os, const _DiscreteFunction<T>& f) {
+  os << "f(S,A)=f({";
+  for(auto s : f._state_dom) {
+    os << s << ", ";
+  }
+  os << "},{";
+  for(auto a : f._action_dom) {
+    os << a << ", ";
+  }
+  os << "}";
+  if(!f._lifted_dom.empty()) {
+    os << ",";
+    for(auto l : f._lifted_dom) {
+      os << *l << ", ";
+    }
+  }
+  os << ")";
+  return os;
+}
+
+template<class T>
 using FunctionSetIterator = cpputil::MapValueRangeIterator<DiscreteFunction<T>, std::multimap<Size, DiscreteFunction<T>>>;
 
 /**
  * \brief A many-to-many mapping from function scopes to particular functions
  * Used to retrieve functions with particular variables during variable elimination.
  * \todo compare with performance of unordered_multimap
- * FIXME check whether shared_ptr is needed to maintain elements in set (vs. raw pointers..)
  */
 template<class T>
 class FunctionSet : private std::multimap<Size, DiscreteFunction<T>> {
-  /// \brief template operator<< declared in place
-  friend std::ostream& operator<<(std::ostream &os, const FunctionSet<T>& fset) {
-    os << "fset[ ";
-    for(const auto& f : fset) {
-        os << "[ " << f.first << ": " << *f.second << " ]";
-    }
-    os << " ]";
-    return os;
-  }
+  // operator overloads
+  friend std::ostream& operator<< <>(std::ostream &os, const FunctionSet<T>& fset);
 private:
   /// \brief Iterator type for this multimap
   typedef typename std::multimap<Size, DiscreteFunction<T>>::iterator fset_iterator;
@@ -375,7 +485,8 @@ public:
   /// \brief Add a function to this \a FunctionSet
   void insert(DiscreteFunction<T> f) {
     const SizeVec& s_scope = f->getStateFactors();
-    const SizeVec& a_scope(f->getActionFactors());
+    const SizeVec& a_scope = f->getActionFactors();
+    const LiftedVec& l_vec = f->getLiftedFactors();
     for(Size i : s_scope) {
         auto it = this->emplace(i,f);
         reverse_lookup.emplace(f,it);
@@ -383,6 +494,21 @@ public:
     for(Size i : a_scope) {
         auto it = this->emplace(i+_a_offset,f);
         reverse_lookup.emplace(f,it);
+    }
+    // account for lifted operations
+    SizeVec unique_lf;
+    for(const auto& lf : l_vec) {
+        const SizeVec& s_dom = lf->getStateFactors();
+        unique_lf.insert(unique_lf.end(),s_dom.begin(),s_dom.end());
+    }
+    std::sort(unique_lf.begin(),unique_lf.end());
+    auto last = std::unique(unique_lf.begin(), unique_lf.end());
+    for(auto uit = unique_lf.begin(); uit != last; ++uit) {
+        // enforce uniqueness w.r.t. `proper' variables
+        if(!std::binary_search(s_scope.begin(), s_scope.end(), *uit)) {
+          auto it = this->emplace(*uit,f);
+          reverse_lookup.emplace(f,it);
+        }
     }
   }
 
@@ -479,6 +605,16 @@ public:
   }
 };
 
+template<class T>
+std::ostream& operator<<(std::ostream &os, const FunctionSet<T>& fset) {
+  os << "fset[ ";
+  for(const auto& f : fset) {
+      os << "[ " << f.first << ": " << *f.second << " ]";
+  }
+  os << " ]";
+  return os;
+}
+
 /**
  * \brief This function is merely used for scope computations (e.g., variable elimination)
  */
@@ -516,7 +652,6 @@ protected:
     /// \brief General in-place transformation method with another function
     /// \param known_flat True iff `other' is known to be a _FDiscreteFunction and special optimizations apply
     /// \note Supports the case that function \a other is defined over a (proper) subset of factors from this function
-    /// (in this case it may not contain any action factors as per the current implementation, however)
     template<class F>
     void transform(const _DiscreteFunction<T>* other, F f, bool known_flat) {
       auto& vals = _sa_table->values();
@@ -535,26 +670,42 @@ protected:
           std::transform(vals.begin(), vals.end(), fother->_sa_table->values().begin(), vals.begin(), f);
           return;
       }
-#if 0
-      else if(!known_flat && this->getActionFactors() == other->getActionFactors() && this->getStateFactors() == other->getStateFactors()) {
-          // TODO: brute force evaluation for every (s,a) pair, aka method below
-          return;
-      }
-#endif
-      // apply a function with smaller domain FIXME optimize for fother case
-      if(other->getActionFactors().empty() &&
-              std::includes(this->getStateFactors().begin(), this->getStateFactors().end(), // check if other domain is proper subset
-                            other->getStateFactors().begin(), other->getStateFactors().end())) {
+
+      // apply a function with smaller domain TODO optimize for `other function is flat' case
+      if(std::includes(this->getStateFactors().begin(), this->getStateFactors().end(), // check if other domain is proper subset
+                       other->getStateFactors().begin(), other->getStateFactors().end()) &&
+         std::includes(this->getLiftedFactors().begin(), this->getLiftedFactors().end(),
+                       other->getLiftedFactors().begin(), other->getLiftedFactors().end(), lifted_comp)) {
           const Size num_actions = this->_subdomain->getNumActions();
-          const subdom_map s_dom(this->getStateFactors()); // assumed to subsume all states from function `other'
-          _StateIncrementIterator sitr(this->_subdomain);
-          while(sitr.hasNext()) {
-              const State& s = sitr.next();
-              State ms = other->mapState(s, s_dom);
-              T val = other->eval(ms); // evaluate `other' function
-              T& start = vals[s.getIndex()*num_actions]; // fill from here
-              auto start_it = vals.begin() + (&start - vals.data());
-              std::transform(start_it, start_it+num_actions, start_it, std::bind2nd(f, val));
+          subdom_map s_dom(this->getStateFactors()); // assumed to subsume all states from function `other'
+          for(const auto& lf : this->getLiftedFactors()) { // assumed to subsume all lifted factors from function `other'
+              s_dom.append(lf->getHash());
+          }
+          if(other->getActionFactors().empty()) {
+              _StateIncrementIterator sitr(this->_subdomain);
+              while(sitr.hasNext()) {
+                  const State& s = sitr.next();
+                  State ms = other->mapState(s, s_dom);
+                  T val = other->eval(ms); // evaluate `other' function
+                  T& start = vals[s.getIndex()*num_actions]; // fill from here
+                  auto start_it = vals.begin() + (&start - vals.data());
+                  std::transform(start_it, start_it+num_actions, start_it, std::bind2nd(f, val));
+              }
+          }
+          else if(std::includes(this->getActionFactors().begin(), this->getActionFactors().end(), // check if other domain is proper subset
+                                other->getActionFactors().begin(), other->getActionFactors().end())) {
+              subdom_map a_dom(this->getActionFactors()); // assumed to subsume all states from function `other'
+              _StateActionIncrementIterator saitr(this->_subdomain);
+              while(saitr.hasNext()) {
+                  const std::tuple<State,Action>& sa = saitr.next();
+                  const State& s = std::get<0>(sa);
+                  const Action& a = std::get<1>(sa);
+                  State ms = other->mapState(s, s_dom);
+                  Action ma = other->mapAction(a, a_dom);
+                  T val = other->eval(ms,ma); // evaluate `other' function
+                  const auto idx = s.getIndex()*num_actions+a.getIndex();
+                  vals[idx] = f(vals[idx],val);
+              }
           }
       }
       else {
@@ -639,8 +790,8 @@ public:
         _DiscreteFunction<T>::eraseActionFactor(i);
         _packed = _DiscreteFunction<T>::_computed;
     }
-    virtual void join(const SizeVec& state_dom, const SizeVec& action_dom) override {
-      _DiscreteFunction<T>::join(state_dom, action_dom);
+    virtual void join(const SizeVec& state_dom, const SizeVec& action_dom, const LiftedVec& lifted_dom) override {
+      _DiscreteFunction<T>::join(state_dom, action_dom, lifted_dom);
       _packed = _DiscreteFunction<T>::_computed;
     }
     virtual void join(const _DiscreteFunction<T>& func) override {
@@ -710,7 +861,7 @@ public:
   : _DiscreteFunction<T>(domain, name) {
     assert(s);
     std::sort(factors.begin(),factors.end());
-    _DiscreteFunction<T>::join(factors, this->getActionFactors());
+    _DiscreteFunction<T>::join(factors, this->getActionFactors(), LiftedVec()); // no lifted dom support for now
     setState(s);
   }
 

@@ -228,7 +228,12 @@ int _ALPPlanner::plan() {
 
     // build the lp constraints from the target functions above
     // create a basic elimination order (sorted state variables, followed by sorted action variables)
-    SizeVec elim_order = cpputil::ordered_vec<Size>(_domain->getNumStateFactors() + _domain->getNumActionFactors());
+    //SizeVec elim_order = cpputil::ordered_vec<Size>(_domain->getNumStateFactors() + _domain->getNumActionFactors());
+
+    // Test: eliminate actions first
+    SizeVec elim_order(_domain->getNumStateFactors() + _domain->getNumActionFactors());
+    std::iota(elim_order.begin(), elim_order.begin()+_domain->getNumActionFactors(), _domain->getNumStateFactors());
+    std::iota(elim_order.begin()+_domain->getNumActionFactors(), elim_order.end(), 0);
 
     long start_time = cpputil::time_in_milli();
 #if HAS_GUROBI
@@ -236,7 +241,7 @@ int _ALPPlanner::plan() {
 #else
     lpsolve::_LP lp(_domain);
 #endif
-    int res = lp.generateLP(_C_set, _fmdp->getLRFs(), _alpha, elim_order);
+    int res = lp.generateLiftedLP(_C_set, _fmdp->getLRFs(), _alpha, elim_order);
     if(res != 0) {
       LOG_ERROR("generateLP() error code: " << res);
       return 1;

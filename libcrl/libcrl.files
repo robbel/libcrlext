@@ -12,6 +12,7 @@ include/crl/factor_learner.hpp
 include/crl/flat_tables.hpp
 include/crl/function.hpp
 include/crl/hash_tables.hpp
+include/crl/lifted_ops.hpp
 include/crl/ps.hpp
 include/crl/ram.hpp
 include/crl/rmax.hpp
@@ -37,6 +38,7 @@ src/environment.cpp
 src/factor_learner.cpp
 src/flat_tables.cpp
 src/hash_tables.cpp
+src/lifted_ops.cpp
 src/ps.cpp
 src/ram.cpp
 src/rmax.cpp
@@ -50,6 +52,7 @@ src/vi.cpp
 test/test_alp_basic.cpp
 test/test_dbn.cpp
 test/test_gurobi.cpp
+test/test_lifted.cpp
 test/test_set.cpp
 test/test_spudd.cpp
 README

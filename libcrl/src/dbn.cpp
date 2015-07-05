@@ -47,6 +47,10 @@ void _DBNFactor::addActionDependency(Size index) {
   _FDiscreteFunction::addActionFactor(index);
 }
 
+void _DBNFactor::addLiftedDependency(LiftedFactor lf) {
+  _FDiscreteFunction::addLiftedFactor(std::move(lf));
+}
+
 void _DBNFactor::computeSubdomain() {
   _subdomain = boost::make_shared<_Domain>();
   const RangeVec& state_ranges = _domain->getStateRanges();
@@ -64,6 +68,11 @@ void _DBNFactor::computeSubdomain() {
   for (Size i=0; i<_action_dom.size(); i++) {
       Size j = _action_dom[i];
       this->_subdomain->addActionFactor(action_ranges[j].getMin(), action_ranges[j].getMax(), action_names[j]);
+  }
+  // add lifted operators
+  for (Size i=0; i<_lifted_dom.size(); i++) {
+      FactorRange range = _lifted_dom[i]->getRange();
+      this->_subdomain->addStateFactor(range.getMin(), range.getMax(), "#" + std::to_string(_lifted_dom[i]->getHash()));
   }
   _computed = true;
 }
@@ -106,11 +115,18 @@ void _DBN::addDBNFactor(DBNFactor dbn_factor) {
   if(dbn_factor->hasConcurrentDependency()) {
     _has_concurrency = true;
   }
+  if(dbn_factor->hasLiftedDependency()) {
+    _has_lifted = true;
+  }
   // insert preserving order
+  auto indirection = [](const DBNFactor& a, const DBNFactor& b) -> bool { return *a < *b; };
   std::vector<DBNFactor>::iterator it = std::lower_bound(_dbn_factors.begin(), _dbn_factors.end(), dbn_factor,
-                                                         [](const DBNFactor &a, const DBNFactor &b) { return *a < *b; });
-  if(it == _dbn_factors.end()) {
-    _dbn_factors.insert(it, std::move(dbn_factor)); // overwrite and de-allocate previous if it exists
+                                                         indirection);
+  if(it == _dbn_factors.end() || (*it)->getTarget() != dbn_factor->getTarget()) {
+    _dbn_factors.insert(it, std::move(dbn_factor));
+  }
+  else {
+    LOG_WARN("DBN Factor not added. Factor with target variable `" << dbn_factor->getTarget() << "' already exists in DBN.");
   }
 }
 
@@ -147,6 +163,9 @@ std::ostream& operator<<(std::ostream &os, const _DBNFactor& fa) {
     }
     for(Size pa : fa.getActionDependencies()) {
         os << "A" << pa << ", ";
+    }
+    for(auto l : fa.getLiftedDependencies()) {
+        os << *l << ", ";
     }
     os << "}";
     return os;
