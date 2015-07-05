@@ -34,9 +34,9 @@ typedef FunctionVec<Reward> RFunctionVec;
 namespace gurobi {
 
 /**
- * \brief A class that abstracts a Gurobi LP
- * All specific LP solver dependencies should be restricted to this hpp/cpp file
- * TODO: could implement iterative constraint generation if performance becomes prohibitive
+ * \brief A class that abstracts a Gurobi LP.
+ * All specific LP solver dependencies should be restricted to this hpp/cpp file.
+ * Supports representation of the nonlinear max constraint in the ALP as well as iterative constraint addition.
  */
 class _LP {
 private:
