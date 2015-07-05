@@ -42,16 +42,27 @@ class _LP {
 private:
   const crl::Domain _domain;
   /// \brief Storage for functions generated during variable elimination
-  crl::FunctionSet<crl::Reward> F;
+  crl::FunctionSet<crl::Reward> _F;
   /// \brief The Gurobi LP
   boost::shared_ptr<GRBEnv> _env;
   boost::shared_ptr<GRBModel> _lp;
   /// \brief The w variables added to this LP
   std::vector<GRBVar> _wvars;
+
+  /// \brief Set up LP with the objective and abstract away functions \f$C\f$ and \f$\mathbf{b}\f$ with variables in the LP.
+  /// \return A tuple of (0) a mapping from function to LP-variable offset \f$f(\mathbf{x}_0,\mathbf{a}_0)\f$, and (1) the functions with empty scope
+  /// \see generateLP, generateLiftedLP
+  std::tuple<std::unordered_map<const _DiscreteFunction<Reward>*, int>, std::vector<DiscreteFunction<Reward>>>
+  generateObjective(std::string name, const crl::RFunctionVec& C, const crl::RFunctionVec& b, const std::vector<double>& alpha);
+  /// \brief Add a single constraint to this LP
+  /// \note Requires previous set-up of LP, e.g. via \a generateObjective()
+  GRBConstr addConstraint(const GRBLinExpr& lhs, char sense, const GRBLinExpr& rhs) {
+    return _lp->addConstr(lhs, sense, rhs);
+  }
 public:
   /// \brief ctor
   _LP(const crl::Domain& domain)
-  : _domain(domain), F(domain) { }
+  : _domain(domain), _F(domain) { }
   /// \brief dtor
   ~_LP() { }
 
@@ -72,6 +83,7 @@ public:
   /// \brief Given targets \f$C\f$ and \f$\mathbf{b}\f$ compute polynomial set of constraints (with L_1 and scope regularization)
   /// \return 0 iff successful
   int generateSCALP(const crl::RFunctionVec& C, const crl::RFunctionVec& b, const std::vector<double>& alpha, const crl::SizeVec& elim_order, double lambda, double beta, double ret_bound);
+
   /// \brief Solve this LP
   /// \return 0 iff successful
   int solve(crl::_FactoredValueFunction* vfn);

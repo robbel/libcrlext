@@ -99,7 +99,7 @@ int _LP::generateVLP(const RFunctionVec& C, const RFunctionVec& b, const vector<
             rhs.addTerms(coeff.data(), _wvars.data(), _wvars.size());
         }
 //        LOG_DEBUG(lhs << "<=" << rhs);
-        _lp->addConstr(lhs, GRB_GREATER_EQUAL, rhs);
+        addConstraint(lhs, GRB_GREATER_EQUAL, rhs);
     }
     _lp->update();
 
@@ -115,6 +115,102 @@ int _LP::generateVLP(const RFunctionVec& C, const RFunctionVec& b, const vector<
   return 0;
 }
 #endif
+std::tuple<std::unordered_map<const _DiscreteFunction<Reward>*, int>, std::vector<DiscreteFunction<Reward>>>
+_LP::generateObjective(std::string name, const crl::RFunctionVec& C, const crl::RFunctionVec& b, const std::vector<double>& alpha) {
+  //assert(C.size() == alpha.size());
+
+  // the function set for functions with non-empty scope (available for, e.g., variable elimination)
+  _F.clear();
+  // the variable store
+  _wvars.clear();
+  _wvars.reserve(alpha.size());
+
+  // create the lp
+  _env = boost::make_shared<GRBEnv>();
+  _lp  = boost::make_shared<GRBModel>(*_env);
+  _lp->set(GRB_StringAttr_ModelName, name);
+
+  // add the weight variables with [-inf,inf] bounds along with the objective coefficients
+  for(vector<double>::size_type i = 0; i < alpha.size(); i++) {
+    GRBVar v = _lp->addVar(-GRB_INFINITY, GRB_INFINITY, alpha[i], GRB_CONTINUOUS, "w"+to_string(i));
+    _wvars.push_back(std::move(v));
+  }
+
+  // The objective is to minimize the costs
+  _lp->set(GRB_IntAttr_ModelSense, GRB_MINIMIZE);
+  _lp->update();
+  LOG_INFO("Objective: " << _lp->getObjective());
+
+  //
+  // generate equality constraints to abstract away basis (C) functions
+  //
+
+  std::unordered_map<const _DiscreteFunction<Reward>*, int> var_offset;
+  // store for functions that have reached empty scope (those are used in last constraint)
+  std::vector<DiscreteFunction<Reward>> empty_fns;
+
+  int var = alpha.size(); // the offset at which to insert more variables
+  int wi = 0; // corresponding to active w_i variable
+  for(const auto& f : C) {
+      const auto& p = var_offset.insert({f.get(),var});
+      if(!p.second) {
+        assert(false);
+      }
+      int cc = 0;
+      _StateActionIncrementIterator saitr(f->getSubdomain());
+      while(saitr.hasNext()) {
+          const std::tuple<State,Action>& sa = saitr.next();
+          const State& s = std::get<0>(sa);
+          const Action& a = std::get<1>(sa);
+          // add variable
+          GRBVar v = _lp->addVar(-GRB_INFINITY, GRB_INFINITY, 0., GRB_CONTINUOUS, "C"+to_string(wi)+"_"+to_string(cc));
+          _lp->update();
+          GRBLinExpr lhs = _wvars[wi] * (*f)(s,a);
+          addConstraint(lhs, GRB_EQUAL, v);
+          var++;
+          cc++;
+      }
+      // test for constant basis
+      if(f->getSubdomain()->getNumStateFactors() == 0 && f->getSubdomain()->getNumActionFactors() == 0) {
+          LOG_DEBUG("Found constant basis function with empty scope");
+          empty_fns.push_back(std::move(f));
+      }
+      else {
+          _F.insert(std::move(f)); // store function in set for variable elimination
+      }
+      wi++;
+  }
+
+  //
+  // generate equality constraints to abstract away target (b) functions
+  //
+
+  int bb = 0;
+  for(const auto& f : b) {
+      const auto& p = var_offset.insert({f.get(),var});
+      if(!p.second) {
+          assert(false);
+      }
+      int bv = 0;
+      _StateActionIncrementIterator saitr(f->getSubdomain());
+      while(saitr.hasNext()) {
+          const std::tuple<State,Action>& sa = saitr.next();
+          const State& s = std::get<0>(sa);
+          const Action& a = std::get<1>(sa);
+          // add variable
+          GRBVar v = _lp->addVar(-GRB_INFINITY, GRB_INFINITY, 0., GRB_CONTINUOUS, "b"+to_string(bb)+"_"+to_string(bv));
+          _lp->update();
+          addConstraint(v, GRB_EQUAL, (*f)(s,a));
+          var++;
+          bv++;
+      }
+      _F.insert(std::move(f));
+      bb++;
+  }
+
+  return std::make_tuple(var_offset, empty_fns);
+}
+
 int _LP::generateBLP(const RFunctionVec& C, const RFunctionVec& b, const vector<double>& alpha) {
   assert(C.size() == alpha.size());
 
@@ -165,7 +261,7 @@ int _LP::generateBLP(const RFunctionVec& C, const RFunctionVec& b, const vector<
         }
         GRBLinExpr rhs = -sum;
 //        LOG_DEBUG(lhs << "<=" << rhs);
-        _lp->addConstr(lhs, GRB_LESS_EQUAL, rhs);
+        addConstraint(lhs, GRB_LESS_EQUAL, rhs);
     }
     _lp->update();
 
@@ -182,114 +278,28 @@ int _LP::generateBLP(const RFunctionVec& C, const RFunctionVec& b, const vector<
 }
 
 int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<double>& alpha, const SizeVec& elim_order) {
-  //assert(C.size() == alpha.size());
-  F.clear();
+  // set up LP
+  auto tpl = generateObjective("ALP", C, b, alpha);
+  std::unordered_map<const _DiscreteFunction<Reward>*, int>& var_offset = std::get<0>(tpl);
+  std::vector<DiscreteFunction<Reward>>& empty_fns = std::get<1>(tpl);
 
-  _wvars.clear();
-  _wvars.reserve(alpha.size());
-
+  //
+  // Run variable elimination to generate further variables/constraints
+  //
   try {
-    // create the lp
-    _env = boost::make_shared<GRBEnv>();
-    _lp  = boost::make_shared<GRBModel>(*_env);
-    _lp->set(GRB_StringAttr_ModelName, "ALP");
-
-    // add the weight variables with [-inf,inf] bounds along with the objective coefficients
-    for(vector<double>::size_type i = 0; i < alpha.size(); i++) {
-      GRBVar v = _lp->addVar(-GRB_INFINITY, GRB_INFINITY, alpha[i], GRB_CONTINUOUS, "w"+to_string(i));
-      _wvars.push_back(std::move(v));
-    }
-
-    // The objective is to minimize the costs
-    _lp->set(GRB_IntAttr_ModelSense, GRB_MINIMIZE);
-    _lp->update();
-    LOG_INFO("Objective: " << _lp->getObjective());
-
-    //
-    // generate equality constraints to abstract away basis (C) functions
-    //
-
-    // A mapping from function to lp-variable offset (used during variable elimination)
-    std::unordered_map<const _DiscreteFunction<Reward>*, int> var_offset;
-    // store for functions that have reached empty scope (those are used in last constraint)
-    std::vector<DiscreteFunction<Reward>> empty_fns;
-
-
-    int var = alpha.size(); // the offset at which to insert more variables
-    int wi = 0; // corresponding to active w_i variable
-    for(const auto& f : C) {
-        const auto& p = var_offset.insert({f.get(),var});
-        if(!p.second) {
-          assert(false);
-        }
-        int cc = 0;
-        _StateActionIncrementIterator saitr(f->getSubdomain());
-        while(saitr.hasNext()) {
-            const std::tuple<State,Action>& sa = saitr.next();
-            const State& s = std::get<0>(sa);
-            const Action& a = std::get<1>(sa);
-            // add variable
-            GRBVar v = _lp->addVar(-GRB_INFINITY, GRB_INFINITY, 0., GRB_CONTINUOUS, "C"+to_string(wi)+"_"+to_string(cc));
-            _lp->update();
-            GRBLinExpr lhs = _wvars[wi] * (*f)(s,a);
-            _lp->addConstr(lhs, GRB_EQUAL, v);
-            var++;
-            cc++;
-        }
-        // test for constant basis
-        if(f->getSubdomain()->getNumStateFactors() == 0 && f->getSubdomain()->getNumActionFactors() == 0) {
-            LOG_DEBUG("Found constant basis function with empty scope");
-            empty_fns.push_back(std::move(f));
-        }
-        else {
-            F.insert(std::move(f)); // store function in set for variable elimination
-        }
-        wi++;
-    }
-
-    //
-    // generate equality constraints to abstract away target (b) functions
-    //
-
-    int bb = 0;
-    for(const auto& f : b) {
-        const auto& p = var_offset.insert({f.get(),var});
-        if(!p.second) {
-            assert(false);
-        }
-        int bv = 0;
-        _StateActionIncrementIterator saitr(f->getSubdomain());
-        while(saitr.hasNext()) {
-            const std::tuple<State,Action>& sa = saitr.next();
-            const State& s = std::get<0>(sa);
-            const Action& a = std::get<1>(sa);
-            // add variable
-            GRBVar v = _lp->addVar(-GRB_INFINITY, GRB_INFINITY, 0., GRB_CONTINUOUS, "b"+to_string(bb)+"_"+to_string(bv));
-            _lp->update();
-            _lp->addConstr(v, GRB_EQUAL, (*f)(s,a));
-            var++;
-            bv++;
-        }
-        F.insert(std::move(f));
-        bb++;
-    }
-
-    //
-    // Run variable elimination to generate further variables/constraints
-    //
-
-    const Size num_factors = F.getNumFactors();
+    const Size num_factors = _F.getNumFactors();
     LOG_DEBUG("Number of unique factors (S,A) to eliminate: " << num_factors);
     if(elim_order.size() != num_factors) {
       LOG_WARN("Elimination order set has different size from available factors to eliminate");
     }
 
-    using range = decltype(F)::range;
+    int var = _lp->get(GRB_IntAttr_NumVars); // current variable offset
+    using range = decltype(_F)::range;
     for(Size v : elim_order) {
         assert(v < _domain->getNumStateFactors() + _domain->getNumActionFactors());
         LOG_DEBUG("Eliminating variable " << v);
         // eliminate variable `v' (either state or action)
-        range r = F.getFactor(v);
+        range r = _F.getFactor(v);
         if(!r.hasNext()) {
             LOG_DEBUG("Variable " << v << " not eliminated. It does not exist in FunctionSet.");
             continue;
@@ -357,7 +367,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<d
                 lhs += fv;
             }
             // add constraint (including new variables) to LP
-            /*GRBConstr constr =*/ _lp->addConstr(lhs,GRB_LESS_EQUAL,v);
+            /*GRBConstr constr =*/ addConstraint(lhs,GRB_LESS_EQUAL,v);
 
 //#if !NDEBUG
 //            LOG_DEBUG("Added constraint:");
@@ -368,7 +378,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<d
 
         }
         LOG_DEBUG("Function set F before erase of factor: " << v);
-        LOG_DEBUG(F);
+        LOG_DEBUG(_F);
 
         // Erase from var_offset hash table (required to avoid collisions)
         r.reset();
@@ -378,19 +388,19 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<d
                 assert(false);
             }
         }
-        F.eraseFactor(v);
-        F.insert(E); // store new function (if not empty scope)
+        _F.eraseFactor(v);
+        _F.insert(E); // store new function (if not empty scope)
         // update variable counter
         var+=E->getSubdomain()->size();
 
         LOG_DEBUG("Function set F after erase and insertion of new function E: ");
-        LOG_DEBUG(F);
+        LOG_DEBUG(_F);
     }
 
-    LOG_DEBUG("Number of unique factors (S,A) after elimination: " << F.getNumFactors() << " and size: " << F.size());
+    LOG_DEBUG("Number of unique factors (S,A) after elimination: " << _F.getNumFactors() << " and size: " << _F.size());
 
     // F does not store empty scope functions
-    if(!F.empty()) {
+    if(!_F.empty()) {
         return 1; // functions remain in function set: variable elimination failed
     }
 
@@ -401,7 +411,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<d
         const int offset = var_offset.at(e.get());
         lhs += _lp->getVar(offset);
     }
-    _lp->addConstr(lhs,GRB_LESS_EQUAL,0.);
+    addConstraint(lhs,GRB_LESS_EQUAL,0.);
     _lp->update();
 
     //write LP to stdout
@@ -419,103 +429,16 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<d
 }
 
 int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const vector<double>& alpha, const SizeVec& elim_order) {
-  //assert(C.size() == alpha.size());
-  F.clear();
+  // set up LP
+  auto tpl = generateObjective("LiftedALP", C, b, alpha);
+  std::unordered_map<const _DiscreteFunction<Reward>*, int>& var_offset = std::get<0>(tpl);
+  std::vector<DiscreteFunction<Reward>>& empty_fns = std::get<1>(tpl);
 
-  _wvars.clear();
-  _wvars.reserve(alpha.size());
-
+  //
+  // Run variable elimination to generate further variables/constraints
+  //
   try {
-    // create the lp
-    _env = boost::make_shared<GRBEnv>();
-    _lp  = boost::make_shared<GRBModel>(*_env);
-    _lp->set(GRB_StringAttr_ModelName, "LiftedALP");
-
-    // add the weight variables with [-inf,inf] bounds along with the objective coefficients
-    for(vector<double>::size_type i = 0; i < alpha.size(); i++) {
-      GRBVar v = _lp->addVar(-GRB_INFINITY, GRB_INFINITY, alpha[i], GRB_CONTINUOUS, "w"+to_string(i));
-      _wvars.push_back(std::move(v));
-    }
-
-    // The objective is to minimize the costs
-    _lp->set(GRB_IntAttr_ModelSense, GRB_MINIMIZE);
-    _lp->update();
-    LOG_INFO("Objective: " << _lp->getObjective());
-
-    //
-    // generate equality constraints to abstract away basis (C) functions
-    //
-
-    // A mapping from function to lp-variable offset (used during variable elimination)
-    std::unordered_map<const _DiscreteFunction<Reward>*, int> var_offset;
-    // store for functions that have reached empty scope (those are used in last constraint)
-    std::vector<DiscreteFunction<Reward>> empty_fns;
-
-
-    int var = alpha.size(); // the offset at which to insert more variables
-    int wi = 0; // corresponding to active w_i variable
-    for(const auto& f : C) {
-        const auto& p = var_offset.insert({f.get(),var});
-        if(!p.second) {
-          assert(false);
-        }
-        int cc = 0;
-        _StateActionIncrementIterator saitr(f->getSubdomain());
-        while(saitr.hasNext()) {
-            const std::tuple<State,Action>& sa = saitr.next();
-            const State& s = std::get<0>(sa);
-            const Action& a = std::get<1>(sa);
-            // add variable
-            GRBVar v = _lp->addVar(-GRB_INFINITY, GRB_INFINITY, 0., GRB_CONTINUOUS, "C"+to_string(wi)+"_"+to_string(cc));
-            _lp->update();
-            GRBLinExpr lhs = _wvars[wi] * (*f)(s,a);
-            _lp->addConstr(lhs, GRB_EQUAL, v);
-            var++;
-            cc++;
-        }
-        // test for constant basis
-        if(f->getSubdomain()->getNumStateFactors() == 0 && f->getSubdomain()->getNumActionFactors() == 0) {
-            LOG_DEBUG("Found constant basis function with empty scope");
-            empty_fns.push_back(std::move(f));
-        }
-        else {
-            F.insert(std::move(f)); // store function in set for variable elimination
-        }
-        wi++;
-    }
-
-    //
-    // generate equality constraints to abstract away target (b) functions
-    //
-
-    int bb = 0;
-    for(const auto& f : b) {
-        const auto& p = var_offset.insert({f.get(),var});
-        if(!p.second) {
-            assert(false);
-        }
-        int bv = 0;
-        _StateActionIncrementIterator saitr(f->getSubdomain());
-        while(saitr.hasNext()) {
-            const std::tuple<State,Action>& sa = saitr.next();
-            const State& s = std::get<0>(sa);
-            const Action& a = std::get<1>(sa);
-            // add variable
-            GRBVar v = _lp->addVar(-GRB_INFINITY, GRB_INFINITY, 0., GRB_CONTINUOUS, "b"+to_string(bb)+"_"+to_string(bv));
-            _lp->update();
-            _lp->addConstr(v, GRB_EQUAL, (*f)(s,a));
-            var++;
-            bv++;
-        }
-        F.insert(std::move(f));
-        bb++;
-    }
-
-    //
-    // Run variable elimination to generate further variables/constraints
-    //
-
-    const Size num_factors = F.getNumFactors();
+    const Size num_factors = _F.getNumFactors();
     LOG_DEBUG("Number of unique factors (S,A) to eliminate: " << num_factors);
     if(elim_order.size() != num_factors) {
       LOG_WARN("Elimination order set has different size from available factors to eliminate");
@@ -525,23 +448,24 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
     std::list<Size> mutable_elim;
     std::copy(elim_order.begin(), elim_order.end(), std::back_inserter(mutable_elim));
 
-    using range = decltype(F)::range;
+    int var = _lp->get(GRB_IntAttr_NumVars); // current variable offset
+    using range = decltype(_F)::range;
     while(!mutable_elim.empty()) {
         // determine next variable to delete
         auto bestIt = mutable_elim.end();
         Size bestVal = std::numeric_limits<Size>::max();
         for(auto it = mutable_elim.begin(); it != mutable_elim.end(); ++it) {
-            range r = F.getFactor(*it);
+            range r = _F.getFactor(*it);
             if(!r.hasNext()) {
                 continue;
             }
             _EmptyFunction<Reward> testFn(r);
-            Size testSc = testFn.getStateFactors().size() + testFn.getActionFactors().size() + testFn.getLiftedFactors().size();
-//            Size testSc = (testFn.getStateFactors().size() + testFn.getActionFactors().size())*
-//                testFn.getStateFactors().size() + testFn.getActionFactors().size();
-//            for(const auto& lf : testFn.getLiftedFactors()) {
-//                testSc *= lf->getStateFactors().size();
-//            }
+            //Size testSc = testFn.getStateFactors().size() + testFn.getActionFactors().size() + testFn.getLiftedFactors().size();
+            Size testSc = (testFn.getStateFactors().size() + testFn.getActionFactors().size())*
+                testFn.getStateFactors().size() + testFn.getActionFactors().size();
+            for(const auto& lf : testFn.getLiftedFactors()) {
+                testSc *= lf->getStateFactors().size();
+            }
             if(testSc < bestVal) {
               bestVal = testSc;
               bestIt = it;
@@ -552,7 +476,7 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
         assert(v < _domain->getNumStateFactors() + _domain->getNumActionFactors());
         LOG_DEBUG("Eliminating variable " << v << " (" << mutable_elim.size() << " to go)");
         // eliminate variable `v' (either state, action, or lifted factor)
-        range r = F.getFactor(v);
+        range r = _F.getFactor(v);
         if(!r.hasNext()) {
             LOG_DEBUG("Variable " << v << " not eliminated. It does not exist in FunctionSet.");
             continue;
@@ -681,7 +605,7 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
                     lhs += fv;
                 }
                 // add constraint (including new variables) to LP
-                /*GRBConstr constr =*/ _lp->addConstr(lhs,GRB_LESS_EQUAL,var);
+                /*GRBConstr constr =*/ addConstraint(lhs,GRB_LESS_EQUAL,var);
 
 //#if !NDEBUG
 //                LOG_DEBUG("Added constraint:");
@@ -693,7 +617,7 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
             }
         }
         LOG_DEBUG("Function set F before erase of factor: " << v);
-        LOG_DEBUG(F);
+        LOG_DEBUG(_F);
 
         // Erase from var_offset hash table (required to avoid collisions)
         r.reset();
@@ -703,19 +627,19 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
                 assert(false);
             }
         }
-        F.eraseFactor(v);
-        F.insert(E); // store new function (if not empty scope)
+        _F.eraseFactor(v);
+        _F.insert(E); // store new function (if not empty scope)
         // update variable counter
         var+=E->getSubdomain()->size();
 
         LOG_DEBUG("Function set F after erase and insertion of new function E: ");
-        LOG_DEBUG(F);
+        LOG_DEBUG(_F);
     }
 
-    LOG_DEBUG("Number of unique factors (S,A) after elimination: " << F.getNumFactors() << " and size: " << F.size());
+    LOG_DEBUG("Number of unique factors (S,A) after elimination: " << _F.getNumFactors() << " and size: " << _F.size());
 
     // F does not store empty scope functions
-    if(!F.empty()) {
+    if(!_F.empty()) {
         return 1; // functions remain in function set: variable elimination failed
     }
 
@@ -726,12 +650,12 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
         const int offset = var_offset.at(e.get());
         lhs += _lp->getVar(offset);
     }
-    _lp->addConstr(lhs,GRB_LESS_EQUAL,0.);
+    addConstraint(lhs,GRB_LESS_EQUAL,0.);
     _lp->update();
 
     //write LP to stdout
     LOG_INFO("Generated LP with " << _lp->get(GRB_IntAttr_NumVars) << " variables and " << _lp->get(GRB_IntAttr_NumConstrs) << " constraints.");
-    //_lp->write("test.lp");
+    _lp->write("lifted.lp");
     return 0;
   }
   catch(const GRBException& e) {
@@ -828,10 +752,10 @@ int _LP::generateSCALP(const RFunctionVec& C, const RFunctionVec& b, const vecto
     for(vector<double>::size_type i = 0; i < alpha.size(); i++) {
 //      GRBVar ki = _lp->getVar(offset+varno); // integer variable
         GRBVar zi = _lp->getVar(offset++);
-        _lp->addConstr(zi, GRB_GREATER_EQUAL,  _wvars[i]); // absolute value constraint
-        _lp->addConstr(zi, GRB_GREATER_EQUAL, -_wvars[i]);
-//      _lp->addConstr(ki, GRB_GREATER_EQUAL, zi/ret_bound); // integer constraint
-//      _lp->addConstr(zi, GRB_LESS_EQUAL, lambda); // alternative implementation
+        addConstraint(zi, GRB_GREATER_EQUAL,  _wvars[i]); // absolute value constraint
+        addConstraint(zi, GRB_GREATER_EQUAL, -_wvars[i]);
+//      addConstraint(ki, GRB_GREATER_EQUAL, zi/ret_bound); // integer constraint
+//      addConstraint(zi, GRB_LESS_EQUAL, lambda); // alternative implementation
     }
 
     _lp->update();
