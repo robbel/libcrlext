@@ -137,10 +137,8 @@ _LP::generateObjective(std::string name, const crl::RFunctionVec& C, const crl::
   return std::make_tuple(var_offset, empty_fns);
 }
 
-GRBConstr _LP::addConstraint(const State& s, const Action& a, const RFunctionVec& C, const RFunctionVec& b) {
+GRBConstr _LP::addStateActionConstraint(const State& s, const Action& a, const RFunctionVec& C, const RFunctionVec& b) {
   static vector<double> coeff(_wvars.size()); // coefficient cache
-
-  // TODO Consider BigState (!!)
 
   // write out one constraint corresponding to s, a
   GRBLinExpr lhs = 0;
@@ -569,7 +567,7 @@ int _LP::generateBLP(const RFunctionVec& C, const RFunctionVec& b, const vector<
         const State& s = std::get<0>(sa);
         const Action& a = std::get<1>(sa);
         // add constraint for those
-        addConstraint(s, a, C, b);
+        addStateActionConstraint(s, a, C, b);
     }
     _lp->update();
 

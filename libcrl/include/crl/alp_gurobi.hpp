@@ -62,7 +62,7 @@ private:
     return _lp->addConstr(lhs, sense, rhs);
   }
   /// \brief Add a ALP constraint corresponding to \a State s and \a Action
-  GRBConstr addConstraint(const State& s, const Action& a, const RFunctionVec& C, const RFunctionVec& b);
+  GRBConstr addStateActionConstraint(const State& s, const Action& a, const RFunctionVec& C, const RFunctionVec& b);
 public:
   /// \brief ctor
   _LP(const crl::Domain& domain)
