@@ -37,12 +37,7 @@ void buildRLType(const RLType& rl1, const subdom_map& s1, RLType& rl2, const sub
 
 namespace gurobi {
 
-std::tuple<std::unordered_map<const _DiscreteFunction<Reward>*, int>, std::vector<DiscreteFunction<Reward>>>
-_LP::generateObjective(std::string name, const crl::RFunctionVec& C, const crl::RFunctionVec& b, const std::vector<double>& alpha) {
-  //assert(C.size() == alpha.size());
-
-  // the function set for functions with non-empty scope (available for, e.g., variable elimination)
-  _F.clear();
+void _LP::generateObjective(std::string name, const std::vector<double>& alpha) {
   // the variable store
   _wvars.clear();
   _wvars.reserve(alpha.size());
@@ -62,6 +57,15 @@ _LP::generateObjective(std::string name, const crl::RFunctionVec& C, const crl::
   _lp->set(GRB_IntAttr_ModelSense, GRB_MINIMIZE);
   _lp->update();
   LOG_INFO("Objective: " << _lp->getObjective());
+}
+
+std::tuple<std::unordered_map<const _DiscreteFunction<Reward>*, int>, std::vector<DiscreteFunction<Reward>>>
+_LP::generateObjective(std::string name, const crl::RFunctionVec& C, const crl::RFunctionVec& b, const std::vector<double>& alpha) {
+  //assert(C.size() == alpha.size());
+
+  generateObjective(name, alpha);
+  // the function set for functions with non-empty scope (available for, e.g., variable elimination)
+  _F.clear();
 
   //
   // generate equality constraints to abstract away basis (C) functions
@@ -131,6 +135,31 @@ _LP::generateObjective(std::string name, const crl::RFunctionVec& C, const crl::
   }
 
   return std::make_tuple(var_offset, empty_fns);
+}
+
+GRBConstr _LP::addConstraint(const State& s, const Action& a, const RFunctionVec& C, const RFunctionVec& b) {
+  static vector<double> coeff(_wvars.size()); // coefficient cache
+
+  // TODO Consider BigState (!!)
+
+  // write out one constraint corresponding to s, a
+  GRBLinExpr lhs = 0;
+  vector<double>::size_type i = 0;
+  for(const auto& f : C) {
+      State ms = f->mapState(s);
+      Action ma = f->mapAction(a);
+      coeff[i++] = (*f)(ms,ma);
+  }
+  lhs.addTerms(coeff.data(), _wvars.data(), _wvars.size());
+  double sum = 0.;
+  for(const auto& f : b) {
+      State ms = f->mapState(s);
+      Action ma = f->mapAction(a);
+      sum += (*f)(ms,ma);
+  }
+  GRBLinExpr rhs = -sum;
+//LOG_DEBUG(lhs << "<=" << rhs);
+  return addConstraint(lhs, GRB_LESS_EQUAL, rhs);
 }
 
 int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<double>& alpha, const SizeVec& elim_order) {
@@ -527,54 +556,20 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
 int _LP::generateBLP(const RFunctionVec& C, const RFunctionVec& b, const vector<double>& alpha) {
   assert(C.size() == alpha.size());
 
-  _wvars.clear();
-  _wvars.reserve(alpha.size());
-
   try {
     // create the lp
-    _env = boost::make_shared<GRBEnv>();
-    _lp  = boost::make_shared<GRBModel>(*_env);
-    _lp->set(GRB_StringAttr_ModelName, "BLP");
-
-    // add the weight variables with [-inf,inf] bounds along with the objective coefficients
-    for(vector<double>::size_type i = 0; i < alpha.size(); i++) {
-      GRBVar v = _lp->addVar(-GRB_INFINITY, GRB_INFINITY, alpha[i], GRB_CONTINUOUS, "w"+to_string(i));
-      _wvars.push_back(std::move(v));
-    }
-
-    // The objective is to minimize the costs
-    _lp->set(GRB_IntAttr_ModelSense, GRB_MINIMIZE);
-    _lp->update();
-    LOG_INFO("Objective: " << _lp->getObjective());
+    generateObjective("BLP", alpha);
 
     //
     // Brute force constraint generation
     //
     _StateActionIncrementIterator saitr(_domain);
-    vector<double> coeff; // coefficient cache
-    coeff.reserve(_wvars.size());
     while(saitr.hasNext()) {
         const std::tuple<State,Action>& sa = saitr.next();
         const State& s = std::get<0>(sa);
         const Action& a = std::get<1>(sa);
-        // write out one constraint for those
-        GRBLinExpr lhs = 0;
-        vector<double>::size_type i = 0;
-        for(const auto& f : C) {
-            State ms = f->mapState(s);
-            Action ma = f->mapAction(a);
-            coeff[i++] = (*f)(ms,ma);
-        }
-        lhs.addTerms(coeff.data(), _wvars.data(), _wvars.size());
-        double sum = 0.;
-        for(const auto& f : b) {
-            State ms = f->mapState(s);
-            Action ma = f->mapAction(a);
-            sum += (*f)(ms,ma);
-        }
-        GRBLinExpr rhs = -sum;
-//        LOG_DEBUG(lhs << "<=" << rhs);
-        addConstraint(lhs, GRB_LESS_EQUAL, rhs);
+        // add constraint for those
+        addConstraint(s, a, C, b);
     }
     _lp->update();
 
@@ -593,25 +588,9 @@ int _LP::generateBLP(const RFunctionVec& C, const RFunctionVec& b, const vector<
 int _LP::generateVLP(const RFunctionVec& C, const RFunctionVec& b, const vector<double>& alpha, const _DBN& dbn, double gamma) {
   assert(C.size() == alpha.size());
 
-  _wvars.clear();
-  _wvars.reserve(alpha.size());
-
   try {
     // create the lp
-    _env = boost::make_shared<GRBEnv>();
-    _lp  = boost::make_shared<GRBModel>(*_env);
-    _lp->set(GRB_StringAttr_ModelName, "VLP");
-
-    // add the weight variables with [-inf,inf] bounds along with the objective coefficients
-    for(vector<double>::size_type i = 0; i < alpha.size(); i++) {
-      GRBVar v = _lp->addVar(-GRB_INFINITY, GRB_INFINITY, alpha[i], GRB_CONTINUOUS, "w"+to_string(i));
-      _wvars.push_back(std::move(v));
-    }
-
-    // The objective is to minimize the costs
-    _lp->set(GRB_IntAttr_ModelSense, GRB_MINIMIZE);
-    _lp->update();
-    LOG_INFO("Objective: " << _lp->getObjective());
+    generateObjective("VLP", alpha);
 
     //
     // Brute force constraint generation

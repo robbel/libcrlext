@@ -49,8 +49,10 @@ private:
   /// \brief The w variables added to this LP
   std::vector<GRBVar> _wvars;
 
+  /// \brief Set up LP with (only) the objective.
+  void generateObjective(std::string name, const std::vector<double>& alpha);
   /// \brief Set up LP with the objective and abstract away functions \f$C\f$ and \f$\mathbf{b}\f$ with variables in the LP.
-  /// \return A tuple of (0) a mapping from function to LP-variable offset \f$f(\mathbf{x}_0,\mathbf{a}_0)\f$, and (1) the functions with empty scope
+  /// \return A tuple of (0) a mapping from function \f$f\f$ to LP-variable offset for \f$f(\mathbf{x}_0,\mathbf{a}_0)\f$, and (1) the functions with empty scope
   /// \see generateLP, generateLiftedLP
   std::tuple<std::unordered_map<const _DiscreteFunction<Reward>*, int>, std::vector<DiscreteFunction<Reward>>>
   generateObjective(std::string name, const crl::RFunctionVec& C, const crl::RFunctionVec& b, const std::vector<double>& alpha);
@@ -59,6 +61,8 @@ private:
   GRBConstr addConstraint(const GRBLinExpr& lhs, char sense, const GRBLinExpr& rhs) {
     return _lp->addConstr(lhs, sense, rhs);
   }
+  /// \brief Add a ALP constraint corresponding to \a State s and \a Action
+  GRBConstr addConstraint(const State& s, const Action& a, const RFunctionVec& C, const RFunctionVec& b);
 public:
   /// \brief ctor
   _LP(const crl::Domain& domain)
