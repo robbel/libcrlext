@@ -14,13 +14,10 @@
 #include "crl/approx_alp.hpp"
 #include "cpputil.hpp"
 
-using namespace std;
-using namespace crl;
-using namespace cpputil;
-
-TEST(LibDAITests, BasicTest) {
-
-  // TODO
-
-  SUCCEED();
+///
+/// \brief Placeholder for some libDAI experiments
+///
+TEST(LibDAITest, BasicLibDAITest) {
+  int res = crl::testing::maxplus_demo();
+  EXPECT_EQ(res, 0) << "max-plus failed";
 }

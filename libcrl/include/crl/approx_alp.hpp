@@ -46,6 +46,13 @@ public:
 };
 typedef boost::shared_ptr<_ApproxALP> ApproxALP;
 
+namespace testing {
+
+/// \brief Basic libDAI max-plus test inspired by libdai's example.cpp
+int maxplus_demo();
+
+} // namespace testing
+
 #endif /*defined(DAI_WITH_BP) && defined(DAI_WITH_JTREE)*/
 
 } // namespace crl
