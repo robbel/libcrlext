@@ -1,0 +1,453 @@
+diff --git a/Makefile b/Makefile
+index 49d42ae..a8a000c 100644
+--- a/Makefile
++++ b/Makefile
+@@ -74,7 +74,7 @@ all : $(TARGETS)
+ 	@echo
+ 	@echo libDAI built successfully!
+ 
+-EXAMPLES=$(foreach name,example example_bipgraph example_varset example_permute example_sprinkler example_sprinkler_em,examples/$(name)$(EE))
++EXAMPLES=$(foreach name,example example_bipgraph example_varset example_permute example_sprinkler example_sprinkler_em example_maxplus,examples/$(name)$(EE))
+ EXAMPLES:=$(EXAMPLES) examples/example_sprinkler_gibbs$(EE)
+ ifdef WITH_CIMG
+   EXAMPLES:=$(EXAMPLES) examples/example_imagesegmentation$(EE)
+@@ -277,7 +277,7 @@ ifneq ($(OS),WINDOWS)
+ clean :
+ 	-rm $(OBJECTS)
+ 	-rm matlab/*$(ME)
+-	-rm examples/example$(EE) examples/example_bipgraph$(EE) examples/example_varset$(EE) examples/example_permute$(EE) examples/example_sprinkler$(EE) examples/example_sprinkler_gibbs$(EE) examples/example_sprinkler_em$(EE) examples/example_imagesegmentation$(EE)
++	-rm examples/example$(EE) examples/example_bipgraph$(EE) examples/example_varset$(EE) examples/example_permute$(EE) examples/example_sprinkler$(EE) examples/example_sprinkler_gibbs$(EE) examples/example_sprinkler_em$(EE) examples/example_maxplus$(EE) examples/example_imagesegmentation$(EE)
+ 	-rm tests/testdai$(EE) tests/testem/testem$(EE) tests/testbbp$(EE)
+ 	-rm tests/unit/var_test$(EE) tests/unit/smallset_test$(EE) tests/unit/varset_test$(EE) tests/unit/graph_test$(EE) tests/unit/dag_test$(EE) tests/unit/bipgraph_test$(EE) tests/unit/weightedgraph_test$(EE) tests/unit/enum_test$(EE) tests/unit/util_test$(EE) tests/unit/exceptions_test$(EE) tests/unit/properties_test$(EE) tests/unit/index_test$(EE) tests/unit/prob_test$(EE) tests/unit/factor_test$(EE) tests/unit/factorgraph_test$(EE) tests/unit/clustergraph_test$(EE) tests/unit/regiongraph_test$(EE) tests/unit/daialg_test$(EE) tests/unit/alldai_test$(EE)
+ 	-rm factorgraph_test.fg alldai_test.aliases
+diff --git a/Makefile.ALL b/Makefile.ALL
+index fb58459..c1a1296 100644
+--- a/Makefile.ALL
++++ b/Makefile.ALL
+@@ -19,10 +19,10 @@
+ # COMPILATION AND BUILD FLAGS
+ 
+ # Build with debug info? (slower but safer)
+-DEBUG=true
++DEBUG=
+ 
+ # Build doxygen documentation? (doxygen and TeX need to be installed)
+-WITH_DOC=
++WITH_DOC=true
+ 
+ # Build MatLab interface? (MatLab needs to be installed)
+ WITH_MATLAB=
+diff --git a/examples/example.cpp b/examples/example.cpp
+index 11835b6..98e19aa 100644
+--- a/examples/example.cpp
++++ b/examples/example.cpp
+@@ -102,7 +102,7 @@ int main( int argc, char *argv[] ) {
+         //
+         // Note that inference is set to MAXPROD, which means that the object
+         // will perform the max-product algorithm instead of the sum-product algorithm
+-        BP mp(fg, opts("updates",string("SEQRND"))("logdomain",false)("inference",string("MAXPROD"))("damping",string("0.1")));
++        BP mp(fg, opts("updates",string("SEQRND"))("logdomain",false)("inference",string("MAXPLUS"))("damping",string("0.1")));
+         // Initialize max-product algorithm
+         mp.init();
+         // Run max-product algorithm
+diff --git a/examples/example_maxplus.cpp b/examples/example_maxplus.cpp
+index e69de29..9da27e9 100644
+--- a/examples/example_maxplus.cpp
++++ b/examples/example_maxplus.cpp
+@@ -0,0 +1,173 @@
++/*  This file is part of libDAI - http://www.libdai.org/
++ *
++ *  Copyright (c) 2006-2011, The libDAI authors. All rights reserved.
++ *
++ *  Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
++ */
++
++#include <iostream>
++#include <dai/alldai.h> // Include main libDAI header file
++#include <dai/bp.h>
++
++
++using namespace std;
++using namespace dai;
++
++
++int main() {
++#if defined(DAI_WITH_BP)
++    try {
++        cout << "This is a basic MaxPlus libDAI test program" << endl;
++
++        //Basically, do something similar as the FactorGraph::ReadFromFile(...) function.
++        //First you define your variables:
++#if 1
++        Var x0(0,3), x1(1,2), x2(2,3);  // ternary, binary and ternary variable
++
++        //variables can be combined to VarSets:
++        VarSet vs1 (x0);
++        VarSet vs2 (x0, x1);
++        VarSet vs3 (x1, x2);
++        cout << "Size of statespace of vs3 = " << vs3.nrStates() << endl;
++
++        //union (i.e, incrementally adding) is also possible and doesn't change vs3 :
++        VarSet vs_all;
++        vs_all = vs3|x0;
++        cout << "Size of statespace of vsall = " << vs_all.nrStates() << endl;
++        cout << "Size of statespace of vs3   = " << vs3.nrStates() << endl;
++
++        //Then you define factors:
++        double values0[3][3] = {{0,6,0}, {0,0,0}, {2,2,2}};//[x2][x0]  for 6 -> x0=1 x2=0,
++        //double values1[2][3] = {{0,0,0}, {0,0,0}}; //[x1][x0]
++        //double values2[3][2] = {{0,0}, {5,0}, {0,0}};    //[x2][x1]   for 5-> x1=0, x2=1
++        //double values0[3] = {1.0, 0.0, 1.0};
++        double values1[2][3] = {{0.0, 0.0, 1.0} ,{1.0, 0.0, 1.0}}; //[x1][x0]
++        double values2[3][2] = {{0.0, 0.0}, {1.0,1.0}, {0.0, 1.0}}; //[x2][x1]
++
++        double * ptr_to_values0 = &values0[0][0];
++        //double * ptr_to_values0 = &values0[0];
++        double * ptr_to_values1 = &values1[0][0];
++        double * ptr_to_values2 = &values2[0][0];
++
++        Factor f0( VarSet(x0, x2), ptr_to_values0 );
++        Factor f1( VarSet(x0, x1), ptr_to_values1 );
++        Factor f2( VarSet(x1, x2), ptr_to_values2 );
++
++        //for three factors, the zeroth depending on x0, the first on x0 and x1,
++        //and the second on x1 and x2. ptr_to_values* should point to the table
++        //entries of the factors, e.g. ptr_to_values1 should be a pointer to a
++        //3x2 array of doubles. Notice the internal representation: a factor
++        //depending on vars with indices 3,5,4 is internally stored as depending
++        //on vars with indices 3,4,5 (i.e., indices sorted in ascending order),
++        //where the first index is the "least significant" one, like in Matlab
++        //multidimensional arrays.
++
++        //Then you construct a vector of factors:
++
++        vector<Factor> facs;
++        facs.push_back(f0);
++        facs.push_back(f1);
++        facs.push_back(f2);
++#elif 1 == 0
++        //simple, non-cyclic factor graph with 3 vars
++        Var x0(0,3), x1(1,2), x2(2,3);  // ternary, binary and ternary variable
++
++        //variables can be combined to VarSets:
++        VarSet vs1 (x0);
++        VarSet vs2 (x0, x1);
++        VarSet vs3 (x1, x2);
++        cout << "Size of statespace of vs3  = " << vs3.nrStates() << endl;
++        //union (i.e, incrementally adding) is also possible and doesn't change vs3 :
++        VarSet vs_all;
++        vs_all = vs3|x0;
++        cout << "Size of statespace of vsall = " << vs_all.nrStates() << endl;
++        cout << "Size of statespace of vs3   = " << vs3.nrStates() << endl;
++
++        //Then you define factors:
++        double values0[3] = {0, 0, 0};
++        double values1[2][3] = {{-3000,-1000,-1000}, {0,-1000,0}}; //[x1][x0]
++        double values2[3][2] = {{-5000,-5000}, {-5000,-5000}, {-1000,-5000}};    //[x2][x1]   for 5-> x1=0, x2=2
++        double * ptr_to_values0 = &values0[0];
++        double * ptr_to_values1 = &values1[0][0];
++        double * ptr_to_values2 = &values2[0][0];
++
++        Factor f0(x0,ptr_to_values0);
++        Factor f1( VarSet(x0,x1), ptr_to_values1 );
++        Factor f2( VarSet(x1,x2), ptr_to_values2 );
++
++        //for three factors, the zeroth depending on x0, the first on x0 and x1,
++        //and the second on x1 and x2. ptr_to_values* should point to the table
++        //entries of the factors, e.g. ptr_to_values1 should be a pointer to a
++        //3x2 array of doubles. Notice the internal representation: a factor
++        //depending on vars with indices 3,5,4 is internally stored as depending
++        //on vars with indices 3,4,5 (i.e., indices sorted in ascending order),
++        //where the first index is the "least significant" one, like in Matlab
++        //multidimensional arrays.
++
++        //Then you construct a vector of factors:
++
++        vector<Factor> facs;
++        facs.push_back(f0);
++        facs.push_back(f1);
++        facs.push_back(f2);
++#else
++        Var x0(0,2), x1(1,2);  // ternary, binary and ternary variable
++        double values0[2][2] = { {0, 0}, {4, 0} }; //values[x1][x0]
++        //cout << values0[1][0] << "=4 ?" <<endl;
++
++        double * ptr_to_values0 = &values0[0][0];
++        Factor f0( VarSet(x0,x1), ptr_to_values0 );
++        vector<Factor> facs;
++        facs.push_back(f0);
++#endif
++ 
++        // Construct the FactorGraph
++        FactorGraph fg(facs);
++        cout << "FactorGraph: "<< endl << fg << endl;
++
++        //Let's try belief propagation:
++        size_t  maxiter = 10000;
++        double  tol = 1e-9;
++        size_t  verb = 4;
++        
++        // Store the constants in a PropertySet object
++        PropertySet opts;
++        opts.set("maxiter",maxiter);
++        opts.set("tol",tol);
++        opts.set("verbose",verb);
++        opts.set("updates",string("SEQRND")); // PARALL, SEQFIX, ..
++        
++        // will perform the max-product algorithm instead of the sum-product algorithm
++        BP mp(fg, opts("logdomain",false)("inference",string("MAXPLUS"))("damping",string("0.0")));
++        mp.init();
++        mp.run();
++
++        cout << "Approximate (max-plus) single node marginals:" << endl;
++        for( size_t i = 0; i < fg.nrVars(); i++ )
++            cout << mp.belief(fg.var(i)) << endl;
++
++        // Calculate joint state of all variables that has maximum value
++        // based on the MaxPlus result
++        vector<size_t> mpstate = mp.findMaximum();
++        // Report max-product MAP joint state
++        cout << "Approximate (max-plus) MAP state: " << endl;
++        for( size_t i = 0; i < mpstate.size(); i++ )
++            cout << fg.var(i) << ": " << mpstate[i] << endl;
++
++
++    } catch(const char *e) {
++        cerr << "Exception: " << e << endl;
++        return 1;
++    } catch(exception& e) {
++        cerr << "Exception: " << e.what() << endl;
++        return 1;
++    }
++    catch(...) {
++        cerr << "Exception of unknown type!" << endl;
++    }
++
++    return 0;
++#else
++    cout << "libDAI was configured without BP (i.e., MAXPLUS) (this can be changed in include/dai/dai_config.h)." << endl;
++#endif
++}
+diff --git a/include/dai/bp.h b/include/dai/bp.h
+index 68ce284..6f2b81a 100644
+--- a/include/dai/bp.h
++++ b/include/dai/bp.h
+@@ -112,8 +112,9 @@ class BP : public DAIAlgFG {
+             /** There are two inference variants:
+              *  - SUMPROD Sum-Product
+              *  - MAXPROD Max-Product (equivalent to Min-Sum)
++             *  - MAXPLUS Max-Plus (equivalent to Max-Sum over non-normalized FG)
+              */
+-            DAI_ENUM(InfType,SUMPROD,MAXPROD);
++            DAI_ENUM(InfType,SUMPROD,MAXPROD,MAXPLUS);
+ 
+             /// Verbosity (amount of output sent to stderr)
+             size_t verbose;
+@@ -198,7 +199,7 @@ class BP : public DAIAlgFG {
+         virtual Real logZ() const;
+         /** \pre Assumes that run() has been called and that \a props.inference == \c MAXPROD
+          */
+-        std::vector<size_t> findMaximum() const { return dai::findMaximum( *this ); }
++        std::vector<size_t> findMaximum() const { return dai::findMaximum( *this, props.inference != Properties::InfType::MAXPLUS ? true : false ); }
+         virtual void init();
+         virtual void init( const VarSet &ns );
+         virtual Real run();
+diff --git a/include/dai/daialg.h b/include/dai/daialg.h
+index 6581bc0..991a9c9 100644
+--- a/include/dai/daialg.h
++++ b/include/dai/daialg.h
+@@ -295,9 +295,10 @@ std::vector<Factor> calcPairBeliefs( const InfAlg& obj, const VarSet& vs, bool r
+ 
+ 
+ /// Calculates the joint state of all variables that has maximum probability, according to the inference algorithm \a obj
+-/** \note Before this method is called, obj.run() should have been called.
++/** \param prob True iff underlying FactorGraph contains probabilities (for sanity checks)
++ *  \note Before this method is called, obj.run() should have been called.
+  */
+-std::vector<size_t> findMaximum( const InfAlg& obj );
++std::vector<size_t> findMaximum( const InfAlg& obj, bool prob=true );
+ 
+ 
+ } // end of namespace dai
+diff --git a/src/bp.cpp b/src/bp.cpp
+index 3af6352..4e258b9 100644
+--- a/src/bp.cpp
++++ b/src/bp.cpp
+@@ -59,6 +59,8 @@ void BP::setProperties( const PropertySet &opts ) {
+         props.inference = opts.getStringAs<Properties::InfType>("inference");
+     else
+         props.inference = Properties::InfType::SUMPROD;
++    // logdomain is not supported for MAXPLUS (unnormalized FactorGraph)
++    DAI_ASSERT( props.inference != Properties::InfType::MAXPLUS || !props.logdomain );
+ }
+ 
+ 
+@@ -143,7 +145,7 @@ void BP::construct() {
+ 
+ 
+ void BP::init() {
+-    Real c = props.logdomain ? 0.0 : 1.0;
++    Real c = props.logdomain || props.inference == Properties::InfType::MAXPLUS ? 0.0 : 1.0;
+     for( size_t i = 0; i < nrVars(); ++i ) {
+         bforeach( const Neighbor &I, nbV(i) ) {
+             message( i, I.iter ).fill( c );
+@@ -175,10 +177,10 @@ Prob BP::calcIncomingMessageProduct( size_t I, bool without_i, size_t i ) const
+     bforeach( const Neighbor &j, nbF(I) )
+         if( !(without_i && (j == i)) ) {
+             // prod_j will be the product of messages coming into j
+-            Prob prod_j( var(j).states(), props.logdomain ? 0.0 : 1.0 );
++            Prob prod_j( var(j).states(), props.logdomain || props.inference == Properties::InfType::MAXPLUS ? 0.0 : 1.0 );
+             bforeach( const Neighbor &J, nbV(j) )
+                 if( J != I ) { // for all J in nb(j) \ I
+-                    if( props.logdomain )
++                    if( props.logdomain || props.inference == Properties::InfType::MAXPLUS )
+                         prod_j += message( j, J.iter );
+                     else
+                         prod_j *= message( j, J.iter );
+@@ -187,7 +189,7 @@ Prob BP::calcIncomingMessageProduct( size_t I, bool without_i, size_t i ) const
+             // multiply prod with prod_j
+             if( !DAI_BP_FAST ) {
+                 // UNOPTIMIZED (SIMPLE TO READ, BUT SLOW) VERSION
+-                if( props.logdomain )
++                if( props.logdomain || props.inference == Properties::InfType::MAXPLUS )
+                     Fprod += Factor( var(j), prod_j );
+                 else
+                     Fprod *= Factor( var(j), prod_j );
+@@ -198,7 +200,7 @@ Prob BP::calcIncomingMessageProduct( size_t I, bool without_i, size_t i ) const
+                 const ind_t &ind = index(j, _I);
+ 
+                 for( size_t r = 0; r < prod.size(); ++r )
+-                    if( props.logdomain )
++                    if( props.logdomain || props.inference == Properties::InfType::MAXPLUS )
+                         prod.set( r, prod[r] + prod_j[ind[r]] );
+                     else
+                         prod.set( r, prod[r] * prod_j[ind[r]] );
+@@ -227,14 +229,16 @@ void BP::calcNewMessage( size_t i, size_t _I ) {
+ 
+         // Marginalize onto i
+         if( !DAI_BP_FAST ) {
++            // maxMarginal assumes normalized FactorGraph and is not applicable for MAXPLUS
++            DAI_ASSERT( props.inference != Properties::InfType::MAXPLUS );
+             // UNOPTIMIZED (SIMPLE TO READ, BUT SLOW) VERSION
+             if( props.inference == Properties::InfType::SUMPROD )
+                 marg = Fprod.marginal( var(i) ).p();
+             else
+                 marg = Fprod.maxMarginal( var(i) ).p();
+         } else {
+-            // OPTIMIZED VERSION 
+-            marg = Prob( var(i).states(), 0.0 );
++            // OPTIMIZED VERSION
++            marg = Prob( var(i).states(), props.inference != Properties::InfType::MAXPLUS ? 0.0 : -INFINITY );
+             // ind is the precalculated IndexFor(i,I) i.e. to x_I == k corresponds x_i == ind[k]
+             const ind_t ind = index(i,_I);
+             if( props.inference == Properties::InfType::SUMPROD )
+@@ -244,7 +248,13 @@ void BP::calcNewMessage( size_t i, size_t _I ) {
+                 for( size_t r = 0; r < prod.size(); ++r )
+                     if( prod[r] > marg[ind[r]] )
+                         marg.set( ind[r], prod[r] );
+-            marg.normalize();
++            if( props.inference != Properties::InfType::MAXPLUS )
++                marg.normalize();
++            else {
++              // subtract average value to keep message size bounded
++              Real avg = marg.sum() / marg.size();
++              marg -= avg;
++            }
+         }
+     }
+ 
+@@ -357,9 +367,9 @@ Real BP::run() {
+ 
+ 
+ void BP::calcBeliefV( size_t i, Prob &p ) const {
+-    p = Prob( var(i).states(), props.logdomain ? 0.0 : 1.0 );
++    p = Prob( var(i).states(), props.logdomain || props.inference == Properties::InfType::MAXPLUS ? 0.0 : 1.0 );
+     bforeach( const Neighbor &I, nbV(i) )
+-        if( props.logdomain )
++        if( props.logdomain || props.inference == Properties::InfType::MAXPLUS )
+             p += newMessage( i, I.iter );
+         else
+             p *= newMessage( i, I.iter );
+@@ -374,7 +384,8 @@ Factor BP::beliefV( size_t i ) const {
+         p -= p.max();
+         p.takeExp();
+     }
+-    p.normalize();
++    if( props.inference != Properties::InfType::MAXPLUS )
++        p.normalize();
+ 
+     return( Factor( var(i), p ) );
+ }
+@@ -388,7 +399,8 @@ Factor BP::beliefF( size_t I ) const {
+         p -= p.max();
+         p.takeExp();
+     }
+-    p.normalize();
++    if( props.inference != Properties::InfType::MAXPLUS )
++        p.normalize();
+ 
+     return( Factor( factor(I).vars(), p ) );
+ }
+@@ -416,12 +428,15 @@ Factor BP::belief( const VarSet &ns ) const {
+                 break;
+         if( I == nrFactors() )
+             DAI_THROW(BELIEF_NOT_AVAILABLE);
+-        return beliefF(I).marginal(ns);
++        bool normalize = props.inference != Properties::InfType::MAXPLUS ? true : false;
++        return beliefF(I).marginal( ns, normalize );
+     }
+ }
+ 
+ 
+ Real BP::logZ() const {
++    if( props.inference == Properties::InfType::MAXPLUS )
++        DAI_THROW(NOT_IMPLEMENTED);
+     Real sum = 0.0;
+     for( size_t i = 0; i < nrVars(); ++i )
+         sum += (1.0 - nbV(i).size()) * beliefV(i).entropy();
+@@ -435,7 +450,7 @@ void BP::init( const VarSet &ns ) {
+     for( VarSet::const_iterator n = ns.begin(); n != ns.end(); ++n ) {
+         size_t ni = findVar( *n );
+         bforeach( const Neighbor &I, nbV( ni ) ) {
+-            Real val = props.logdomain ? 0.0 : 1.0;
++            Real val = props.logdomain || props.inference == Properties::InfType::MAXPLUS ? 0.0 : 1.0;
+             message( ni, I.iter ).fill( val );
+             newMessage( ni, I.iter ).fill( val );
+             if( props.updates == Properties::UpdateType::SEQMAX )
+@@ -454,7 +469,7 @@ void BP::updateMessage( size_t i, size_t _I ) {
+         if( props.updates == Properties::UpdateType::SEQMAX )
+             updateResidual( i, _I, 0.0 );
+     } else {
+-        if( props.logdomain )
++        if( props.logdomain || props.inference == Properties::InfType::MAXPLUS )
+             message(i,_I) = (message(i,_I) * props.damping) + (newMessage(i,_I) * (1.0 - props.damping));
+         else
+             message(i,_I) = (message(i,_I) ^ props.damping) * (newMessage(i,_I) ^ (1.0 - props.damping));
+diff --git a/src/daialg.cpp b/src/daialg.cpp
+index f34d972..5ece158 100644
+--- a/src/daialg.cpp
++++ b/src/daialg.cpp
+@@ -208,7 +208,7 @@ vector<Factor> calcPairBeliefs( const InfAlg & obj, const VarSet& vs, bool reIni
+ }
+ 
+ 
+-std::vector<size_t> findMaximum( const InfAlg& obj ) {
++std::vector<size_t> findMaximum( const InfAlg& obj, bool prob ) {
+     vector<size_t> maximum( obj.fg().nrVars() );
+     vector<bool> visitedVars( obj.fg().nrVars(), false );
+     vector<bool> visitedFactors( obj.fg().nrFactors(), false );
+@@ -259,9 +259,11 @@ std::vector<size_t> findMaximum( const InfAlg& obj ) {
+                     maxcount++;
+             }
+         }
+-        if( maxProb == 0.0 )
+-            DAI_THROWE(RUNTIME_ERROR,"Failed to decode the MAP state (should try harder using a SAT solver, but that's not implemented yet)");
+-        DAI_ASSERT( obj.fg().factor(I).p()[maxState] != 0.0 );
++        if( prob ) {
++            if( maxProb == 0.0 )
++                DAI_THROWE(RUNTIME_ERROR,"Failed to decode the MAP state (should try harder using a SAT solver, but that's not implemented yet)");
++            DAI_ASSERT( obj.fg().factor(I).p()[maxState] != 0.0 );
++        }
+ 
+         // Decode the argmax
+         bforeach( const Neighbor &j, obj.fg().nbF(I) ) {
