@@ -16,5 +16,14 @@ using namespace std;
 
 namespace crl {
 
-} // namespace crl
+#if defined(DAI_WITH_BP) && defined(DAI_WITH_JTREE)
 
+void _ApproxALP::buildFactorGraph() {
+
+  // TODO
+
+}
+
+#endif
+
+} // namespace crl

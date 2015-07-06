@@ -15,6 +15,7 @@
 #include <iostream>
 #include <dai/alldai.h>  // Include main libdai header
 #include <dai/bp.h>
+#include "crl/alp.hpp"
 
 namespace crl {
 
@@ -24,7 +25,26 @@ namespace crl {
 
 #if defined(DAI_WITH_BP) && defined(DAI_WITH_JTREE)
 
-// TODO
+/**
+ * The ApproxALP is an iterative constraint generation method for computing useful (i.e., in apprximation,
+ * maximally violated) constraints.
+ * \note Requires the max-plus implementation for libdai maintained in ./external/libdai.git.patch
+ */
+class _ApproxALP {
+protected:
+  /// \brief The ALPPlanner used for automatic constraint generation
+  ALPPlanner _alp;
+public:
+  /// \brief ctor
+  _ApproxALP(ALPPlanner alp)
+  : _alp(std::move(alp)) { }
+
+  /// \brief Build the \a dai::FactorGraph corresponding to functions \f$C\f$ and \f$\mathbf{b}\f$ in the ALP
+  /// \note This uses the weight vector already computed by the ALP
+  void buildFactorGraph();
+
+};
+typedef boost::shared_ptr<_ApproxALP> ApproxALP;
 
 #endif /*defined(DAI_WITH_BP) && defined(DAI_WITH_JTREE)*/
 
