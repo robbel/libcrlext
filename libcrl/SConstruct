@@ -29,14 +29,14 @@ sources = """
 crl.cpp				flat_tables.cpp			vi.cpp					rmax.cpp
 environment.cpp		sparse_sampling.cpp  	uct.cpp					uctdata.cpp
 ps.cpp	  			factor_learner.cpp		hash_tables.cpp			rtdp.cpp
-ram.cpp              conversions.cpp           dbn.cpp          alp.cpp          alp_lpsolve.cpp           bigindex.cpp           lifted_ops.cpp
+ram.cpp              conversions.cpp           dbn.cpp          alp.cpp          alp_lpsolve.cpp           bigindex.cpp           lifted_ops.cpp           approx_alp.cpp
 """.split()
 headers = """
 crl/crl.hpp         crl/flat_tables.hpp  	crl/uct.hpp				crl/uctdata.hpp		
 crl/rmax.hpp 		crl/environment.hpp		crl/sparse_sampling.hpp	crl/vi.hpp
 crl/ps.hpp          crl/common.hpp			crl/util.hpp			crl/rtdp.hpp
 crl/types.hpp	 	crl/factor_learner.hpp	crl/hash_tables.hpp		crl/ram.hpp
-crl/tables.hpp      crl/conversions.hpp         crl/dbn.hpp          crl/alp.hpp          crl/alp_lpsolve.hpp          crl/function.hpp          crl/algorithm.hpp           crl/bigindex.hpp           crl/lifted_ops.hpp
+crl/tables.hpp      crl/conversions.hpp         crl/dbn.hpp          crl/alp.hpp          crl/alp_lpsolve.hpp          crl/function.hpp          crl/algorithm.hpp           crl/bigindex.hpp           crl/lifted_ops.hpp           crl/approx_alp.hpp
 """.split()
 
 build_sources = [build.File(source) for source in sources]
@@ -60,6 +60,7 @@ config.CheckCXXHeader('boost/shared_ptr.hpp')
 has_lpsolve = config.CheckCXXHeader('lpsolve/lp_lib.h')
 has_gurobi = config.CheckLib('gurobi_c++', language='C++')
 has_spudd = config.CheckLib('spudd', language='C++')
+has_libdai = config.CheckLib('dai', language='C++')
 env = config.Finish()
 
 lib_targets = []
@@ -78,6 +79,13 @@ if has_gurobi:
 	headers += ['crl/alp_gurobi.hpp']
 	libcrl_libs += ['gurobi_c++', 'gurobi60']
         env.Append(CCFLAGS=['-DHAS_GUROBI'])
+
+if has_libdai:
+	build_sources += [build.File('approx_alp.cpp')]
+        gtest_sources += [testdir.File('test_dai.cpp')]
+	headers += ['crl/approx_alp.hpp']
+	libcrl_libs += ['dai', 'gmpxx', 'gmp']
+        env.Append(CCFLAGS=['-DHAS_LIBDAI'])
 
 if has_lpsolve:
         libcrl = env.SharedLibrary(lib.File('libcrl'+shared_lib_suffix), 

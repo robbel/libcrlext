@@ -169,8 +169,8 @@ TEST_F(FunctionSetTest, FunctionAdditionTest) {
   //
 
   f2.eraseStateFactor(0);
-  f2.pack();
-  EXPECT_THROW(f += f2, cpputil::InvalidException); // f2 still contains action scope, not allowed as per current implementation
+  //f2.pack();
+  //EXPECT_THROW(f += f2, cpputil::InvalidException); // f2 still contains action scope, is now allowed as per new implementation
 
   f2.eraseActionFactor(0); // new scope is just over state factor `1'
   f2.pack();
