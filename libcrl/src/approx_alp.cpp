@@ -17,7 +17,7 @@ using namespace dai;
 
 namespace crl {
 
-#if defined(DAI_WITH_BP) && defined(DAI_WITH_JTREE)
+#if defined(DAI_WITH_BP)
 
 void _ApproxALP::buildFactorGraph() {
 
@@ -27,7 +27,7 @@ void _ApproxALP::buildFactorGraph() {
 
 namespace testing {
 
-int maxplus_demo() {
+vector<size_t> maxplus_demo() {
   // Ternary, binary, and ternary variable
   Var x0(0,3), x1(1,2), x2(2,3);
 
@@ -56,9 +56,9 @@ int maxplus_demo() {
 
   // Define FactorGraph
   vector<dai::Factor> facs;
-  facs.push_back(f0);
-  facs.push_back(f1);
-  facs.push_back(f2);
+  facs.push_back(std::move(f0));
+  facs.push_back(std::move(f1));
+  facs.push_back(std::move(f2));
   FactorGraph fg(facs);
   cout << "FactorGraph: "<< endl << fg << endl;
 
@@ -90,7 +90,7 @@ int maxplus_demo() {
   for( size_t i = 0; i < mpstate.size(); i++ )
       cout << fg.var(i) << ": " << mpstate[i] << endl;
 
-  return 0;
+  return mpstate;
 }
 
 } // namespace testing

@@ -23,7 +23,7 @@ namespace crl {
 // Approximate inference support for ALP constraint generation
 //
 
-#if defined(DAI_WITH_BP) && defined(DAI_WITH_JTREE)
+#if defined(DAI_WITH_BP)
 
 /**
  * The ApproxALP is an iterative constraint generation method for computing useful (i.e., in apprximation,
@@ -49,7 +49,7 @@ typedef boost::shared_ptr<_ApproxALP> ApproxALP;
 namespace testing {
 
 /// \brief Basic libDAI max-plus test inspired by libdai's example.cpp
-int maxplus_demo();
+std::vector<size_t> maxplus_demo();
 
 } // namespace testing
 

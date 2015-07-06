@@ -95,7 +95,7 @@ if has_lpsolve:
         test = env.Program(bin.Entry('test'), test_sources, LIBS=['crl'])
         bin_targets += [test]
 
-	gtest = env.Program(bin.Entry('gtests'), gtest_sources, LIBS=['crl','pthread','gtest','gtest_main'])
+	gtest = env.Program(bin.Entry('gtests'), gtest_sources, LIBS=['crl','dai','gmpxx','gmp','pthread','gtest','gtest_main'])
         bin_targets += [gtest]
 
 else:
