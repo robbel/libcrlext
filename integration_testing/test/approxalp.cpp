@@ -28,7 +28,11 @@ using namespace cpputil;
 TEST(ApproxALPIntegrationTest, TestSysadminApproxArgmax) {
   srand(time(NULL));
 
-  sysadmin::Sysadmin thesys = buildSysadmin("ring", 10);
+  //
+  // Set up a SysAdmin problem
+  //
+
+  sysadmin::Sysadmin thesys = buildSysadmin("ring", 4);
   Domain domain = thesys->getDomain();
 
   FactoredMDP fmdp = thesys->getFactoredMDP();
@@ -46,7 +50,10 @@ TEST(ApproxALPIntegrationTest, TestSysadminApproxArgmax) {
       }
   }
 
-  // run the ALP planner
+  //
+  // Run the ALP planner (with exact representation of non-linear max constraint)
+  //
+
   ALPPlanner planner = boost::make_shared<_ALPPlanner>(fmdp, 0.9);
 
   long start_time = time_in_milli();
@@ -62,21 +69,45 @@ TEST(ApproxALPIntegrationTest, TestSysadminApproxArgmax) {
         LOG_INFO(" W: " << w);
     }
 
-    // set up ApproxALP
+    //
+    // Obtain approximate argMax via Max-Plus (using ALP solution weight vector)
+    //
+
     _ApproxALP approxalp(domain, planner);
     // just take full ALP solution in this test
-    approxalp.setWeights(planner->getFactoredValueFunction()->getWeight());
-    State s;
-    Action a;
-    EXPECT_NO_THROW(approxalp.approxArgmax(s, a));
+    approxalp.setWeights(fval->getWeight());
+    State maxjs(domain);
+    Action maxja(domain);
+    EXPECT_NO_THROW(approxalp.approxArgmax(maxjs, maxja));
+    LOG_INFO("Max-Plus result (" << maxjs << ", " << maxja << ") RETURN: " << fval->getQ(maxjs,maxja));
+
+    //
+    // Compare result with optimal argMax
+    //
+    FunctionSet<Reward> f_set = fval->getMaxQ();
+    auto qfns = f_set.getFunctions();
+    _StateIncrementIterator sitr(domain);
+    double maxret = -numeric_limits<double>::infinity();
+    while(sitr.hasNext()) {
+      const State& s = sitr.next();
+      double ret = 0.;
+      for(auto& qf : qfns) {
+          State ms = qf->mapState(s);
+          ret += qf->eval(ms,Action());
+      }
+      if(ret > maxret) {
+        maxret = ret;
+      }
+    }
+    LOG_INFO("Versus optimal Q-function (" << qfns.size() << " local terms)\tRETURN: " << maxret);
 
     // write factor graph to .fg and .dot files
     boost::shared_ptr<dai::FactorGraph> fg = approxalp.getFactorGraph();
     fg->WriteToFile("test.fg");
-//    ofstream dotFile("test.dot");
-//    if(dotFile) {
-//      fg->printDot(dotFile);
-//    }
+    ofstream dotFile("test.dot");
+    if(dotFile) {
+      fg->printDot(dotFile);
+    }
   }
 
   SUCCEED();

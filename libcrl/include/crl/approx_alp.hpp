@@ -59,9 +59,9 @@ public:
   /// \brief Update the weights associated with each Factor corresponding to \f$C\f$
   void setWeights(const std::vector<double> weights);
   /// \brief Run max-plus to obtain the approximately maximizing State and Action in the FactorGraph.
-  /// \param[out] s The \a crl::State at which the (approximate) maximum is achieved
-  /// \param[out] a The \a crl::Action at which the (approximate) maximum is achieved
-  void approxArgmax(State& s, Action& a);
+  /// \param[out] js The (joint) \a crl::State at which the (approximate) maximum is achieved
+  /// \param[out] ja The (joint) \a crl::Action at which the (approximate) maximum is achieved
+  void approxArgmax(State& js, Action& ja);
 };
 typedef boost::shared_ptr<_ApproxALP> ApproxALP;
 

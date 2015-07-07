@@ -87,7 +87,7 @@ void _ApproxALP::setWeights(const vector<double> weights) {
   }
 }
 
-void _ApproxALP::approxArgmax(State &s, Action &a) {
+void _ApproxALP::approxArgmax(State &js, Action &ja) {
   // TODO parameter setting
   size_t  maxiter = 10000;
   double  tol = 1e-9;
@@ -101,7 +101,7 @@ void _ApproxALP::approxArgmax(State &s, Action &a) {
   opts.set("updates",string("SEQRND")); // PARALL, SEQFIX, ..
 
   // will perform the max-product algorithm instead of the sum-product algorithm
-  BP mp(*_fg, opts("logdomain",false)("inference",string("MAXPLUS"))("damping",string("0.0")));
+  BP mp(*_fg, opts("logdomain",false)("inference",string("MAXPLUS"))("damping",string("0.3")));
   mp.init();
   mp.run();
 
@@ -119,7 +119,14 @@ void _ApproxALP::approxArgmax(State &s, Action &a) {
     cout << _fg->var(i) << ": " << mpstate[i] << endl;
   }
 
-  // TODO set s/a factors from obtained result mpstate
+  // fill joint state and action
+  Size i = 0;
+  for(; i < _nrActions; i++) {
+    ja.setFactor(i,mpstate[i]);
+  }
+  for(; i < mpstate.size(); i++) {
+    js.setFactor(i-_nrActions,mpstate[i]);
+  }
 }
 
 namespace testing {
