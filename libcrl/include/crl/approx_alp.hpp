@@ -37,7 +37,10 @@ protected:
   /// \brief The set of dai::Var representing the (global) Domain
   std::vector<dai::Var> _vars;
   /// \brief The dai::FactorGraph corresponding to functions \f$C\f$ and \f$\mathbf{b}\f$ in the ALP
+  /// \note Factors are sorted: first functions \f$C\f$, then \f$\mathbf{b}\f$
   boost::shared_ptr<dai::FactorGraph> _fg;
+  /// \brief Stores backups of the original setting of functions \f$C\f$ (restored before setWeights() call)
+  std::vector<dai::Factor> _backup;
 
   /// \brief Construct a dai::Factor corresponding to the crl::DiscreteFunction
   dai::Factor makeDAIFactor(const DiscreteFunction<Reward>& f);
@@ -47,8 +50,12 @@ public:
   /// \brief Construct the dai::FactorGraph corresponding to functions \f$C\f$ and \f$\mathbf{b}\f$ in the ALP
   _ApproxALP(const Domain& domain, ALPPlanner alp);
 
-  /// \brief Updates the weights associated with each Factor in the ALP
+  /// \brief Update the weights associated with each Factor corresponding to \f$C\f$
   void setWeights(const std::vector<double> weights);
+  /// \brief Run max-plus to obtain the approximately maximizing State and Action in the FactorGraph.
+  /// \param[out] s The \a crl::State at which the (approximate) maximum is achieved
+  /// \param[out] a The \a crl::Action at which the (approximate) maximum is achieved
+  void approxArgmax(State& s, Action& a);
 };
 typedef boost::shared_ptr<_ApproxALP> ApproxALP;
 

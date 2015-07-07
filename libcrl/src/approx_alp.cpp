@@ -27,6 +27,7 @@ _ApproxALP::_ApproxALP(const Domain &domain, ALPPlanner alp)
   }
 
   // obtain variables for (global) domain
+  // Note: as per memory layout convention in libDAI and this library, start with actions first
   vector<dai::Var>::size_type i = 0;
   const auto& dom_a = domain->getActionRanges();
   for(const FactorRange& ra : dom_a) {
@@ -65,25 +66,63 @@ dai::Factor _ApproxALP::makeDAIFactor(const DiscreteFunction<Reward>& f) {
 
 void _ApproxALP::buildFactorGraph() {
   std::vector<dai::Factor> factors;
-  // local reward functions
-  const auto& bVec = _alp->getFactoredValueFunction()->getLRFs();
-  for(const DiscreteFunction<Reward>& b : bVec) {
-    factors.emplace_back(makeDAIFactor(b));
-  }
   // gamma-discounted backprojections
   const auto& cVec = _alp->getFactoredValueFunction()->getBackprojections();
   for(const DiscreteFunction<Reward>& c : cVec) {
     factors.emplace_back(makeDAIFactor(c));
   }
+  // make backup to preserve the original setting of the backprojections
+  _backup = factors;
+  // local reward functions
+  const auto& bVec = _alp->getFactoredValueFunction()->getLRFs();
+  for(const DiscreteFunction<Reward>& b : bVec) {
+    factors.emplace_back(makeDAIFactor(b));
+  }
   // create FactorGraph
   _fg = boost::make_shared<dai::FactorGraph>(factors);
 }
 
-void _ApproxALP::setWeights(const std::vector<double> weights) {
+void _ApproxALP::setWeights(const vector<double> weights) {
+  assert(weights.size() == _backup.size());
+  // be nicer to modify factors in place/switch two pointers (backup/current) around..
+  size_t i = 0;
+  for(const auto& fa : _backup) {
+    _fg->setFactor(i, fa * weights[i]);
+    i++;
+  }
+}
 
-  // obtain weight vector from current ALP solution
-  //const auto& weights = _alp->getFactoredValueFunction()->getWeight();
+void _ApproxALP::approxArgmax(State &s, Action &a) {
+  // TODO parameter setting
+  size_t  maxiter = 10000;
+  double  tol = 1e-9;
+  size_t  verb = 4;
 
+  // Store the constants in a PropertySet object
+  PropertySet opts;
+  opts.set("maxiter",maxiter);
+  opts.set("tol",tol);
+  opts.set("verbose",verb);
+  opts.set("updates",string("SEQRND")); // PARALL, SEQFIX, ..
+
+  // will perform the max-product algorithm instead of the sum-product algorithm
+  BP mp(*_fg, opts("logdomain",false)("inference",string("MAXPLUS"))("damping",string("0.0")));
+  mp.init();
+  mp.run();
+
+  cout << "Approximate (max-plus) single node marginals:" << endl;
+  for(size_t i = 0; i < _fg->nrVars(); i++) {
+    cout << mp.belief(_fg->var(i)) << endl;
+  }
+
+  // Calculate joint state of all variables that has maximum value
+  // based on the MaxPlus result
+  vector<size_t> mpstate = mp.findMaximum();
+  // Report max-product MAP joint state
+  cout << "Approximate (max-plus) MAP state: " << endl;
+  for(size_t i = 0; i < mpstate.size(); i++) {
+    cout << _fg->var(i) << ": " << mpstate[i] << endl;
+  }
 }
 
 namespace testing {
