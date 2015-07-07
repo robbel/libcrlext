@@ -21,11 +21,6 @@ namespace crl {
 
 _ApproxALP::_ApproxALP(const Domain &domain, ALPPlanner alp)
 : _alp(std::move(alp)), _nrActions(domain->getNumActionFactors()) {
-  // sanity check
-  if(_alp->getFactoredValueFunction()->isDiscounted()) {
-    throw cpputil::InvalidException("Requires access to Backprojections before multiplication with any weight vector.");
-  }
-
   // obtain variables for (global) domain
   // Note: as per memory layout convention in libDAI and this library, start with actions first
   vector<dai::Var>::size_type i = 0;
@@ -67,14 +62,14 @@ dai::Factor _ApproxALP::makeDAIFactor(const DiscreteFunction<Reward>& f) {
 void _ApproxALP::buildFactorGraph() {
   std::vector<dai::Factor> factors;
   // gamma-discounted backprojections
-  const auto& cVec = _alp->getFactoredValueFunction()->getBackprojections();
+  const auto& cVec = _alp->getC();
   for(const DiscreteFunction<Reward>& c : cVec) {
     factors.emplace_back(makeDAIFactor(c));
   }
   // make backup to preserve the original setting of the backprojections
   _backup = factors;
   // local reward functions
-  const auto& bVec = _alp->getFactoredValueFunction()->getLRFs();
+  const auto& bVec = _alp->getLRFs();
   for(const DiscreteFunction<Reward>& b : bVec) {
     factors.emplace_back(makeDAIFactor(b));
   }

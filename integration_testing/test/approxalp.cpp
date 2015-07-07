@@ -10,6 +10,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <fstream>
 
 #include "crl/approx_alp.hpp"
 #include "crl/env_sysadmin.hpp"
@@ -68,6 +69,14 @@ TEST(ApproxALPIntegrationTest, TestSysadminApproxArgmax) {
     State s;
     Action a;
     EXPECT_NO_THROW(approxalp.approxArgmax(s, a));
+
+    // write factor graph to .fg and .dot files
+    LOG_DEBUG(*fg);
+    fg->WriteToFile("test.fg");
+    ofstream dotFile("test.dot");
+    if(dotFile) {
+      fg->printDot(dotFile);
+    }
   }
 
   SUCCEED();

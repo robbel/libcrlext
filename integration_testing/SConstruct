@@ -51,6 +51,7 @@ config.CheckLibWithHeader('env', 'crl/env_ffg.hpp', 'cpp')
 config.CheckLibWithHeader('graphprop', 'crl/env_graphprop.hpp', 'cpp')
 config.CheckCXXHeader('rlglue/Agent_common.h')
 has_spudd = config.CheckLib('spudd', language='C++')
+has_libdai = config.CheckLib('dai', language='C++')
 env = config.Finish()
 
 lib_targets = []
@@ -61,8 +62,6 @@ example = env.Program(bin.Entry('example'), example_sources, LIBS=['crl','pthrea
 bin_targets += [example]
 alp = env.Program(bin.Entry('alp'), alp_sources, LIBS=['env','crl','pthread','gtest','gtest_main'])
 bin_targets += [alp]
-approxalp = env.Program(bin.Entry('approxalp'), approxalp_sources, LIBS=['env','crl','pthread','gtest','gtest_main'])
-bin_targets += [approxalp]
 dbn = env.Program(bin.Entry('dbn'), dbn_sources, LIBS=['env','crl','pthread','gtest','gtest_main'])
 bin_targets += [dbn]
 graphprop = env.Program(bin.Entry('graphprop'), graphprop_sources, LIBS=['graphprop','crl','pthread','gtest','gtest_main'])
@@ -72,6 +71,9 @@ bin_targets += [counter]
 if has_spudd:
         spudd = env.Program(bin.Entry('spudd'), spudd_sources, LIBS=['env','graphprop','crl','pthread','gtest','gtest_main'])
         bin_targets += [spudd]
+if has_libdai:
+        approxalp = env.Program(bin.Entry('approxalp'), approxalp_sources, LIBS=['env','crl','dai','gmpxx','gmp','pthread','gtest','gtest_main'])
+bin_targets += [approxalp]
 
 if prefix != Dir('.'):
 	for header in headers:
@@ -93,6 +95,8 @@ gtest_alias = env.Alias('test', graphprop, graphprop[0].abspath)
 gtest_alias = env.Alias('test', counter, counter[0].abspath)
 if has_spudd:
         gtest_alias = env.Alias('test', spudd, spudd[0].abspath)
+if has_libdai:
+        gtest_alias = env.Alias('test', approxalp, approxalp[0].abspath)
 env.AlwaysBuild(gtest_alias)
 
 # TODO: add configuration files from ./cfgs as required

@@ -51,6 +51,10 @@ protected:
 public:
   /// \brief Construct the dai::FactorGraph corresponding to functions \f$C\f$ and \f$\mathbf{b}\f$ in the ALP
   _ApproxALP(const Domain& domain, ALPPlanner alp);
+  /// \brief Return the dai::FactorGraph
+  boost::shared_ptr<dai::FactorGraph> getFactorGraph() const {
+    return _fg;
+  }
 
   /// \brief Update the weights associated with each Factor corresponding to \f$C\f$
   void setWeights(const std::vector<double> weights);

@@ -44,6 +44,9 @@ protected:
   /// \brief Discounts the backprojections with the (computed) weights to allow Q function computations
   /// \see getBestAction(), getQ()
   void discount();
+  /// \brief True iff the Backprojections inside this value functions have been multiplied by \f$\mathbf{w}\f$ already
+  /// \see getBestAction()
+  bool isDiscounted() const { return _bp_discounted; }
 public:
   /// \brief ctor with an optional size hint for the number of basis functions to be added
   _FactoredValueFunction(const Domain& domain, Size size_hint = 0)
@@ -74,18 +77,9 @@ public:
   void addBackprojection(DiscreteFunction<Reward> bp) {
       _backprojection.push_back(std::move(bp));
   }
-  /// \brief Get (potentially modified) backprojections
-  /// \see isDiscounted()
-  const std::vector<DiscreteFunction<Reward>>& getBackprojections() const {
-      return _backprojection;
-  }
   /// \brief Set the reward function vector
   void setLRFs(const std::vector<DiscreteFunction<Reward>>& lrfs) {
       _lrfs = lrfs;
-  }
-  /// \brief Get the reward functions
-  const std::vector<DiscreteFunction<Reward>>& getLRFs() const {
-      return _lrfs;
   }
 
   //
@@ -126,9 +120,6 @@ public:
     const SizeVec elim_order = cpputil::ordered_vec<Size>(_domain->getNumActionFactors(), _domain->getNumStateFactors());
     return getMaxQ(elim_order);
   }
-  /// \brief True iff the Backprojections inside this value functions have been multiplied by \f$\mathbf{w}\f$ already
-  /// \see getBestAction()
-  bool isDiscounted() const { return _bp_discounted; }
 };
 typedef boost::shared_ptr<_FactoredValueFunction> FactoredValueFunction;
 
@@ -181,6 +172,14 @@ public:
   /// \brief Return value function associated with this ALP
   FactoredValueFunction getFactoredValueFunction() const {
     return _value_fn;
+  }
+  /// \brief Get the set of functions (\f$C\f$) from the ALP
+  const std::vector<DiscreteFunction<Reward>>& getC() const {
+    return _C_set;
+  }
+  /// \brief Get the set of local reward functions (\f$\mathbf{b}\f$) from the ALP
+  const std::vector<DiscreteFunction<Reward>>& getLRFs() const {
+    return _fmdp->getLRFs();
   }
 };
 typedef boost::shared_ptr<_ALPPlanner> ALPPlanner;
