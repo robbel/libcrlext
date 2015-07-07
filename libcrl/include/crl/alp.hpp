@@ -70,12 +70,22 @@ public:
     return _weight;
   }
   /// \brief Adds a gamma-discounted backprojection of a basis function to this value function
-  /// \note Will be modified inside this function
+  /// \note Will be modified inside this function (multiplied by weight vector during discount())
   void addBackprojection(DiscreteFunction<Reward> bp) {
       _backprojection.push_back(std::move(bp));
   }
+  /// \brief Get (potentially modified) backprojections
+  /// \see isDiscounted()
+  const std::vector<DiscreteFunction<Reward>>& getBackprojections() const {
+      return _backprojection;
+  }
+  /// \brief Set the reward function vector
   void setLRFs(const std::vector<DiscreteFunction<Reward>>& lrfs) {
       _lrfs = lrfs;
+  }
+  /// \brief Get the reward functions
+  const std::vector<DiscreteFunction<Reward>>& getLRFs() const {
+      return _lrfs;
   }
 
   //
@@ -116,6 +126,9 @@ public:
     const SizeVec elim_order = cpputil::ordered_vec<Size>(_domain->getNumActionFactors(), _domain->getNumStateFactors());
     return getMaxQ(elim_order);
   }
+  /// \brief True iff the Backprojections inside this value functions have been multiplied by \f$\mathbf{w}\f$ already
+  /// \see getBestAction()
+  bool isDiscounted() const { return _bp_discounted; }
 };
 typedef boost::shared_ptr<_FactoredValueFunction> FactoredValueFunction;
 

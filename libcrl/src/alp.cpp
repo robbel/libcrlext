@@ -51,7 +51,7 @@ std::tuple<Action,Reward> _FactoredValueFunction::getBestAction(const State& js,
     assert(!_lrfs.empty());
 
     // Discount stored backprojections once to form local Q functions
-    if(!_bp_discounted) {
+    if(!isDiscounted()) {
         discount();
     }
 
@@ -98,7 +98,7 @@ FunctionSet<Reward> _FactoredValueFunction::getMaxQ(const SizeVec& elimination_o
   assert(!_lrfs.empty());
 
   // Discount stored backprojections once to form local Q functions
-  if(!_bp_discounted) {
+  if(!isDiscounted()) {
       discount();
   }
 
@@ -128,7 +128,7 @@ Reward _FactoredValueFunction::getQ(const State& js, const Action& ja) {
     assert(js);
 
     // Discount stored backprojections once to form local Q functions
-    if(!_bp_discounted) {
+    if(!isDiscounted()) {
         discount();
     }
 

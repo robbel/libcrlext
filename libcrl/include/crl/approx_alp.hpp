@@ -34,15 +34,21 @@ class _ApproxALP {
 protected:
   /// \brief The ALPPlanner used for automatic constraint generation
   ALPPlanner _alp;
-public:
-  /// \brief ctor
-  _ApproxALP(ALPPlanner alp)
-  : _alp(std::move(alp)) { }
+  /// \brief The set of dai::Var representing the (global) Domain
+  std::vector<dai::Var> _vars;
+  /// \brief The dai::FactorGraph corresponding to functions \f$C\f$ and \f$\mathbf{b}\f$ in the ALP
+  boost::shared_ptr<dai::FactorGraph> _fg;
 
+  /// \brief Construct a dai::Factor corresponding to the crl::DiscreteFunction
+  dai::Factor makeDAIFactor(const DiscreteFunction<Reward>& f);
   /// \brief Build the \a dai::FactorGraph corresponding to functions \f$C\f$ and \f$\mathbf{b}\f$ in the ALP
-  /// \note This uses the weight vector already computed by the ALP
   void buildFactorGraph();
+public:
+  /// \brief Construct the dai::FactorGraph corresponding to functions \f$C\f$ and \f$\mathbf{b}\f$ in the ALP
+  _ApproxALP(const Domain& domain, ALPPlanner alp);
 
+  /// \brief Updates the weights associated with each Factor in the ALP
+  void setWeights(const std::vector<double> weights);
 };
 typedef boost::shared_ptr<_ApproxALP> ApproxALP;
 

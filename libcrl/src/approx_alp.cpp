@@ -19,9 +19,70 @@ namespace crl {
 
 #if defined(DAI_WITH_BP)
 
-void _ApproxALP::buildFactorGraph() {
+_ApproxALP::_ApproxALP(const Domain &domain, ALPPlanner alp)
+: _alp(std::move(alp)) {
+  // sanity check
+  if(_alp->getFactoredValueFunction()->isDiscounted()) {
+    throw cpputil::InvalidException("Requires access to Backprojections before multiplication with any weight vector.");
+  }
 
-  // TODO
+  // obtain variables for (global) domain
+  vector<dai::Var>::size_type i = 0;
+  const auto& dom_a = domain->getActionRanges();
+  for(const FactorRange& ra : dom_a) {
+    _vars.emplace_back(i++,ra.getSpan()+1);
+  }
+  const auto& dom_s = domain->getStateRanges();
+  for(const FactorRange& rs : dom_s) {
+    _vars.emplace_back(i++,rs.getSpan()+1);
+  }
+
+  buildFactorGraph();
+}
+
+dai::Factor _ApproxALP::makeDAIFactor(const DiscreteFunction<Reward>& f) {
+  if(!f->getLiftedFactors().empty()) {
+    throw cpputil::InvalidException("libDAI does not support lifted factors");
+  }
+
+  const auto& subdom_a = f->getActionFactors();
+  const auto& subdom_s = f->getStateFactors();
+  dai::VarSet dom;
+  for(Size i : subdom_a) {
+    dom |= _vars[i];
+  }
+  for(Size i : subdom_s) {
+    dom |= _vars[i];
+  }
+
+  const _FDiscreteFunction<Reward>* fflat = dynamic_cast<const _FDiscreteFunction<Reward>*>(f.get());
+  if(!fflat) {
+    throw cpputil::InvalidException("Only flat functions are currently supported.");
+  }
+
+  return dai::Factor(dom, fflat->values());
+}
+
+void _ApproxALP::buildFactorGraph() {
+  std::vector<dai::Factor> factors;
+  // local reward functions
+  const auto& bVec = _alp->getFactoredValueFunction()->getLRFs();
+  for(const DiscreteFunction<Reward>& b : bVec) {
+    factors.emplace_back(makeDAIFactor(b));
+  }
+  // gamma-discounted backprojections
+  const auto& cVec = _alp->getFactoredValueFunction()->getBackprojections();
+  for(const DiscreteFunction<Reward>& c : cVec) {
+    factors.emplace_back(makeDAIFactor(c));
+  }
+  // create FactorGraph
+  _fg = boost::make_shared<dai::FactorGraph>(factors);
+}
+
+void _ApproxALP::setWeights(const std::vector<double> weights) {
+
+  // obtain weight vector from current ALP solution
+  //const auto& weights = _alp->getFactoredValueFunction()->getWeight();
 
 }
 
