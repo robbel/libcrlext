@@ -28,7 +28,7 @@ using namespace cpputil;
 TEST(ApproxALPIntegrationTest, TestSysadminApproxArgmax) {
   srand(time(NULL));
 
-  sysadmin::Sysadmin thesys = buildSysadmin("ring", 20);
+  sysadmin::Sysadmin thesys = buildSysadmin("ring", 10);
   Domain domain = thesys->getDomain();
 
   FactoredMDP fmdp = thesys->getFactoredMDP();
@@ -71,12 +71,12 @@ TEST(ApproxALPIntegrationTest, TestSysadminApproxArgmax) {
     EXPECT_NO_THROW(approxalp.approxArgmax(s, a));
 
     // write factor graph to .fg and .dot files
-    LOG_DEBUG(*fg);
+    boost::shared_ptr<dai::FactorGraph> fg = approxalp.getFactorGraph();
     fg->WriteToFile("test.fg");
-    ofstream dotFile("test.dot");
-    if(dotFile) {
-      fg->printDot(dotFile);
-    }
+//    ofstream dotFile("test.dot");
+//    if(dotFile) {
+//      fg->printDot(dotFile);
+//    }
   }
 
   SUCCEED();
