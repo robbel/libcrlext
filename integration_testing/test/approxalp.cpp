@@ -155,33 +155,26 @@ TEST_F(ApproxALPTest, TestSysadminConstraintGeneration) {
   double lambda = 10.; // maximum variable value
   lp.addAbsVariableBound(lambda, _planner->getAlpha());
 
-  //
-  // obtain first constraint
-  //
-
+  // initialize the Max-Plus constraint generator
   _ApproxALP approxalp(_domain, _planner);
-  // initialize weights to all zeros
-  approxalp.setWeights(_fval->getWeight());
   State maxjs(_domain);
   Action maxja(_domain);
-  EXPECT_NO_THROW(approxalp.approxArgmax(maxjs, maxja));
-  LOG_INFO("Max-Plus result (" << maxjs << ", " << maxja << ")\tRETURN: " << _fval->getQ(maxjs,maxja));
-  // add new constraint to ALP
-  lp.addStateActionConstraint(maxjs, maxja, _planner->getC(), _planner->getLRFs());
-  int res = lp.solve(_fval.get());
-  EXPECT_EQ(res, 0) << "ALP solve() failed";
 
   //
-  // obtain second constraint
+  // insert a couple of constraints
   //
 
-  approxalp.setWeights(_fval->getWeight());
-  EXPECT_NO_THROW(approxalp.approxArgmax(maxjs, maxja));
-  LOG_INFO("Max-Plus result (" << maxjs << ", " << maxja << ")\tRETURN: " << _fval->getQ(maxjs,maxja));
-  // add new constraint to ALP
-  lp.addStateActionConstraint(maxjs, maxja, _planner->getC(), _planner->getLRFs());
-  res = lp.solve(_fval.get());
-  EXPECT_EQ(res, 0) << "ALP solve() failed";
+  for(int i = 0; i < 10; i++) {
+      approxalp.setWeights(_fval->getWeight());
+      EXPECT_NO_THROW(approxalp.approxArgmax(maxjs, maxja));
+      LOG_INFO("Max-Plus result (" << maxjs << ", " << maxja << ")\tRETURN: " << _fval->getQ(maxjs,maxja));
+      // add new constraint to ALP
+      lp.addStateActionConstraint(maxjs, maxja, _planner->getC(), _planner->getLRFs());
+      int res = lp.solve(_fval.get());
+      EXPECT_EQ(res, 0) << "ALP solve() failed";
+  }
+
+  // TODO: check whether js,ja pair has already been inserted
 }
 
 
