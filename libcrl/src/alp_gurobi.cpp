@@ -137,7 +137,7 @@ _LP::generateObjective(std::string name, const crl::RFunctionVec& C, const crl::
   return std::make_tuple(var_offset, empty_fns);
 }
 
-GRBConstr _LP::addStateActionConstraint(const State& s, const Action& a, const RFunctionVec& C, const RFunctionVec& b) {
+void _LP::addStateActionConstraint(const State& s, const Action& a, const RFunctionVec& C, const RFunctionVec& b) {
   static vector<double> coeff(_wvars.size()); // coefficient cache
 
   // write out one constraint corresponding to s, a
@@ -156,8 +156,39 @@ GRBConstr _LP::addStateActionConstraint(const State& s, const Action& a, const R
       sum += (*f)(ms,ma);
   }
   GRBLinExpr rhs = -sum;
-//LOG_DEBUG(lhs << "<=" << rhs);
-  return addConstraint(lhs, GRB_LESS_EQUAL, rhs);
+#if !NDEBUG
+  LOG_DEBUG(lhs << "<=" << rhs);
+//GRBConstr constr =
+#endif
+  addConstraint(lhs, GRB_LESS_EQUAL, rhs);
+//#if !NDEBUG
+//  LOG_DEBUG("Added constraint:");
+//  _lp->update();
+//  GRBLinExpr ex = _lp->getRow(constr);
+//  LOG_DEBUG(ex);
+//#endif
+}
+
+void _LP::addAbsVariableBound(double lambda, const std::vector<double>& alpha) {
+  // last variable inserted
+  const int v_offset = _lp->get(GRB_IntAttr_NumVars);
+
+  // add additional (non-negative) variables to objective for value bound
+  for(vector<double>::size_type i = 0; i < alpha.size(); i++) {
+    _lp->addVar(0., GRB_INFINITY, 1., GRB_CONTINUOUS, "z"+to_string(i));
+  }
+  _lp->update();
+  LOG_DEBUG("Bounded objective: " << _lp->getObjective());
+
+  // add absolute value constraint
+  int offset = v_offset;
+  for(vector<double>::size_type i = 0; i < alpha.size(); i++) {
+      GRBVar zi = _lp->getVar(offset++);
+      addConstraint(zi, GRB_GREATER_EQUAL,  _wvars[i]); // absolute value constraint
+      addConstraint(zi, GRB_GREATER_EQUAL, -_wvars[i]);
+      addConstraint(zi, GRB_LESS_EQUAL, lambda);
+  }
+  _lp->update();
 }
 
 int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<double>& alpha, const SizeVec& elim_order) {

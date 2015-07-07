@@ -101,7 +101,7 @@ void _ApproxALP::approxArgmax(State &js, Action &ja) {
   opts.set("updates",string("SEQRND")); // PARALL, SEQFIX, ..
 
   // will perform the max-product algorithm instead of the sum-product algorithm
-  BP mp(*_fg, opts("logdomain",false)("inference",string("MAXPLUS"))("damping",string("0.3")));
+  BP mp(*_fg, opts("logdomain",false)("inference",string("MAXPLUS"))("damping",string("0.0")));
   mp.init();
   mp.run();
 

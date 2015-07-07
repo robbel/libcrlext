@@ -144,8 +144,6 @@ protected:
   float _gamma;
   /// \brief Whether all basis functions have been cached
   bool _cached;
-  /// \brief Compute backprojections and state relevance weights for LP
-  void precompute();
 public:
   _ALPPlanner(const FactoredMDP& fmdp, float gamma)
   : _domain(fmdp->getDomain()), _fmdp(fmdp), _gamma(gamma), _cached(false) { }
@@ -160,6 +158,8 @@ public:
   /// \brief run the FactoredALP algorithm: compute weights for \a FactoredValueFunction via approximate LP
   ///
   virtual int plan();
+  /// \brief Compute backprojections and state relevance weights for LP
+  void precompute();
 
   ///
   /// \brief Input a factored value function that will be used for solving
@@ -180,6 +180,10 @@ public:
   /// \brief Get the set of local reward functions (\f$\mathbf{b}\f$) from the ALP
   const std::vector<DiscreteFunction<Reward>>& getLRFs() const {
     return _fmdp->getLRFs();
+  }
+  /// \brief Get the state relevance weights associated with the basis functions
+  const std::vector<double> getAlpha() const {
+    return _alpha;
   }
 };
 typedef boost::shared_ptr<_ALPPlanner> ALPPlanner;

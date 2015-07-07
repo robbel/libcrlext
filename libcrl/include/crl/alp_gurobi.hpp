@@ -49,8 +49,6 @@ private:
   /// \brief The w variables added to this LP
   std::vector<GRBVar> _wvars;
 
-  /// \brief Set up LP with (only) the objective.
-  void generateObjective(std::string name, const std::vector<double>& alpha);
   /// \brief Set up LP with the objective and abstract away functions \f$C\f$ and \f$\mathbf{b}\f$ with variables in the LP.
   /// \return A tuple of (0) a mapping from function \f$f\f$ to LP-variable offset for \f$f(\mathbf{x}_0,\mathbf{a}_0)\f$, and (1) the functions with empty scope
   /// \see generateLP, generateLiftedLP
@@ -61,14 +59,19 @@ private:
   GRBConstr addConstraint(const GRBLinExpr& lhs, char sense, const GRBLinExpr& rhs) {
     return _lp->addConstr(lhs, sense, rhs);
   }
-  /// \brief Add a ALP constraint corresponding to \a State s and \a Action
-  GRBConstr addStateActionConstraint(const State& s, const Action& a, const RFunctionVec& C, const RFunctionVec& b);
 public:
   /// \brief ctor
   _LP(const crl::Domain& domain)
   : _domain(domain), _F(domain) { }
   /// \brief dtor
   ~_LP() { }
+
+  /// \brief Set up LP with (only) the objective.
+  void generateObjective(std::string name, const std::vector<double>& alpha);
+  /// \brief Add a ALP constraint corresponding to \a State s and \a Action
+  void addStateActionConstraint(const State& s, const Action& a, const RFunctionVec& C, const RFunctionVec& b);
+  /// \brief Add an absolute value bound on the variables appearing in the objective
+  void addAbsVariableBound(double lambda, const std::vector<double>& alpha);
 
   /// \brief Given targets \f$C\f$ and \f$\mathbf{b}\f$ compute polynomial set of constraints
   /// \return 0 iff successful
