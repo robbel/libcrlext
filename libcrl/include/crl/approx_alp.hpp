@@ -36,6 +36,8 @@ protected:
   ALPPlanner _alp;
   /// \brief The set of dai::Var representing the (global) Domain
   std::vector<dai::Var> _vars;
+  /// \brief The number of action variables in the (global) Domain
+  const Size _nrActions;
   /// \brief The dai::FactorGraph corresponding to functions \f$C\f$ and \f$\mathbf{b}\f$ in the ALP
   /// \note Factors are sorted: first functions \f$C\f$, then \f$\mathbf{b}\f$
   boost::shared_ptr<dai::FactorGraph> _fg;
@@ -66,7 +68,7 @@ std::vector<size_t> maxplus_demo();
 
 } // namespace testing
 
-#endif /*defined(DAI_WITH_BP) && defined(DAI_WITH_JTREE)*/
+#endif /*defined(DAI_WITH_BP)*/
 
 } // namespace crl
 

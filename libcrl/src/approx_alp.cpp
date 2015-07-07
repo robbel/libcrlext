@@ -20,7 +20,7 @@ namespace crl {
 #if defined(DAI_WITH_BP)
 
 _ApproxALP::_ApproxALP(const Domain &domain, ALPPlanner alp)
-: _alp(std::move(alp)) {
+: _alp(std::move(alp)), _nrActions(domain->getNumActionFactors()) {
   // sanity check
   if(_alp->getFactoredValueFunction()->isDiscounted()) {
     throw cpputil::InvalidException("Requires access to Backprojections before multiplication with any weight vector.");
@@ -53,7 +53,7 @@ dai::Factor _ApproxALP::makeDAIFactor(const DiscreteFunction<Reward>& f) {
     dom |= _vars[i];
   }
   for(Size i : subdom_s) {
-    dom |= _vars[i];
+    dom |= _vars[_nrActions+i];
   }
 
   const _FDiscreteFunction<Reward>* fflat = dynamic_cast<const _FDiscreteFunction<Reward>*>(f.get());
@@ -123,6 +123,8 @@ void _ApproxALP::approxArgmax(State &s, Action &a) {
   for(size_t i = 0; i < mpstate.size(); i++) {
     cout << _fg->var(i) << ": " << mpstate[i] << endl;
   }
+
+  // TODO set s/a factors from obtained result mpstate
 }
 
 namespace testing {
