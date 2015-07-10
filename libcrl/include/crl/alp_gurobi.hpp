@@ -54,11 +54,15 @@ private:
   /// \see generateLP, generateLiftedLP
   std::tuple<std::unordered_map<const _DiscreteFunction<Reward>*, int>, std::vector<DiscreteFunction<Reward>>>
   generateObjective(std::string name, const crl::RFunctionVec& C, const crl::RFunctionVec& b, const std::vector<double>& alpha);
-  /// \brief Add a single constraint to this LP
+  /// \brief Add a single Gurobi constraint to this LP
   /// \note Requires previous set-up of LP, e.g. via \a generateObjective()
   GRBConstr addConstraint(const GRBLinExpr& lhs, char sense, const GRBLinExpr& rhs) {
     return _lp->addConstr(lhs, sense, rhs);
   }
+  /// \brief Implements a heuristic for the next variable to delete
+  /// Greedy selection of the variable that minimizes the next joint scope
+  /// \return Iterator to the next best variable in \a candidates to eliminate
+  std::list<Size>::iterator elimHeuristic(std::list<Size>& candidates);
 public:
   /// \brief ctor
   _LP(const crl::Domain& domain)

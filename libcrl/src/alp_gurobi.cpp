@@ -59,6 +59,32 @@ void _LP::generateObjective(std::string name, const std::vector<double>& alpha) 
   LOG_INFO("Objective: " << _lp->getObjective());
 }
 
+std::list<Size>::iterator _LP::elimHeuristic(std::list<Size>& candidates) {
+  using range = decltype(_F)::range;
+  auto bestIt = candidates.end();
+  Size bestVal = std::numeric_limits<Size>::max();
+  for(auto it = candidates.begin(); it != candidates.end(); ++it) {
+      range r = _F.getFactor(*it);
+      if(!r.hasNext()) {
+          continue;
+      }
+      _EmptyFunction<Reward> testFn(r);
+//FIXME: do this ~after determination of real scopes..
+//FIXME: store best EmptyFn alongside
+      //Size testSc = testFn.getStateFactors().size() + testFn.getActionFactors().size() + testFn.getLiftedFactors().size();
+      Size testSc = (testFn.getStateFactors().size() + testFn.getActionFactors().size())*
+          testFn.getStateFactors().size() + testFn.getActionFactors().size();
+      for(const auto& lf : testFn.getLiftedFactors()) {
+          testSc *= lf->getStateFactors().size();
+      }
+      if(testSc < bestVal) {
+        bestVal = testSc;
+        bestIt = it;
+      }
+  }
+  return bestIt;
+}
+
 std::tuple<std::unordered_map<const _DiscreteFunction<Reward>*, int>, std::vector<DiscreteFunction<Reward>>>
 _LP::generateObjective(std::string name, const crl::RFunctionVec& C, const crl::RFunctionVec& b, const std::vector<double>& alpha) {
   //assert(C.size() == alpha.size());
@@ -79,9 +105,7 @@ _LP::generateObjective(std::string name, const crl::RFunctionVec& C, const crl::
   int wi = 0; // corresponding to active w_i variable
   for(const auto& f : C) {
       const auto& p = var_offset.insert({f.get(),var});
-      if(!p.second) {
-        assert(false);
-      }
+      assert(p.second);
       int cc = 0;
       _StateActionIncrementIterator saitr(f->getSubdomain());
       while(saitr.hasNext()) {
@@ -114,9 +138,7 @@ _LP::generateObjective(std::string name, const crl::RFunctionVec& C, const crl::
   int bb = 0;
   for(const auto& f : b) {
       const auto& p = var_offset.insert({f.get(),var});
-      if(!p.second) {
-          assert(false);
-      }
+      assert(p.second);
       int bv = 0;
       _StateActionIncrementIterator saitr(f->getSubdomain());
       while(saitr.hasNext()) {
@@ -220,10 +242,8 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<d
         }
         EmptyFunction<Reward> E = boost::make_shared<_EmptyFunction<Reward>>(r); // construct new function merely for domain computations
         const auto& p = var_offset.insert({E.get(), var}); // variable offset in LP
+        assert(p.second);
         LOG_DEBUG("Storing offset: " << var << " for replacement function");
-        if(!p.second) {
-            assert(false);
-        }
         E->computeSubdomain();
         Domain prev_dom_E = E->getSubdomain(); // which still includes `v'
         const subdom_map s_dom(E->getStateFactors());
@@ -298,9 +318,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<d
         r.reset();
         while(r.hasNext()) {
             std::size_t k = var_offset.erase(r.next().get());
-            if(k != 1) {
-                assert(false);
-            }
+            assert(k == 1); // exactly one function was removed
         }
         _F.eraseFactor(v);
         _F.insert(E); // store new function (if not empty scope)
@@ -365,30 +383,14 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
     int var = _lp->get(GRB_IntAttr_NumVars); // current variable offset
     using range = decltype(_F)::range;
     while(!mutable_elim.empty()) {
-        // determine next variable to delete
-        auto bestIt = mutable_elim.end();
-        Size bestVal = std::numeric_limits<Size>::max();
-        for(auto it = mutable_elim.begin(); it != mutable_elim.end(); ++it) {
-            range r = _F.getFactor(*it);
-            if(!r.hasNext()) {
-                continue;
-            }
-            _EmptyFunction<Reward> testFn(r);
-            //Size testSc = testFn.getStateFactors().size() + testFn.getActionFactors().size() + testFn.getLiftedFactors().size();
-            Size testSc = (testFn.getStateFactors().size() + testFn.getActionFactors().size())*
-                testFn.getStateFactors().size() + testFn.getActionFactors().size();
-            for(const auto& lf : testFn.getLiftedFactors()) {
-                testSc *= lf->getStateFactors().size();
-            }
-            if(testSc < bestVal) {
-              bestVal = testSc;
-              bestIt = it;
-            }
-        }
+        // determine next best variable to delete
+        auto bestIt = elimHeuristic(mutable_elim);
+        assert(bestIt != mutable_elim.end());
         Size v = *bestIt;
         mutable_elim.erase(bestIt);
         assert(v < _domain->getNumStateFactors() + _domain->getNumActionFactors());
         LOG_DEBUG("Eliminating variable " << v << " (" << mutable_elim.size() << " to go)");
+
         // eliminate variable `v' (either state, action, or lifted factor)
         range r = _F.getFactor(v);
         if(!r.hasNext()) {
@@ -397,10 +399,8 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
         }
         EmptyFunction<Reward> E = boost::make_shared<_EmptyFunction<Reward>>(r); // construct new function merely for domain computations
         const auto& p = var_offset.insert({E.get(), var}); // variable offset in LP
+        assert(p.second);
         LOG_DEBUG("Storing offset: " << var << " for replacement function");
-        if(!p.second) {
-            assert(false);
-        }
         E->computeSubdomain();
         const Domain prev_dom_E = E->getSubdomain(); // which still includes `v' in various factors
         const auto prev_sf = E->getStateFactors().size();
@@ -474,8 +474,8 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
             const int offset_E = var + s.getIndex() * E->getSubdomain()->getNumActions() + a.getIndex();
             //LOG_DEBUG("Current offset: " << offset_E);
             // build constraint
-            GRBVar var = _lp->getVar(offset_E);
-            var.set(GRB_DoubleAttr_LB, -GRB_INFINITY);
+            GRBVar lpvar = _lp->getVar(offset_E);
+            lpvar.set(GRB_DoubleAttr_LB, -GRB_INFINITY);
 
             // reconstruct `equivalent' state / action in old domain
             if(v < _domain->getNumStateFactors()) {
@@ -492,7 +492,7 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
                 if(proper_var) {
                   prl->setFactor(v_loc, fa);
                 }
-                // update counters
+                // update counters which include the variable
                 Factor enabled = static_cast<Factor>(fa != 0);
                 for(const auto& p : liftVec) {
                     const auto o_hash = p.first;
@@ -519,7 +519,7 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
                     lhs += fv;
                 }
                 // add constraint (including new variables) to LP
-                /*GRBConstr constr =*/ addConstraint(lhs,GRB_LESS_EQUAL,var);
+                /*GRBConstr constr =*/ addConstraint(lhs,GRB_LESS_EQUAL,lpvar);
 
 //#if !NDEBUG
 //                LOG_DEBUG("Added constraint:");
@@ -537,9 +537,7 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
         r.reset();
         while(r.hasNext()) {
             std::size_t k = var_offset.erase(r.next().get());
-            if(k != 1) {
-                assert(false);
-            }
+            assert(k == 1); // exactly one function was removed
         }
         _F.eraseFactor(v);
         _F.insert(E); // store new function (if not empty scope)
