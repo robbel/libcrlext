@@ -459,8 +459,17 @@ TEST_F(FunctionSetTest, LiftedCompressionTest) {
       std::sort(state_factors.begin(), state_factors.end());
       EXPECT_EQ(boost::hash_range(state_factors.begin(), state_factors.end()), o_hash);
     }
+    else { // lifted factor was removed during compression
+      SizeVec state_factors;
+      const auto range = hsm.equal_range(o_hash); // obtain removed state variables from that lifted factor
+      const auto end = range.second;
+      for (auto hsmIt = range.first; hsmIt != end; ++hsmIt) {
+        state_factors.push_back(hsmIt->second);
+      }
+      std::sort(state_factors.begin(), state_factors.end());
+      EXPECT_EQ(boost::hash_range(state_factors.begin(), state_factors.end()), o_hash);
+    }
   }
-
 #if !NDEBUG
   // loop over removed variables
   for(auto hsmIt = hsm.begin(); hsmIt != hsm.end(); ) {
