@@ -396,3 +396,65 @@ TEST_F(FunctionSetTest, LiftedOperationTest) {
   f_set->eraseStateFactor(1);
   EXPECT_TRUE(f_set->empty());
 }
+
+///
+/// \brief Simple compression of lifted function test
+///
+TEST_F(FunctionSetTest, LiftedCompressionTest) {
+  // create a new domain with 100 state factors
+  _domain = boost::make_shared<_Domain>();
+  for(int i = 0; i < 100; i++) {
+    _domain->addStateFactor(0, 1);
+  }
+  _domain->setRewardRange(-1, 0);
+
+  _EmptyFunction<Reward> E(_domain);
+  SizeVec proper{ 0, 3, 5, 13, 20, 22, 23,27 };
+  for(Size v : proper) {
+    E.addStateFactor(v);
+  }
+
+  std::vector<SizeVec> liftedVars{ {6,8,25}, {4,17,24}, {3,5,13,20}, {4,14,18,25}, {0,7,15,24}, {6,18,23,29}, {6,16,19,20}, {6,14,18,25}, {9,19,21,27}, {0,5,22,23,27} };
+  for(const auto& lvec : liftedVars) {
+      LiftedFactor lf = boost::make_shared<_LiftedFactor>(lvec);
+      E.addLiftedFactor(std::move(lf));
+  }
+  LOG_INFO("E before compression: " << E);
+  LOG_INFO("E state/lifted factors before compression: " << E.getStateFactors().size() << " " << E.getLiftedFactors().size());
+  E.computeSubdomain();
+  Size num_states = E.getSubdomain()->getNumStates();
+  LOG_INFO("E subdomain joint states before compression: " << num_states);
+  EXPECT_EQ(num_states, 1920000000);
+
+  E.compress();
+  LOG_INFO("E after compression: " << E);
+  LOG_INFO("E state/lifted factors after compression: " << E.getStateFactors().size() << " " << E.getLiftedFactors().size());
+  E.computeSubdomain();
+  Size num_states_c = E.getSubdomain()->getNumStates();
+  LOG_INFO("E subdomain joint states after compression: " << num_states_c);
+  EXPECT_EQ(num_states_c, 4718592);
+
+  LOG_INFO("Compression ratio: " << static_cast<double>(num_states_c)/num_states);
+
+  // Test another, simpler function
+  _EmptyFunction<Reward> E2(_domain);
+  E2.addStateFactor(0);
+  LiftedFactor lf = boost::make_shared<_LiftedFactor>(std::initializer_list<Size>{0});
+  E2.addLiftedFactor(std::move(lf));
+  LOG_INFO("E2 before compression: " << E2);
+  LOG_INFO("E2 state/lifted factors before compression: " << E2.getStateFactors().size() << " " << E2.getLiftedFactors().size());
+  E2.computeSubdomain();
+  num_states = E2.getSubdomain()->getNumStates();
+  LOG_INFO("E2 subdomain joint states before compression: " << num_states);
+  EXPECT_EQ(num_states, 4);
+
+  E2.compress();
+  LOG_INFO("E2 after compression: " << E2);
+  LOG_INFO("E2 state/lifted factors after compression: " << E2.getStateFactors().size() << " " << E2.getLiftedFactors().size());
+  E2.computeSubdomain();
+  num_states_c = E2.getSubdomain()->getNumStates();
+  LOG_INFO("E2 subdomain joint states after compression: " << num_states_c);
+  EXPECT_EQ(num_states_c, 2);
+
+  LOG_INFO("Compression ratio: " << static_cast<double>(num_states_c)/num_states);
+}
