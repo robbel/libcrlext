@@ -401,6 +401,8 @@ TEST_F(FunctionSetTest, LiftedOperationTest) {
 /// \brief Simple compression of lifted function test
 ///
 TEST_F(FunctionSetTest, LiftedCompressionTest) {
+  typedef std::unordered_multimap<std::size_t,Size> HashSizeMap;
+
   // create a new domain with 100 state factors
   _domain = boost::make_shared<_Domain>();
   for(int i = 0; i < 100; i++) {
@@ -426,20 +428,56 @@ TEST_F(FunctionSetTest, LiftedCompressionTest) {
   LOG_INFO("E subdomain joint states before compression: " << num_states);
   EXPECT_EQ(num_states, 1920000000);
 
-  E.compress();
+  HashSizeMap hsm; // store removed variables
+  auto liftVec = E.compress(&hsm);
   LOG_INFO("E after compression: " << E);
   LOG_INFO("E state/lifted factors after compression: " << E.getStateFactors().size() << " " << E.getLiftedFactors().size());
   E.computeSubdomain();
   Size num_states_c = E.getSubdomain()->getNumStates();
   LOG_INFO("E subdomain joint states after compression: " << num_states_c);
   EXPECT_EQ(num_states_c, 4718592);
-
   LOG_INFO("Compression ratio: " << static_cast<double>(num_states_c)/num_states);
+
+  // test that removed variables are recorded correctly in `hsm'
+  const LiftedVec& lvec_c = E.getLiftedFactors(); // lifted factors in compressed domain
+  LiftedFactor lf = boost::make_shared<_LiftedFactor>(std::initializer_list<Size>{}); // dummy factor for search
+  auto lifted_comp = [](const LiftedFactor& l, const LiftedFactor& o) -> bool { return *l < *o; }; // comparison function
+  for(const auto& p : liftVec) { // over all modified lifted factors
+    const std::size_t o_hash = p.first;
+    const std::size_t n_hash = p.second;
+    if(n_hash != _LiftedFactor::EMPTY_HASH) {
+      lf->setHash(n_hash);
+      auto it = std::lower_bound(lvec_c.begin(), lvec_c.end(), lf, lifted_comp);
+      ASSERT_TRUE(it != lvec_c.end() && *(*it) == *lf);
+      // add removed variables back to lifted factor and compare hashes
+      SizeVec state_factors = (*it)->getStateFactors(); // reduced state factor set in compressed domain
+      const auto range = hsm.equal_range(o_hash); // obtain removed state variables from that lifted factor
+      const auto end = range.second;
+      for (auto hsmIt = range.first; hsmIt != end; ++hsmIt) {
+        state_factors.push_back(hsmIt->second);
+      }
+      std::sort(state_factors.begin(), state_factors.end());
+      EXPECT_EQ(boost::hash_range(state_factors.begin(), state_factors.end()), o_hash);
+    }
+  }
+
+#if !NDEBUG
+  // loop over removed variables
+  for(auto hsmIt = hsm.begin(); hsmIt != hsm.end(); ) {
+      const Size hash = hsmIt->first; // lifted counter under consideration
+      const auto range = hsm.equal_range(hash);
+      const auto end = range.second;
+      LOG_DEBUG(hash << ": ");
+      for (; hsmIt != end; ++hsmIt) {
+        LOG_DEBUG(hsmIt->second);
+      }
+  }
+#endif
 
   // Test another, simpler function
   _EmptyFunction<Reward> E2(_domain);
   E2.addStateFactor(0);
-  LiftedFactor lf = boost::make_shared<_LiftedFactor>(std::initializer_list<Size>{0});
+  lf = boost::make_shared<_LiftedFactor>(std::initializer_list<Size>{0});
   E2.addLiftedFactor(std::move(lf));
   LOG_INFO("E2 before compression: " << E2);
   LOG_INFO("E2 state/lifted factors before compression: " << E2.getStateFactors().size() << " " << E2.getLiftedFactors().size());
@@ -448,13 +486,17 @@ TEST_F(FunctionSetTest, LiftedCompressionTest) {
   LOG_INFO("E2 subdomain joint states before compression: " << num_states);
   EXPECT_EQ(num_states, 4);
 
-  E2.compress();
+  hsm.clear();
+  E2.compress(&hsm);
   LOG_INFO("E2 after compression: " << E2);
   LOG_INFO("E2 state/lifted factors after compression: " << E2.getStateFactors().size() << " " << E2.getLiftedFactors().size());
   E2.computeSubdomain();
   num_states_c = E2.getSubdomain()->getNumStates();
   LOG_INFO("E2 subdomain joint states after compression: " << num_states_c);
   EXPECT_EQ(num_states_c, 2);
-
   LOG_INFO("Compression ratio: " << static_cast<double>(num_states_c)/num_states);
+
+  EXPECT_EQ(hsm.size(),1);
+  auto hsmIt = hsm.begin();
+  EXPECT_EQ(hsmIt->second, 0);
 }
