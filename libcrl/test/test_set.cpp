@@ -445,30 +445,21 @@ TEST_F(FunctionSetTest, LiftedCompressionTest) {
   for(const auto& p : liftVec) { // over all modified lifted factors
     const std::size_t o_hash = p.first;
     const std::size_t n_hash = p.second;
-    if(n_hash != _LiftedFactor::EMPTY_HASH) {
+    SizeVec o_state_factors; // reconstruction of original state factors
+    if(n_hash != _LiftedFactor::EMPTY_HASH) { // look up remaining factors in compressed domain
       lf->setHash(n_hash);
       auto it = std::lower_bound(lvec_c.begin(), lvec_c.end(), lf, lifted_comp);
       ASSERT_TRUE(it != lvec_c.end() && *(*it) == *lf);
       // add removed variables back to lifted factor and compare hashes
-      SizeVec state_factors = (*it)->getStateFactors(); // reduced state factor set in compressed domain
-      const auto range = hsm.equal_range(o_hash); // obtain removed state variables from that lifted factor
-      const auto end = range.second;
-      for (auto hsmIt = range.first; hsmIt != end; ++hsmIt) {
-        state_factors.push_back(hsmIt->second);
-      }
-      std::sort(state_factors.begin(), state_factors.end());
-      EXPECT_EQ(boost::hash_range(state_factors.begin(), state_factors.end()), o_hash);
+      o_state_factors = (*it)->getStateFactors(); // reduced state factor set in compressed domain
     }
-    else { // lifted factor was removed during compression
-      SizeVec state_factors;
-      const auto range = hsm.equal_range(o_hash); // obtain removed state variables from that lifted factor
-      const auto end = range.second;
-      for (auto hsmIt = range.first; hsmIt != end; ++hsmIt) {
-        state_factors.push_back(hsmIt->second);
-      }
-      std::sort(state_factors.begin(), state_factors.end());
-      EXPECT_EQ(boost::hash_range(state_factors.begin(), state_factors.end()), o_hash);
+    const auto range = hsm.equal_range(o_hash); // obtain removed state variables in `hsm' mapping
+    const auto end = range.second;
+    for (auto hsmIt = range.first; hsmIt != end; ++hsmIt) {
+      o_state_factors.push_back(hsmIt->second);
     }
+    std::sort(o_state_factors.begin(), o_state_factors.end());
+    EXPECT_EQ(boost::hash_range(o_state_factors.begin(), o_state_factors.end()), o_hash);
   }
 #if !NDEBUG
   // loop over removed variables
