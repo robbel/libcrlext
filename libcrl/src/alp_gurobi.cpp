@@ -33,6 +33,20 @@ void buildRLType(const RLType& rl1, const subdom_map& s1, RLType& rl2, const sub
   }
 }
 
+/// \brief Return the number of `enabled' factors in \a o_rl w.r.t. the counter encoded by o_hash
+typedef std::pair<std::size_t,Size> HashSizePair;
+typedef std::unordered_multimap<std::size_t,Size> HashSizeMap;
+inline Factor enabledCount(const RLType& o_rl, const subdom_map& sdom, Size v, const std::pair<HashSizeMap::const_iterator, HashSizeMap::const_iterator>& range) {
+  Factor ret = 0;
+  std::for_each(range.first, range.second, [&](const HashSizePair& hsp) {
+    if(hsp.second != v) { // FIXME do i have to account for multiple ocurrences of variables, including v??
+      bool enabled = o_rl.getFactor(sdom(hsp.second)) != 0;
+      ret += static_cast<Factor>(enabled);
+    }
+  });
+  return ret;
+}
+
 } // anonymous ns
 
 namespace gurobi {
@@ -69,14 +83,14 @@ std::list<Size>::iterator _LP::elimHeuristic(std::list<Size>& candidates) {
           continue;
       }
       _EmptyFunction<Reward> testFn(r);
-//FIXME: do this ~after determination of real scopes..
-//FIXME: store best EmptyFn alongside
-      //Size testSc = testFn.getStateFactors().size() + testFn.getActionFactors().size() + testFn.getLiftedFactors().size();
-      Size testSc = (testFn.getStateFactors().size() + testFn.getActionFactors().size())*
-          testFn.getStateFactors().size() + testFn.getActionFactors().size();
-      for(const auto& lf : testFn.getLiftedFactors()) {
-          testSc *= lf->getStateFactors().size();
-      }
+//  testFn.compress();
+// TODO: store best EmptyFn alongside
+    Size testSc = testFn.getStateFactors().size() + testFn.getActionFactors().size() + testFn.getLiftedFactors().size();
+//      Size testSc = (testFn.getStateFactors().size() + testFn.getActionFactors().size())*
+//          testFn.getStateFactors().size() + testFn.getActionFactors().size();
+//      for(const auto& lf : testFn.getLiftedFactors()) {
+//          testSc *= lf->getStateFactors().size();
+//      }
       if(testSc < bestVal) {
         bestVal = testSc;
         bestIt = it;
@@ -361,7 +375,7 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<d
 }
 
 int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const vector<double>& alpha, const SizeVec& elim_order) {
-  // set up LP
+  // set up LP and abstract away functions C,b
   auto tpl = generateObjective("LiftedALP", C, b, alpha);
   std::unordered_map<const _DiscreteFunction<Reward>*, int>& var_offset = std::get<0>(tpl);
   std::vector<DiscreteFunction<Reward>>& empty_fns = std::get<1>(tpl);
@@ -403,8 +417,6 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
         LOG_DEBUG("Storing offset: " << var << " for replacement function");
         E->computeSubdomain();
         const Domain prev_dom_E = E->getSubdomain(); // which still includes `v' in various factors
-        const auto prev_sf = E->getStateFactors().size();
-        const auto prev_af = E->getActionFactors().size();
         Size v_loc; // location of `v' in prev_dom_E
         State s_o(prev_dom_E);
         Action a_o(prev_dom_E);
@@ -414,12 +426,36 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
           s_dom.append(lf->getHash());
         }
         const subdom_map a_dom(E->getActionFactors());
-        E->eraseFactor(v); // either state or action factor
-        vector<pair<std::size_t,std::size_t>> liftVec;
+
+        // compress function E
+        //LOG_DEBUG("Before compression: " << *E);
+        std::unordered_multimap<std::size_t,Size> delVars;
+        auto liftVec = E->compress(&delVars);
+        //LOG_DEBUG("After compression : " << *E);
+        //LOG_DEBUG("Mod lifted cnt no : " << liftVec.size());
+
+        // erase either state or action factor
+        bool proper_var = E->eraseFactor(v);
+
+        // erase variable from lifted factors
+        vector<pair<std::size_t,std::size_t>> liftVec2;
         if(v < _domain->getNumStateFactors()) {
-          liftVec = E->eraseLiftedFactor(v);
+          liftVec2 = E->eraseLiftedFactor(v);
+          for(const auto& p2 : liftVec2) {
+              auto it = std::find_if(liftVec.begin(), liftVec.end(),
+                                     [&p2](const pair<std::size_t,std::size_t>& p) { return p2.first == p.second; });
+              if(it != liftVec.end()) {
+                  LOG_DEBUG("Deleted from count function that was previously compressed.");
+                  it->second = p2.second;
+                  delVars.emplace(it->first,v);
+              }
+              else {
+                  liftVec.emplace_back(p2.first,p2.second);
+                  delVars.emplace(p2.first, v);
+              }
+          }
         }
-        E->computeSubdomain(); // does not include `v' anymore
+        E->computeSubdomain(); // does not include `v' anymore and is compressed
         // local maps
         subdom_map sl_dom(E->getStateFactors());
         for(const auto& lf : E->getLiftedFactors()) {
@@ -427,10 +463,6 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
         }
         const subdom_map al_dom(E->getActionFactors());
 
-        bool proper_var = true;
-        if(prev_sf == E->getStateFactors().size() && prev_af == E->getActionFactors().size()) {
-          proper_var = false; // eliminated variable only occurs in counter scopes
-        }
         FactorRange elim_range;
         if(proper_var) {
           if(v < _domain->getNumStateFactors()) {
@@ -477,7 +509,7 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
             GRBVar lpvar = _lp->getVar(offset_E);
             lpvar.set(GRB_DoubleAttr_LB, -GRB_INFINITY);
 
-            // reconstruct `equivalent' state / action in old domain
+            // reconstruct `equivalent' state / action in old domain (all but eliminated var/mod counters)
             if(v < _domain->getNumStateFactors()) {
                 a_o = a;
                 buildRLType(s, sl_dom, s_o, s_dom);
@@ -501,7 +533,8 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
                     if(n_hash != _LiftedFactor::EMPTY_HASH) {
                       val = s.getFactor(sl_dom(n_hash));
                     }
-                    s_o.setFactor(s_dom(o_hash), val+enabled);
+                    Factor enabledCt = enabledCount(s, sl_dom, v, delVars.equal_range(o_hash));
+                    s_o.setFactor(s_dom(o_hash), val+enabled+enabledCt);
                 }
 
                 GRBLinExpr lhs = 0;

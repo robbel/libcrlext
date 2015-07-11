@@ -80,7 +80,7 @@ TEST(ALPIntegrationTest, TestGraphpropExhaustiveBasis) {
   //auto cfn = boost::make_shared<_ConstantFn<Reward>>(domain);
   //fval->addBasisFunction(std::move(cfn), 0.);
   // add more basis functions
-  //const RangeVec& ranges = domain->getStateRanges();
+  const RangeVec& ranges = domain->getStateRanges();
 #if 0
   // create a basis (one indicator per local state, i.e., corresponding to `single' basis in Guestrin thesis)
   for(Size fa = 0; fa < ranges.size(); fa++) { // assumption: DBN covers all domain variables
@@ -116,11 +116,11 @@ TEST(ALPIntegrationTest, TestGraphpropExhaustiveBasis) {
   }
 #endif
 
-  for(Size fa = 0; fa < 10; fa+=2) { // assumption: DBN covers all domain variables
-      auto I_o = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa,fa+1}), State(domain,0));
+  for(Size fa = 0; fa < ranges.size(); fa++) { // assumption: DBN covers all domain variables
+      auto I_o = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa}), State(domain,0));
       _StateIncrementIterator sitr(I_o->getSubdomain());
       while(sitr.hasNext()) {
-          auto I = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa,fa+1}), sitr.next());
+          auto I = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa}), sitr.next());
           fval->addBasisFunction(std::move(I), 0.);
       }
   }
