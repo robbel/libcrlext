@@ -33,16 +33,16 @@ void buildRLType(const RLType& rl1, const subdom_map& s1, RLType& rl2, const sub
   }
 }
 
-/// \brief Return the number of `enabled' factors in \a o_rl w.r.t. the counter encoded by o_hash
+/// \brief Return the number of `enabled' (i.e., != 0) factors in \a State s that pertain to the given variables in \a range.
+/// \note In addition to the variables included in \a range, the variable `v' with value `val' is considered.
+/// \see _LP::generateLiftedLP
 typedef std::pair<std::size_t,Size> HashSizePair;
 typedef std::unordered_multimap<std::size_t,Size> HashSizeMap;
-inline Factor enabledCount(const RLType& o_rl, const subdom_map& sdom, Size v, const std::pair<HashSizeMap::const_iterator, HashSizeMap::const_iterator>& range) {
+inline Factor enabledCount(const RLType& s, const subdom_map& sl_dom, Size v, Factor val, const std::pair<HashSizeMap::const_iterator, HashSizeMap::const_iterator>& range) {
   Factor ret = 0;
   std::for_each(range.first, range.second, [&](const HashSizePair& hsp) {
-    if(hsp.second != v) { // FIXME do i have to account for multiple ocurrences of variables, including v??
-      bool enabled = o_rl.getFactor(sdom(hsp.second)) != 0;
-      ret += static_cast<Factor>(enabled);
-    }
+    bool enabled = hsp.second != v ? (s.getFactor(sl_dom(hsp.second)) != 0) : (val != 0);
+    ret += static_cast<Factor>(enabled);
   });
   return ret;
 }
@@ -428,19 +428,17 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
         const subdom_map a_dom(E->getActionFactors());
 
         // compress function E
-        //LOG_DEBUG("Before compression: " << *E);
         std::unordered_multimap<std::size_t,Size> delVars;
         auto liftVec = E->compress(&delVars);
-        //LOG_DEBUG("After compression : " << *E);
-        //LOG_DEBUG("Mod lifted cnt no : " << liftVec.size());
 
         // erase either state or action factor
         bool proper_var = E->eraseFactor(v);
-
         // erase variable from lifted factors
         vector<pair<std::size_t,std::size_t>> liftVec2;
         if(v < _domain->getNumStateFactors()) {
           liftVec2 = E->eraseLiftedFactor(v);
+          // merge liftVec with liftVec2
+          // TODO: test
           for(const auto& p2 : liftVec2) {
               auto it = std::find_if(liftVec.begin(), liftVec.end(),
                                      [&p2](const pair<std::size_t,std::size_t>& p) { return p2.first == p.second; });
@@ -524,8 +522,7 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
                 if(proper_var) {
                   prl->setFactor(v_loc, fa);
                 }
-                // update counters which include the variable
-                Factor enabled = static_cast<Factor>(fa != 0);
+                // update counters which either include the variable or have been otherwise modified (compression)
                 for(const auto& p : liftVec) {
                     const auto o_hash = p.first;
                     const auto n_hash = p.second;
@@ -533,8 +530,8 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
                     if(n_hash != _LiftedFactor::EMPTY_HASH) {
                       val = s.getFactor(sl_dom(n_hash));
                     }
-                    Factor enabledCt = enabledCount(s, sl_dom, v, delVars.equal_range(o_hash));
-                    s_o.setFactor(s_dom(o_hash), val+enabled+enabledCt);
+                    Factor enabledCt = enabledCount(s, sl_dom, v, fa, delVars.equal_range(o_hash));
+                    s_o.setFactor(s_dom(o_hash), val+enabledCt);
                 }
 
                 GRBLinExpr lhs = 0;
