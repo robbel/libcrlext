@@ -432,22 +432,46 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
         LOG_DEBUG("Storing offset: " << var << " for replacement function");
         E->computeSubdomain();
         const Domain prev_dom_E = E->getSubdomain(); // which still includes `v' in various factors
-        Size v_loc; // location of `v' in prev_dom_E
         State s_o(prev_dom_E);
         Action a_o(prev_dom_E);
         RLType* prl = nullptr;
         subdom_map s_dom(E->getStateFactors());
+        // add lifted factors to original domain mapping
         for(const auto& lf : E->getLiftedFactors()) {
           s_dom.append(lf->getHash());
         }
         const subdom_map a_dom(E->getActionFactors());
+        // check if `v' is proper variable in original domain
+        bool proper_var = false;
+        FactorRange elim_range;
+        Size v_loc; // location of `v' in prev_dom_E
+        const auto& v_map = v < _domain->getNumStateFactors() ? s_dom.map() : a_dom.map();
+        const auto it = v < _domain->getNumStateFactors() ? v_map.find(v) : v_map.find(v-_domain->getNumStateFactors());
+        if(it != v_map.end()) {
+          proper_var = true;
+          v_loc = it->second;
+          if(v < _domain->getNumStateFactors()) {
+            prl = &s_o;
+            elim_range = _domain->getStateRanges()[v];
+          }
+          else {
+            prl = &a_o;
+            elim_range = _domain->getActionRanges()[v-_domain->getNumStateFactors()];
+          }
+          LOG_DEBUG("Eliminating `proper' variable " << v << " with range [" << elim_range.getMin() << "," << elim_range.getMax() << "]");
+        }
+        else {
+          prl = &s_o;
+          elim_range = FactorRange(0,1);
+          LOG_DEBUG("Eliminating lifted `counter' variable " << v);
+        }
 
         // compress function E
         std::unordered_multimap<std::size_t,Size> delVars;
         auto liftVec = E->compress(&delVars);
 
         // erase either state or action factor
-        bool proper_var = E->eraseFactor(v);
+        E->eraseFactor(v);
         // erase variable from lifted factors
         vector<pair<std::size_t,std::size_t>> liftVec2;
         if(v < _domain->getNumStateFactors()) {
@@ -476,25 +500,6 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
         }
         const subdom_map al_dom(E->getActionFactors());
 
-        FactorRange elim_range;
-        if(proper_var) {
-          if(v < _domain->getNumStateFactors()) {
-            prl = &s_o;
-            elim_range = _domain->getStateRanges()[v];
-            v_loc = s_dom(v);
-          }
-          else {
-            prl = &a_o;
-            elim_range = _domain->getActionRanges()[v-_domain->getNumStateFactors()];
-            v_loc = a_dom(v-_domain->getNumStateFactors());
-          }
-          LOG_DEBUG("Eliminating `proper' variable " << v << " with range [" << elim_range.getMin() << "," << elim_range.getMax() << "]");
-        }
-        else {
-          prl = &s_o;
-          elim_range = FactorRange(0,1);
-          LOG_DEBUG("Eliminating lifted `counter' variable " << v);
-        }
 #if !NDEBUG
         std::ostringstream ss;
         ss << "Newly constructed function E has factor scope: ";
