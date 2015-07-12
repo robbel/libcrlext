@@ -118,7 +118,10 @@ _LP::generateObjective(std::string name, const crl::RFunctionVec& C, const crl::
   int var = alpha.size(); // the offset at which to insert more variables
   int wi = 0; // corresponding to active w_i variable
   for(const auto& f : C) {
-      const auto& p = var_offset.insert({f.get(),var});
+#if !NDEBUG
+      const auto& p =
+#endif
+      var_offset.insert({f.get(),var});
       assert(p.second);
       int cc = 0;
       _StateActionIncrementIterator saitr(f->getSubdomain());
@@ -151,7 +154,10 @@ _LP::generateObjective(std::string name, const crl::RFunctionVec& C, const crl::
 
   int bb = 0;
   for(const auto& f : b) {
-      const auto& p = var_offset.insert({f.get(),var});
+#if !NDEBUG
+      const auto& p =
+#endif
+      var_offset.insert({f.get(),var});
       assert(p.second);
       int bv = 0;
       _StateActionIncrementIterator saitr(f->getSubdomain());
@@ -255,7 +261,10 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<d
             continue;
         }
         EmptyFunction<Reward> E = boost::make_shared<_EmptyFunction<Reward>>(r); // construct new function merely for domain computations
-        const auto& p = var_offset.insert({E.get(), var}); // variable offset in LP
+#if !NDEBUG
+        const auto& p =
+#endif
+        var_offset.insert({E.get(), var}); // variable offset in LP
         assert(p.second);
         LOG_DEBUG("Storing offset: " << var << " for replacement function");
         E->computeSubdomain();
@@ -331,7 +340,10 @@ int _LP::generateLP(const RFunctionVec& C, const RFunctionVec& b, const vector<d
         // Erase from var_offset hash table (required to avoid collisions)
         r.reset();
         while(r.hasNext()) {
-            std::size_t k = var_offset.erase(r.next().get());
+#if !NDEBUG
+            std::size_t k =
+#endif
+            var_offset.erase(r.next().get());
             assert(k == 1); // exactly one function was removed
         }
         _F.eraseFactor(v);
@@ -412,7 +424,10 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
             continue;
         }
         EmptyFunction<Reward> E = boost::make_shared<_EmptyFunction<Reward>>(r); // construct new function merely for domain computations
-        const auto& p = var_offset.insert({E.get(), var}); // variable offset in LP
+#if !NDEBUG
+        const auto& p =
+#endif
+        var_offset.insert({E.get(), var}); // variable offset in LP
         assert(p.second);
         LOG_DEBUG("Storing offset: " << var << " for replacement function");
         E->computeSubdomain();
@@ -566,7 +581,10 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
         // Erase from var_offset hash table (required to avoid collisions)
         r.reset();
         while(r.hasNext()) {
-            std::size_t k = var_offset.erase(r.next().get());
+#if !NDEBUG
+            std::size_t k =
+#endif
+            var_offset.erase(r.next().get());
             assert(k == 1); // exactly one function was removed
         }
         _F.eraseFactor(v);
