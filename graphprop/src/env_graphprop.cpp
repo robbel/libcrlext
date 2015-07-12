@@ -101,7 +101,8 @@ Reward _GraphProp::getReward(const BigState& s, const Action& a) const {
 // Holds for both controlled and uncontrolled nodes in graph
 void _GraphProp::buildLiftedPlate(Size i, DBNFactor& fai, LRF& lrf) {
   Domain faidom = fai->getSubdomain();
-  assert(faidom->getNumStateFactors() == 2);
+  const auto numStateFactors = faidom->getNumStateFactors();
+  assert(numStateFactors <= 2);
   const double d = _del[i]; // recovery rate of ego state
   //const auto bIt = _beta_t.getRow(i); // assume identical infection transmission likelihoods from parents
 
@@ -109,7 +110,7 @@ void _GraphProp::buildLiftedPlate(Size i, DBNFactor& fai, LRF& lrf) {
   while(sitr.hasNext()) {
     const State& s = sitr.next();
     const Factor cur = s.getFactor(0); // self is always located at index 0
-    const Factor activeNo = s.getFactor(1); // number of active parents
+    const Factor activeNo = numStateFactors > 1 ? s.getFactor(1) : 0; // number of active parents if they exist
 
     // nodes that are uncontrolled have equivalent transitions to controlled ones where action = 0
     double prod = 1.;
@@ -237,7 +238,9 @@ void _GraphProp::buildFactoredMDP(bool lifted) {
         _scope_map[i].erase(it);
         // lifted factor summarizing all parents (except self)
         LiftedFactor lf = boost::make_shared<_LiftedFactor>(_scope_map[i]);
-        fai->addLiftedDependency(std::move(lf));
+        if(!lf->empty()) {
+          fai->addLiftedDependency(std::move(lf));
+        }
       }
       // LRF
       lrf->addStateFactor(i);
