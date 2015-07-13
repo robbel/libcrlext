@@ -44,6 +44,9 @@ protected:
   /// \brief Discounts the backprojections with the (computed) weights to allow Q function computations
   /// \see getBestAction(), getQ()
   void discount();
+  /// \brief True iff the Backprojections inside this value functions have been multiplied by \f$\mathbf{w}\f$ already
+  /// \see getBestAction()
+  bool isDiscounted() const { return _bp_discounted; }
 public:
   /// \brief ctor with an optional size hint for the number of basis functions to be added
   _FactoredValueFunction(const Domain& domain, Size size_hint = 0)
@@ -70,10 +73,11 @@ public:
     return _weight;
   }
   /// \brief Adds a gamma-discounted backprojection of a basis function to this value function
-  /// \note Will be modified inside this function
+  /// \note Will be modified inside this function (multiplied by weight vector during discount())
   void addBackprojection(DiscreteFunction<Reward> bp) {
       _backprojection.push_back(std::move(bp));
   }
+  /// \brief Set the reward function vector
   void setLRFs(const std::vector<DiscreteFunction<Reward>>& lrfs) {
       _lrfs = lrfs;
   }
@@ -140,8 +144,6 @@ protected:
   float _gamma;
   /// \brief Whether all basis functions have been cached
   bool _cached;
-  /// \brief Compute backprojections and state relevance weights for LP
-  void precompute();
 public:
   _ALPPlanner(const FactoredMDP& fmdp, float gamma)
   : _domain(fmdp->getDomain()), _fmdp(fmdp), _gamma(gamma), _cached(false) { }
@@ -156,6 +158,8 @@ public:
   /// \brief run the FactoredALP algorithm: compute weights for \a FactoredValueFunction via approximate LP
   ///
   virtual int plan();
+  /// \brief Compute backprojections and state relevance weights for LP
+  void precompute();
 
   ///
   /// \brief Input a factored value function that will be used for solving
@@ -168,6 +172,18 @@ public:
   /// \brief Return value function associated with this ALP
   FactoredValueFunction getFactoredValueFunction() const {
     return _value_fn;
+  }
+  /// \brief Get the set of functions (\f$C\f$) from the ALP
+  const std::vector<DiscreteFunction<Reward>>& getC() const {
+    return _C_set;
+  }
+  /// \brief Get the set of local reward functions (\f$\mathbf{b}\f$) from the ALP
+  const std::vector<DiscreteFunction<Reward>>& getLRFs() const {
+    return _fmdp->getLRFs();
+  }
+  /// \brief Get the state relevance weights associated with the basis functions
+  const std::vector<double> getAlpha() const {
+    return _alpha;
   }
 };
 typedef boost::shared_ptr<_ALPPlanner> ALPPlanner;

@@ -37,19 +37,6 @@ index fb58459..c1a1296 100644
  
  # Build MatLab interface? (MatLab needs to be installed)
  WITH_MATLAB=
-diff --git a/examples/example.cpp b/examples/example.cpp
-index 11835b6..98e19aa 100644
---- a/examples/example.cpp
-+++ b/examples/example.cpp
-@@ -102,7 +102,7 @@ int main( int argc, char *argv[] ) {
-         //
-         // Note that inference is set to MAXPROD, which means that the object
-         // will perform the max-product algorithm instead of the sum-product algorithm
--        BP mp(fg, opts("updates",string("SEQRND"))("logdomain",false)("inference",string("MAXPROD"))("damping",string("0.1")));
-+        BP mp(fg, opts("updates",string("SEQRND"))("logdomain",false)("inference",string("MAXPLUS"))("damping",string("0.1")));
-         // Initialize max-product algorithm
-         mp.init();
-         // Run max-product algorithm
 diff --git a/examples/example_maxplus.cpp b/examples/example_maxplus.cpp
 index e69de29..9da27e9 100644
 --- a/examples/example_maxplus.cpp
@@ -253,10 +240,23 @@ index 68ce284..6f2b81a 100644
          virtual void init( const VarSet &ns );
          virtual Real run();
 diff --git a/include/dai/daialg.h b/include/dai/daialg.h
-index 6581bc0..991a9c9 100644
+index 6581bc0..cfec9d5 100644
 --- a/include/dai/daialg.h
 +++ b/include/dai/daialg.h
-@@ -295,9 +295,10 @@ std::vector<Factor> calcPairBeliefs( const InfAlg& obj, const VarSet& vs, bool r
+@@ -246,9 +246,11 @@ class DAIAlg : public InfAlg, public GRM {
+     //@{
+         /// Make a backup copy of factor \a I
+         void backupFactor( size_t I ) { GRM::backupFactor( I ); }
++#pragma clang diagnostic push
++#pragma clang diagnostic ignored "-Woverloaded-virtual"
+         /// Make backup copies of all factors involving the variables in \a vs
+         void backupFactors( const VarSet &vs ) { GRM::backupFactors( vs ); }
+-
++#pragma clang diagnostic pop
+         /// Restore factor \a I from its backup copy
+         void restoreFactor( size_t I ) { GRM::restoreFactor( I ); }
+         /// Restore the factors involving the variables in \a vs from their backup copies
+@@ -295,9 +297,10 @@ std::vector<Factor> calcPairBeliefs( const InfAlg& obj, const VarSet& vs, bool r
  
  
  /// Calculates the joint state of all variables that has maximum probability, according to the inference algorithm \a obj

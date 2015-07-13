@@ -169,8 +169,8 @@ TEST_F(FunctionSetTest, FunctionAdditionTest) {
   //
 
   f2.eraseStateFactor(0);
-  f2.pack();
-  EXPECT_THROW(f += f2, cpputil::InvalidException); // f2 still contains action scope, not allowed as per current implementation
+  //f2.pack();
+  //EXPECT_THROW(f += f2, cpputil::InvalidException); // f2 still contains action scope, is now allowed as per new implementation
 
   f2.eraseActionFactor(0); // new scope is just over state factor `1'
   f2.pack();
@@ -395,4 +395,108 @@ TEST_F(FunctionSetTest, LiftedOperationTest) {
 
   f_set->eraseStateFactor(1);
   EXPECT_TRUE(f_set->empty());
+}
+
+///
+/// \brief Simple compression of lifted function test
+///
+TEST_F(FunctionSetTest, LiftedCompressionTest) {
+  typedef std::unordered_multimap<std::size_t,Size> HashSizeMap;
+
+  // create a new domain with 100 state factors
+  _domain = boost::make_shared<_Domain>();
+  for(int i = 0; i < 100; i++) {
+    _domain->addStateFactor(0, 1);
+  }
+  _domain->setRewardRange(-1, 0);
+
+  _EmptyFunction<Reward> E(_domain);
+  SizeVec proper{ 0, 3, 5, 13, 20, 22, 23,27 };
+  for(Size v : proper) {
+    E.addStateFactor(v);
+  }
+
+  std::vector<SizeVec> liftedVars{ {6,8,25}, {4,17,24}, {3,5,13,20}, {4,14,18,25}, {0,7,15,24}, {6,18,23,29}, {6,16,19,20}, {6,14,18,25}, {9,19,21,27}, {0,5,22,23,27} };
+  for(const auto& lvec : liftedVars) {
+      LiftedFactor lf = boost::make_shared<_LiftedFactor>(lvec);
+      E.addLiftedFactor(std::move(lf));
+  }
+  LOG_INFO("E before compression: " << E);
+  LOG_INFO("E state/lifted factors before compression: " << E.getStateFactors().size() << " " << E.getLiftedFactors().size());
+  E.computeSubdomain();
+  Size num_states = E.getSubdomain()->getNumStates();
+  LOG_INFO("E subdomain joint states before compression: " << num_states);
+  EXPECT_EQ(num_states, 1920000000);
+
+  HashSizeMap hsm; // store removed variables
+  auto liftVec = E.compress(&hsm);
+  LOG_INFO("E after compression: " << E);
+  LOG_INFO("E state/lifted factors after compression: " << E.getStateFactors().size() << " " << E.getLiftedFactors().size());
+  E.computeSubdomain();
+  Size num_states_c = E.getSubdomain()->getNumStates();
+  LOG_INFO("E subdomain joint states after compression: " << num_states_c);
+  EXPECT_EQ(num_states_c, 4718592);
+  LOG_INFO("Compression ratio: " << static_cast<double>(num_states_c)/num_states);
+
+  // test that removed variables are recorded correctly in `hsm'
+  const LiftedVec& lvec_c = E.getLiftedFactors(); // lifted factors in compressed domain
+  LiftedFactor lf = boost::make_shared<_LiftedFactor>(std::initializer_list<Size>{}); // dummy factor for search
+  auto lifted_comp = [](const LiftedFactor& l, const LiftedFactor& o) -> bool { return *l < *o; }; // comparison function
+  for(const auto& p : liftVec) { // over all modified lifted factors
+    const std::size_t o_hash = p.first;
+    const std::size_t n_hash = p.second;
+    SizeVec o_state_factors; // reconstruction of original state factors
+    if(n_hash != _LiftedFactor::EMPTY_HASH) { // look up remaining factors in compressed domain
+      lf->setHash(n_hash);
+      auto it = std::lower_bound(lvec_c.begin(), lvec_c.end(), lf, lifted_comp);
+      ASSERT_TRUE(it != lvec_c.end() && *(*it) == *lf);
+      // add removed variables back to lifted factor and compare hashes
+      o_state_factors = (*it)->getStateFactors(); // reduced state factor set in compressed domain
+    }
+    const auto range = hsm.equal_range(o_hash); // obtain removed state variables in `hsm' mapping
+    const auto end = range.second;
+    for (auto hsmIt = range.first; hsmIt != end; ++hsmIt) {
+      o_state_factors.push_back(hsmIt->second);
+    }
+    std::sort(o_state_factors.begin(), o_state_factors.end());
+    EXPECT_EQ(boost::hash_range(o_state_factors.begin(), o_state_factors.end()), o_hash);
+  }
+#if !NDEBUG
+  // loop over removed variables
+  for(auto hsmIt = hsm.begin(); hsmIt != hsm.end(); ) {
+      const Size hash = hsmIt->first; // lifted counter under consideration
+      const auto range = hsm.equal_range(hash);
+      const auto end = range.second;
+      LOG_DEBUG(hash << ": ");
+      for (; hsmIt != end; ++hsmIt) {
+        LOG_DEBUG(hsmIt->second);
+      }
+  }
+#endif
+
+  // Test another, simpler function
+  _EmptyFunction<Reward> E2(_domain);
+  E2.addStateFactor(0);
+  lf = boost::make_shared<_LiftedFactor>(std::initializer_list<Size>{0});
+  E2.addLiftedFactor(std::move(lf));
+  LOG_INFO("E2 before compression: " << E2);
+  LOG_INFO("E2 state/lifted factors before compression: " << E2.getStateFactors().size() << " " << E2.getLiftedFactors().size());
+  E2.computeSubdomain();
+  num_states = E2.getSubdomain()->getNumStates();
+  LOG_INFO("E2 subdomain joint states before compression: " << num_states);
+  EXPECT_EQ(num_states, 4);
+
+  hsm.clear();
+  E2.compress(&hsm);
+  LOG_INFO("E2 after compression: " << E2);
+  LOG_INFO("E2 state/lifted factors after compression: " << E2.getStateFactors().size() << " " << E2.getLiftedFactors().size());
+  E2.computeSubdomain();
+  num_states_c = E2.getSubdomain()->getNumStates();
+  LOG_INFO("E2 subdomain joint states after compression: " << num_states_c);
+  EXPECT_EQ(num_states_c, 2);
+  LOG_INFO("Compression ratio: " << static_cast<double>(num_states_c)/num_states);
+
+  EXPECT_EQ(hsm.size(),1);
+  auto hsmIt = hsm.begin();
+  EXPECT_EQ(hsmIt->second, 0);
 }

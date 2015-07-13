@@ -60,6 +60,7 @@ config.CheckCXXHeader('boost/shared_ptr.hpp')
 has_lpsolve = config.CheckCXXHeader('lpsolve/lp_lib.h')
 has_gurobi = config.CheckLib('gurobi_c++', language='C++')
 has_spudd = config.CheckLib('spudd', language='C++')
+has_libdai = config.CheckLib('dai', language='C++')
 env = config.Finish()
 
 lib_targets = []
@@ -79,6 +80,13 @@ if has_gurobi:
 	libcrl_libs += ['gurobi_c++', 'gurobi60']
         env.Append(CCFLAGS=['-DHAS_GUROBI'])
 
+if has_libdai:
+	build_sources += [build.File('approx_alp.cpp')]
+        gtest_sources += [testdir.File('test_dai.cpp')]
+	headers += ['crl/approx_alp.hpp']
+	libcrl_libs += ['dai', 'gmpxx', 'gmp']
+        env.Append(CCFLAGS=['-DHAS_LIBDAI'])
+
 if has_lpsolve:
         libcrl = env.SharedLibrary(lib.File('libcrl'+shared_lib_suffix), 
 				   build_sources, LIBS=libcrl_libs)
@@ -87,7 +95,7 @@ if has_lpsolve:
         test = env.Program(bin.Entry('test'), test_sources, LIBS=['crl'])
         bin_targets += [test]
 
-	gtest = env.Program(bin.Entry('gtests'), gtest_sources, LIBS=['crl','pthread','gtest','gtest_main'])
+	gtest = env.Program(bin.Entry('gtests'), gtest_sources, LIBS=['crl','dai','gmpxx','gmp','pthread','gtest','gtest_main'])
         bin_targets += [gtest]
 
 else:

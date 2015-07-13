@@ -26,6 +26,7 @@ BuildDir(build, src, duplicate=0)
 # Environment
 example_sources = [build.File('example.cpp')]
 alp_sources = [build.File('alp.cpp')]
+approxalp_sources = [build.File('approxalp.cpp')]
 dbn_sources = [build.File('dbn.cpp')]
 graphprop_sources = [build.File('graphprop.cpp')]
 counter_sources = [build.File('counter.cpp')]
@@ -50,6 +51,7 @@ config.CheckLibWithHeader('env', 'crl/env_ffg.hpp', 'cpp')
 config.CheckLibWithHeader('graphprop', 'crl/env_graphprop.hpp', 'cpp')
 config.CheckCXXHeader('rlglue/Agent_common.h')
 has_spudd = config.CheckLib('spudd', language='C++')
+has_libdai = config.CheckLib('dai', language='C++')
 env = config.Finish()
 
 lib_targets = []
@@ -69,6 +71,9 @@ bin_targets += [counter]
 if has_spudd:
         spudd = env.Program(bin.Entry('spudd'), spudd_sources, LIBS=['env','graphprop','crl','pthread','gtest','gtest_main'])
         bin_targets += [spudd]
+if has_libdai:
+        approxalp = env.Program(bin.Entry('approxalp'), approxalp_sources, LIBS=['env','crl','dai','gmpxx','gmp','pthread','gtest','gtest_main'])
+bin_targets += [approxalp]
 
 if prefix != Dir('.'):
 	for header in headers:
@@ -84,11 +89,14 @@ for target in lib_targets+bin_targets:
 env.PrependENVPath('LD_LIBRARY_PATH', lib_paths)
 gtest_alias = env.Alias('test', example, example[0].abspath)
 gtest_alias = env.Alias('test', alp, alp[0].abspath)
+gtest_alias = env.Alias('test', approxalp, approxalp[0].abspath)
 gtest_alias = env.Alias('test', dbn, dbn[0].abspath)
-gtest_alias = env.Alias('test', graphprop, alp[0].abspath)
+gtest_alias = env.Alias('test', graphprop, graphprop[0].abspath)
 gtest_alias = env.Alias('test', counter, counter[0].abspath)
 if has_spudd:
         gtest_alias = env.Alias('test', spudd, spudd[0].abspath)
+if has_libdai:
+        gtest_alias = env.Alias('test', approxalp, approxalp[0].abspath)
 env.AlwaysBuild(gtest_alias)
 
 # TODO: add configuration files from ./cfgs as required
@@ -100,6 +108,7 @@ dist_files += [inc.Entry(header) for header in headers]
 
 dist_files += [src.Entry(example_source) for example_source in example_sources] 
 dist_files += [src.Entry(alp_source) for alp_source in alp_sources] 
+dist_files += [src.Entry(approxalp_source) for approxalp_source in approxalp_sources] 
 dist_files += [src.Entry(dbn_source) for dbn_source in dbn_sources] 
 dist_files += [src.Entry(graphprop_source) for graphprop_source in graphprop_sources] 
 dist_files += [src.Entry(counter_source) for counter_source in counter_sources] 

@@ -103,12 +103,15 @@ protected:
     }
   }
   /// \brief Helper function to erase either state or action factor from this function's subdomain
-  void eraseFactor(Size i, SizeVec& vec) {
+  /// \return True iff `i' existed in vec
+  bool eraseFactor(Size i, SizeVec& vec) {
     SizeVec::iterator it = std::lower_bound(vec.begin(), vec.end(), i);
     if(it != vec.end() && (*it) == i) {
       vec.erase(it);
       _computed = false;
+      return true;
     }
+    return false;
   }
 public:
   /// \brief ctor
@@ -269,23 +272,23 @@ public:
     }
   }
   /// \brief Erase state factor `i' from the scope of this function
-  virtual void eraseStateFactor(Size i) {
+  virtual bool eraseStateFactor(Size i) {
     assert(i < _domain->getNumStateFactors());
-    eraseFactor(i, _state_dom);
+    return eraseFactor(i, _state_dom);
   }
   /// \brief Erase action factor `i' from the scope of this function
-  virtual void eraseActionFactor(Size i) {
+  virtual bool eraseActionFactor(Size i) {
     assert(i < _domain->getNumActionFactors());
-    eraseFactor(i, _action_dom);
+    return eraseFactor(i, _action_dom);
   }
   /// \brief Erase action or state factor `i' from the scope of this function
   /// \note If `i' is greater than the number of state factors in the (global) domain, it is assumed to be an action factor.
-  void eraseFactor(Size i) {
+  bool eraseFactor(Size i) {
       if(i < _domain->getNumStateFactors()) {
-          eraseStateFactor(i);
+          return eraseStateFactor(i);
       }
       else {
-          eraseActionFactor(i - _domain->getNumStateFactors());
+          return eraseActionFactor(i - _domain->getNumStateFactors());
       }
   }
   /// \brief Reduce the domain of every lifted factor that contains state factor `i'
@@ -337,6 +340,100 @@ public:
       _lifted_dom.erase(it);
       _computed = false;
     }
+  }
+  /// \brief Compress this function by selectively removing variables from lifted scopes and introducing them as proper variables.
+  /// Greedy algorithm terminates when compression is maximal
+  /// \param delVars If supplied, this `old_hash -> var' mapping is filled with the variables deleted from each counter during compression
+  /// \return An array of <old_hash,new_hash> (sorted by the former) for those lifted factors modified by this function
+  virtual std::vector<std::pair<std::size_t,std::size_t>> compress(std::unordered_multimap<std::size_t,Size>* delVars = nullptr) {
+    static std::vector<bool> s_vars(_domain->getNumStateFactors());
+    typedef std::unordered_multimap<Size,Size> SizeMap;
+    // fill bit-vector of enabled proper variables
+    std::fill(s_vars.begin(), s_vars.end(), 0);
+    for(auto i : getStateFactors()) {
+        s_vars[i] = true;
+    }
+
+    SizeVec counter_sz(_lifted_dom.size()); // counter scope sizes
+    std::vector<std::size_t> o_hashes(_lifted_dom.size()); // counter hashes before mod
+    SizeVec counter_sz_red(_lifted_dom.size()); // reduced counter scope sizes
+    SizeMap uom; // state factor to (multiple) counter mapping
+    SizeVec::size_type i = 0;
+    for(auto it = _lifted_dom.begin(); it != _lifted_dom.end(); ++it) { // sorted
+        o_hashes[i] = (*it)->getHash();
+        counter_sz[i] = (*it)->getStateFactors().size()+1;
+        counter_sz_red[i] = counter_sz[i]-1;
+        assert(counter_sz_red[i] > 0);
+        for(Size j : (*it)->getStateFactors()) {
+          uom.emplace(j,i);
+        }
+        i++;
+    }
+    // determine next variable to promote to `proper' TODO: does this require next `best' choice?
+    std::vector<std::size_t> n_hashes(o_hashes); // counter hashes after mod
+    for(auto pit = uom.begin(); pit != uom.end(); ) {
+        const Size var = pit->first; // var under consideration
+        const auto range = uom.equal_range(var);
+        const auto end = range.second;
+        // size comparison
+        Size sz = 1;
+        Size sz_red = 2;
+        for (; pit != end; ++pit) {
+            sz *= counter_sz[pit->second];
+            sz_red *= counter_sz_red[pit->second];
+        }
+        if(s_vars[var] || sz_red < sz) { // if analogous `proper' variable already exists or better size possible
+            addStateFactor(var);
+            // erase element from corresponding counters
+            std::for_each(range.first, range.second, [&](SizeMap::value_type& v) {
+              assert(_lifted_dom[v.second]->containsStateFactor(v.first));
+              _lifted_dom[v.second]->eraseStateFactor(v.first);
+              auto n_hash = _lifted_dom[v.second]->getHash(); // new hash
+              if(_lifted_dom[v.second]->empty()) {
+                  n_hash = _LiftedFactor::EMPTY_HASH;
+              }
+              n_hashes[v.second] = n_hash;
+              // update counters
+              counter_sz[v.second] = counter_sz_red[v.second];
+              counter_sz_red[v.second] = counter_sz_red[v.second] > 1 ? counter_sz_red[v.second]-1 : 1;
+              // optionally store deleted variables
+              if(delVars) {
+                delVars->emplace(o_hashes[v.second],v.first);
+              }
+            });
+            // update mapping
+            uom.erase(range.first, range.second);
+            _computed = false;
+            pit = uom.begin(); // restart passes over uom
+        }
+    }
+
+    std::vector<std::pair<std::size_t,std::size_t>> retVec;
+    for(int i = 0; i < o_hashes.size(); i++) {
+        if(o_hashes[i] != n_hashes[i]) {
+          retVec.emplace_back(std::make_pair(o_hashes[i], n_hashes[i]));
+        }
+    }
+
+    // clean up modified _lifted_dom
+    if(!retVec.empty()) {
+      std::sort(_lifted_dom.begin(),_lifted_dom.end(),lifted_comp); // re-sort
+      // check whether duplicate counter scope has been created
+      LiftedFactor lf = boost::make_shared<_LiftedFactor>(std::initializer_list<Size>{});
+      for(const auto& p : retVec) {
+        lf->setHash(p.second);
+        if(p.second == _LiftedFactor::EMPTY_HASH) {
+            eraseLiftedFactor(lf);
+        }
+        else {
+            auto r = std::equal_range(_lifted_dom.begin(), _lifted_dom.end(), lf, lifted_comp);
+            if(std::distance(r.first,r.second)>1) { // duplicate counter
+                _lifted_dom.erase(r.first,r.second-1); // leave only one in _lifted_dom
+            }
+        }
+      }
+    }
+    return retVec;
   }
 
   /// \brief Join state and action factor scopes of this function with the supplied ones
@@ -782,13 +879,15 @@ public:
         _DiscreteFunction<T>::addActionFactor(i);
         _packed = _DiscreteFunction<T>::_computed;
     }
-    virtual void eraseStateFactor(Size i) override {
-        _DiscreteFunction<T>::eraseStateFactor(i);
+    virtual bool eraseStateFactor(Size i) override {
+        bool res = _DiscreteFunction<T>::eraseStateFactor(i);
         _packed = _DiscreteFunction<T>::_computed;
+        return res;
     }
-    virtual void eraseActionFactor(Size i) override {
-        _DiscreteFunction<T>::eraseActionFactor(i);
+    virtual bool eraseActionFactor(Size i) override {
+        bool res = _DiscreteFunction<T>::eraseActionFactor(i);
         _packed = _DiscreteFunction<T>::_computed;
+        return res;
     }
     virtual void join(const SizeVec& state_dom, const SizeVec& action_dom, const LiftedVec& lifted_dom) override {
       _DiscreteFunction<T>::join(state_dom, action_dom, lifted_dom);
