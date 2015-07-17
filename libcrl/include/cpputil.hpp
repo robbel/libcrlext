@@ -609,12 +609,12 @@ public:
     if(!_identity) {
       return _uo.at(i);
     }
-    else /*if(i < dom_size)*/ {
+    else if(i < dom_size) {
       return i;
     }
-//    else {
-//      throw IndexException(i, dom_size, "inverse_map");
-//    }
+    else {
+      throw IndexException(i, dom_size, "inverse_map");
+    }
   }
   const std::unordered_map<T,typename std::vector<T>::size_type>& map() const {
       return _uo;

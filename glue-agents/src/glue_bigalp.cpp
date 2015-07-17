@@ -132,8 +132,8 @@ int main(int argc, char** argv) {
         }
 #endif
 
-      //LOG_INFO("Variables: " << ranges.size());
-      for(Size fa = 0; fa < ranges.size(); fa++) { // assumption: DBN covers all domain variables
+      LOG_INFO("Variables: " << ranges.size());
+      for(Size fa = 0; fa < 10; fa++) {
           auto I_o = boost::make_shared<_Indicator<Reward>>(_domain, SizeVec({fa}), State(_domain,0));
           _StateIncrementIterator sitr(I_o->getSubdomain());
           while(sitr.hasNext()) {
@@ -141,14 +141,6 @@ int main(int argc, char** argv) {
               fval->addBasisFunction(std::move(I), 0.);
           }
       }
-//      for(Size fa = 0; fa < 4; fa+=2) {
-//          auto I_o = boost::make_shared<_Indicator<Reward>>(_domain, SizeVec({fa,fa+1}), State(_domain,0));
-//          _StateIncrementIterator sitr(I_o->getSubdomain());
-//          while(sitr.hasNext()) {
-//              auto I = boost::make_shared<_Indicator<Reward>>(_domain, SizeVec({fa,fa+1}), sitr.next());
-//              fval->addBasisFunction(std::move(I), 0.);
-//          }
-//      }
 
       // run the ALP planner
       _alpp = boost::make_shared<_ALPPlanner>(fmdp, 0.9);
