@@ -9,9 +9,9 @@ if float(sys.version[:3]) <= 2.3:
 from csv_util import *
 from os_util import *
 
-exp_quiet = True
-env_quiet = True
-agent_quiet = True
+exp_quiet = False
+env_quiet = False
+agent_quiet = False
 
 single_instance = None
 
@@ -115,7 +115,7 @@ def performInstanceRun(host, (instance_dir, run, instance), rand_seed, experimen
     time.sleep(.1) #so the server is always ready for the things connecting
     exp_str = 'glue_exp -seed '+`rand_seed`+' -csv '+`instance.trials`+' '+`instance.steps`+' "'+log_file+'" "'+experiment_name+'"'
     exp_id = launchProcess(None, None, exp_str, False, exp_quiet, RLGLUE_HOST=exp_host, RLGLUE_PORT=`port`)
-    agent_id = launchProcess(host, agent.cwd, agent.command, False, agent_quiet, RLGLUE_HOST=exp_host, RLGLUE_PORT=`port`)
+    agent_id = launchProcess(host, agent.cwd, agent.command, True, agent_quiet, RLGLUE_HOST=exp_host, RLGLUE_PORT=`port`)
     env_id = launchProcess(host, env.cwd, env.command, False, env_quiet, RLGLUE_HOST=exp_host, RLGLUE_PORT=`port`)
     
     agent_str = agent.command
