@@ -53,7 +53,8 @@ def mean_confidence_interval(data, confidence=0.95):
     #m, se = mean(a), scipy.stats.stderr(a) # deprecated
     m, se = mean(a), scipy.stats.sem(a)
     # calls the inverse CDF of the Student's t distribution
-    h = se * scipy.stats.t._ppf((1+confidence)/2., n-1)
+    #h = se * scipy.stats.t._ppf((1+confidence)/2., n-1)
+    h = se * scipy.stats.t.ppf((1+confidence)/2., n-1)
     return h
     
 def errorCSVs(in_csvs):

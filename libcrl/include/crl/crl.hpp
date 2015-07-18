@@ -168,6 +168,26 @@ public:
 typedef boost::shared_ptr<_NullPolicy> NullPolicy;
 
 /**
+ * A simple policy (no planning) that returns the same action as the current state
+ */
+class _CopyStatePolicy : public _Policy {
+protected:
+	Domain _domain;
+public:
+	_CopyStatePolicy(const Domain& domain)
+	: _domain(domain) { }
+	virtual ~_CopyStatePolicy() { }
+	virtual Action getAction(const State& s) override {
+		Action ret(_domain);
+		for(Size i = 0; i < _domain->getNumActionFactors(); i++) {
+		      ret.setFactor(i, s.getFactor(i));
+		}
+		return ret;
+	}
+};
+typedef boost::shared_ptr<_CopyStatePolicy> CopyStatePolicy;
+
+/**
  * Interface for something that learns from experience.
  * \note State and Observation are polymorphic types (e.g., also BigState, BigObservation)
  */
