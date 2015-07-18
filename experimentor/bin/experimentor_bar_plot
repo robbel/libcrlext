@@ -37,10 +37,10 @@ errno = 0
 lines = []
 for y in ys:
 	if not err_csv:
-		line, = pylab.plot(xs, y, 'o-', marker=marker.next(), markersize=6, markerfacecolor='none',markeredgecolor=colors.next(),markeredgewidth=1.0)
+		line, = pylab.plot(xs, y, 'o-', marker=marker.next(), markersize=10, markerfacecolor='none',markeredgecolor=colors.next(),markeredgewidth=1.0)
 		lines.append(line)
 	else:
-		errorbar = pylab.errorbar(xs, y, errs[errno], fmt='o-', marker=marker.next(), markersize=6, markerfacecolor='none',markeredgecolor=colors.next(),markeredgewidth=1.0)
+		errorbar = pylab.errorbar(xs, y, errs[errno], fmt='o-', marker=marker.next(), markersize=10, markerfacecolor='none',markeredgecolor=colors.next(),markeredgewidth=1.0)
                 errorbar[-1][0].set_linestyle(':')
 		lines.append(errorbar[0])
 	errno = errno + 1
