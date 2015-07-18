@@ -26,8 +26,7 @@ namespace {
 void parseLocation(std::string s, Size ub, SizeVec& dest, std::vector<bool>& map) {
   if(s.empty()) {
       //TODO: randomize assignment (and enforce that agentLoc != targetLoc
-//      throw InvalidException("Location randomization not implemented yet.");
-      LOG_WARN("No agents supplied.");
+      throw InvalidException("Location randomization not implemented yet.");
   }
   map.resize(ub);
   std::stringstream stream(s);
@@ -133,8 +132,8 @@ void _GraphProp::buildLiftedPlate(Size i, DBNFactor& fai, LRF& lrf) {
 
     // handle controlled nodes
     if(_agent_active[i]) {
-        // deterministic switch to `0' (`vaccination')
-        fai->setT(s, Action(faidom,1), 0, 1.0);
+        // deterministic switch to `1'
+        fai->setT(s, Action(faidom,1), 1, 1.0);
     }
   }
 
@@ -193,8 +192,8 @@ void _GraphProp::buildPlate(Size i, DBNFactor& fai, LRF& lrf) {
 
     // handle controlled nodes
     if(_agent_active[i]) {
-        // deterministic switch to `0' (`vaccination')
-        fai->setT(s, Action(faidom,1), 0, 1.0);
+        // deterministic switch to `1'
+        fai->setT(s, Action(faidom,1), 1, 1.0);
     }
   }
 
@@ -217,7 +216,7 @@ void _GraphProp::buildPlate(Size i, DBNFactor& fai, LRF& lrf) {
 }
 
 void _GraphProp::buildFactoredMDP(bool lifted) {
-  //assert(!_agent_locs.empty());
+  assert(!_agent_locs.empty());
   _fmdp = boost::make_shared<_FactoredMDP>(_domain);
 
   time_t start_time = time_in_milli();
@@ -342,7 +341,6 @@ BigState _GraphProp::begin() {
 // TODO make this a generic getObservation() for a `FactoredMDPEnvironment' (\see _MDPEnvironment)
 // FIXME: adjust for `lifted' version of problem
 BigObservation _GraphProp::getObservation(const Action& ja) {
-  static subdom_map n_map({}); // identity mapping
   Reward r = getReward(_current, ja);
   // prepare a new state
   BigState new_current = _current;
@@ -350,13 +348,7 @@ BigObservation _GraphProp::getObservation(const Action& ja) {
   const _DBN& T = _fmdp->T();
   for(int f = 0; f < T.size(); f++) {
       const DBNFactor& fa = T.factor(f);
-      //const ProbabilityVec& pvec = fa->T(_current, ja);
-      subdom_map s_map(fa->getDelayedDependencies());
-      for(const auto& lf : fa->getLiftedFactors()) {
-        s_map.append(lf->getHash());
-      }
-      subdom_map a_map(fa->getActionDependencies());
-      const ProbabilityVec& pvec = fa->T(_current, State(), ja, s_map, n_map, a_map);
+      const ProbabilityVec& pvec = fa->T(_current, ja);
 #if !NDEBUG
 //      Probability sum = std::accumulate(pvec.begin(), pvec.end(), 0.);
 //      assert(approxEq(sum,1.));
