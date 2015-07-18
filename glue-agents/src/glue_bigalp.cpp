@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
     LOG_INFO("This is the (experimental) ALP agent for currently the (big) GraphProp environment only.");
 
     if (argc != 3 && argc != 4) {
-        LOG_ERROR("Usage: " << argv[0] << " <config.xml> <graph.dat> [SPUDD-OPTDual.ADD file]");
+        LOG_ERROR("Usage: " << argv[0] << " <config.xml> <graph.dat> [Basis-weight-vector file]");
         return EXIT_FAILURE;
     }
 
@@ -150,22 +150,49 @@ int main(int argc, char** argv) {
 //          }
 //      }
 
-      // run the ALP planner
+      // initialize the ALP planner
       _alpp = boost::make_shared<_ALPPlanner>(fmdp, 0.9);
-
-      LOG_INFO("ALP planner planning for graphprop_" << argv[1] << "_" << argv[2] << "..");
-      long start_time = time_in_milli();
       _alpp->setFactoredValueFunction(fval); // this will be computed
-      int res = _alpp->plan();
-      long end_time = time_in_milli();
-      LOG_INFO("ALP planner returned after " << end_time - start_time << "ms");
 
-      if(res) {
-        LOG_ERROR("ALP planner failure: " << (res == 1 ? "generateLP()" : "solve()") << " failed"); // else: lp successfully generated
-        return EXIT_FAILURE;
+      if(argc == 4) {
+          LOG_INFO("Basis function weight vector supplied.");
+          // test if file exists
+          ifstream file(argv[3]);
+          if (!file) {
+              throw cpputil::InvalidException("File not found.");
+          }
+          // assume simply that basis function layout matches provided file
+          vector<double> weights;
+          std::string line;
+          while (std::getline(file, line)) {
+              double w_i = strtod(line.c_str(), NULL); // read preserving precision
+              weights.push_back(w_i);
+          }
+          if(weights.size() != fval->getWeight().size()) {
+              throw cpputil::InvalidException("Basis function layout does not match that in weight vector file.");
+          }
+          // assign weights to value function
+          vector<double>& vfnweights = fval->getWeight();
+          std::copy(weights.begin(), weights.end(), vfnweights.begin());
+          // compute backprojections
+          _alpp->precompute();
+
+          LOG_INFO("Value function successfully initialized.");
       }
+      else {
+          // run the ALP planner
+          LOG_INFO("ALP planner planning for graphprop_" << argv[1] << "_" << argv[2] << "..");
+          long start_time = time_in_milli();
+          int res = _alpp->plan();
+          long end_time = time_in_milli();
+          LOG_INFO("ALP planner returned after " << end_time - start_time << "ms");
 
-      LOG_INFO("ALP planner successfully initialized.");
+          if(res) {
+              LOG_ERROR("ALP planner failure: " << (res == 1 ? "generateLP()" : "solve()") << " failed"); // else: lp successfully generated
+              return EXIT_FAILURE;
+          }
+
+          LOG_INFO("ALP planner successfully initialized.");
 //#if !NDEBUG
 //        for(auto v : fval->getWeight()) {
 //          LOG_DEBUG(" W: " << std::fixed << v);
@@ -180,8 +207,8 @@ int main(int argc, char** argv) {
 //#endif
 
 #if 0
-        // compute some metrics given the optimal policy
-        if(argc == 4) {
+          // compute some metrics given the optimal policy
+          if(argc == 4) {
             _SpuddPolicy optpolicy(_domain, argv[3]);
             _StateIncrementIterator sitr(_domain);
             double Vmax = 0.;
@@ -222,8 +249,9 @@ int main(int argc, char** argv) {
             }
             LOG_INFO("[vi] L_inf = " << linf << " L_1 = " << l1);
 #endif
-        }
+          }
 #endif
+      }
 
     } catch(const cpputil::Exception& e) {
         LOG_ERROR(e);

@@ -47,7 +47,7 @@ TEST(ALPIntegrationTest, TestGraphpropExhaustiveBasis) {
   srand(time(NULL));
 
   string cfg = "../../graphprop/cfgs/default.xml";
-  string data = "../../graphprop/data/Gnp100.txt";
+  string data = "../../graphprop/data/rand30/Rand2.txt";
   ifstream iscfg(cfg);
   ifstream isdat(data);
   graphprop::GraphProp thegrp;
@@ -141,6 +141,15 @@ TEST(ALPIntegrationTest, TestGraphpropExhaustiveBasis) {
     for(auto w : fval->getWeight()) {
         LOG_INFO(" W: " << w);
     }
+#if !NDEBUG
+    LOG_DEBUG("Writing basis function weights to weights.txt");
+    {
+      ofstream file("weights.txt");
+      for(double w : fval->getWeight()) {
+        file << std::fixed << std::setprecision(std::numeric_limits<double>::digits10+2) << w << '\n';
+      }
+    }
+#endif
 
     // compare against value iteration solution if we have an exact LP solution (exhaustive basis function set)
     if(fval->getBasis().size() == domain->getNumStates()) {
