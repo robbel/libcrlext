@@ -1,0 +1,14 @@
+NOTES:
+======
+
+1. Graph statistics can be extracted via numpy as follows:
+
+	Adj = np.loadtxt(sys.argv[1],skiprows=1,dtype=np.float);
+	Adj.sum(axis=0).min()
+	np.mean(...)
+
+2. Animated graph movies:
+   Larger:
+	avconv -framerate 25 -f image2 -i sirs000%03d.png -c:v h264 -crf 1 out.mov
+   Smaller:
+	avconv -i sirs000%03d.png -r 25 -c:v libx264 -crf 20  -pix_fmt yuv420p out.mov
