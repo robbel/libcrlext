@@ -12,3 +12,13 @@ NOTES:
 	avconv -framerate 25 -f image2 -i sirs000%03d.png -c:v h264 -crf 1 out.mov
    Smaller:
 	avconv -i sirs000%03d.png -r 25 -c:v libx264 -crf 20  -pix_fmt yuv420p out.mov
+
+3. Gurobi presolving:
+
+	m=read("myModel.lp")
+	m_presolved=m.presolve()
+	m_presolved.write("myModel_presolved.lp") 
+
+4. Gurobi solving:
+	
+	gurobi_cl ResultFile=agents.sol model.lp

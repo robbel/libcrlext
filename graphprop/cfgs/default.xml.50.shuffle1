@@ -1,0 +1,12 @@
+<GraphProp>
+  <Nodes   count="50"/>
+  <Agents  count="25">35,3,45,37,47,31,1,8,18,49,42,20,30,46,34,27,22,4,15,5,41,29,25,33,32</Agents>
+  <Targets count="0"></Targets>
+  <Actions count="2"/>
+  <beta0   value="0.6"/>
+  <del0    value="0.3"/>
+  <lambda1 value="300"/>
+  <lambda2 value="50"/>
+  <lambda3 value="1"/>
+  <q0      value="0.5"/>
+</GraphProp>
