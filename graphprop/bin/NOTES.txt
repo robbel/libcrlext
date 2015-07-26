@@ -22,3 +22,29 @@ NOTES:
 4. Gurobi solving:
 	
 	gurobi_cl ResultFile=agents.sol model.lp
+	> Method=2 Crossover=0 (barrier; both parameters req'd for Crossover=0)
+	> Method=1 	       (dual simplex)
+	> Method=0 	       (primal simplex)
+
+5. Various Gurobi notes:
+
+   - NUMERICAL: ``Set NumericFocus in Gurobi (Default is 0, max is 3) when
+     encountering numeric instabilities.''
+   - CROSSOVER: ``You can suppress the crossover phase with 'Crossover=0' in 
+     the Gurobi_options. Then the solution that Gurobi returns will be optimal
+     (to within Gurobi's tolerances), just not necessarily basic. You can also
+     instead try 'crossoverbasis 1' which does run a crossover phase but is
+     supposed to be more numerically stable.''
+   - SCALING: ``This is usually a sign for very ill scaled problems or models 
+     that are almost (in)feasible. You could try to scale the problem yourself
+     before you pass it to Gurobi. Also you probably should disable the primal
+     and dual simplex algorithms as your problem is solved via the barrier 
+     solver much quicker (this is often the case for large/huge models). You 
+     could also try to turn on a more aggressive presolving in order to reduce
+     the problem size a bit. If you have some information about your problem 
+     you probably can come up with some sort of specialized presolving routine
+     for your problem and implement this in order to help Gurobi.''
+   - PRESOLVING: ``Presolve is dualizing your model, and that could be the
+     cause of some of your numerical trouble. You may want to try setting the
+     PreDual parameter to 0. The barrier iterations will probably get a lot
+     slower, but barrier iterations aren't your bottleneck.''
