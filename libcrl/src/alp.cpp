@@ -179,8 +179,8 @@ double factoredBellmanError(const Domain& domain, FactoredValueFunction& fval, c
 
   // run variable elimination for max_a
   FunctionSet<Reward> q_set = fval->getMaxQ();
-  LOG_DEBUG("MaxQ-Function has " << q_set.size() << " local terms.");
   auto qfns = q_set.getFunctions();
+  LOG_DEBUG("MaxQ-Function has " << qfns.size() << " local terms.");
 
   // multiply basis with w vector
   std::vector<DiscreteFunction<Reward>> modbasis;
