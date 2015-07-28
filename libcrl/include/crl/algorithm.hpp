@@ -143,6 +143,8 @@ DiscreteFunction<T> maximize(const _DiscreteFunction<T>* pf, Size i, bool known_
   f->_action_dom = pf->getActionFactors();
   f->eraseFactor(i);
   f->pack(-std::numeric_limits<T>::infinity());
+  const Size num_actions = f->_subdomain->getNumActions();
+  auto& vals = f->values();
 
   _StateActionIncrementIterator saitr(pf->getSubdomain());
   const subdom_map s_dom(pf->getStateFactors());
@@ -162,9 +164,52 @@ DiscreteFunction<T> maximize(const _DiscreteFunction<T>* pf, Size i, bool known_
       v = of ? (*pvals)[j++] : (*pf)(s,a);
       State ms = f->mapState(s,s_dom);
       Action ma = f->mapAction(a,a_dom);
-      if(v > (*f)(ms,ma)) {
-        f->define(ms,ma,v);
+      const auto idx = ms.getIndex()*num_actions+ma.getIndex();
+      if(v > vals[idx]) {
+          vals[idx] = v;
       }
+  }
+
+  return f;
+}
+
+/// \brief Marginalize the given function over a particular state or action variable `i' (i.e., `sum out' i)
+/// \param known_flat True iff function `pf' is known to be a \a _FDiscreteFunction (optimization)
+/// \return A new function that is marginalized over (and does not depend on) `i'
+/// \note If `i' is greater than the number of state factors, it is assumed to be an action factor
+template<class T>
+DiscreteFunction<T> marginalize(const _DiscreteFunction<T>* pf, Size i, bool known_flat) {
+  const _FDiscreteFunction<T>* of = is_flat(pf, known_flat);
+
+  // TODO: optimization paths for Indicator and ConstantFn
+  FDiscreteFunction<T> f = boost::make_shared<_FDiscreteFunction<T>>(pf->_domain);
+  f->_state_dom = pf->getStateFactors();
+  f->_action_dom = pf->getActionFactors();
+  f->eraseFactor(i);
+  f->pack();
+  const Size num_actions = f->_subdomain->getNumActions();
+  auto& vals = f->values();
+
+  _StateActionIncrementIterator saitr(pf->getSubdomain());
+  const subdom_map s_dom(pf->getStateFactors());
+  const subdom_map a_dom(pf->getActionFactors());
+  const std::vector<T>* pvals = nullptr;
+  typename std::vector<T>::size_type j = 0;
+  if(of) {
+      pvals = &of->values();
+  }
+
+  while(saitr.hasNext()) {
+      const std::tuple<State,Action>& sa = saitr.next();
+      const State& s = std::get<0>(sa);
+      const Action& a = std::get<1>(sa);
+      // determine sum
+      T v = 0;
+      v = of ? (*pvals)[j++] : (*pf)(s,a);
+      State ms = f->mapState(s,s_dom);
+      Action ma = f->mapAction(a,a_dom);
+      const auto idx = ms.getIndex()*num_actions+ma.getIndex();
+      vals[idx] += v;
   }
 
   return f;
