@@ -123,6 +123,15 @@ public:
 };
 typedef boost::shared_ptr<_FactoredValueFunction> FactoredValueFunction;
 
+//
+// Additional algorithm declarations
+//
+
+namespace algorithm {
+  /// \brief Computes the (factored) max. Bellman Error via variable elimination (given an \a elimination_order over state factors)
+  /// \note Copies functions internally since they are modified during maximization
+  double factoredBellmanError(const Domain& domain, FactoredValueFunction& fval, const SizeVec& elimination_order);
+}
 
 /**
  * A planner that uses an approximate linear program (ALP) along with a factored value function.

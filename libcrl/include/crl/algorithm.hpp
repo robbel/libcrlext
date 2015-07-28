@@ -159,10 +159,7 @@ DiscreteFunction<T> maximize(const _DiscreteFunction<T>* pf, Size i, bool known_
       const Action& a = std::get<1>(sa);
       // determine max over old function
       T v = 0;
-      if(of)
-          v = (*pvals)[j++];
-      else
-          v = (*pf)(s,a);
+      v = of ? (*pvals)[j++] : (*pf)(s,a);
       State ms = f->mapState(s,s_dom);
       Action ma = f->mapAction(a,a_dom);
       if(v > (*f)(ms,ma)) {
@@ -228,7 +225,7 @@ DiscreteFunction<T> join(std::initializer_list<DiscreteFunction<T>> funcs) {
 template<class T>
 std::tuple<std::vector<DiscreteFunction<T>>, std::vector<DiscreteFunction<T>>>
 variableElimination(FunctionSet<T>& F, const crl::SizeVec& elimination_order) {
-  LOG_DEBUG("Numer of variables to eliminate: " << elimination_order.size() << " out of " << F.getNumFactors());
+  LOG_DEBUG("Number of variables to eliminate: " << elimination_order.size() << " out of " << F.getNumFactors());
 
   std::vector<DiscreteFunction<T>> elim_cache;
   // store for functions that have reached empty scope

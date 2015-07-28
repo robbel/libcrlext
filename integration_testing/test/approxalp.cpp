@@ -177,6 +177,39 @@ TEST_F(ApproxALPTest, TestSysadminConstraintGeneration) {
   // TODO: check whether js,ja pair has already been inserted
 }
 
+///
+/// \brief Test factored Bellman Error computation
+///
+TEST_F(ApproxALPTest, TestSysadminFactoredBE) {
+  srand(time(NULL));
+
+  //
+  // Run the ALP planner (with exact representation of non-linear max constraint)
+  //
+
+  long start_time = time_in_milli();
+  int res = _planner->plan();
+  long end_time = time_in_milli();
+  LOG_INFO("FALP planner returned after " << end_time - start_time << "ms");
+  EXPECT_EQ(res, 0) << "ALP " << (res == 1 ? "generateLP()" : "solve()") << " failed"; // else: lp successfully generated
+
+  if(!res) { // success
+    LOG_INFO("Results:");
+    for(auto w : _fval->getWeight()) {
+        LOG_INFO(" W: " << w);
+    }
+
+    // compute Bellman error
+    const SizeVec elim_order = cpputil::ordered_vec<Size>(_domain->getNumStateFactors());
+    double beval = algorithm::factoredBellmanError(_domain, _fval, elim_order);
+    LOG_INFO("Bellman error: " << beval);
+
+  }
+  else {
+    FAIL();
+  }
+  SUCCEED();
+}
 
 ///
 /// \todo
