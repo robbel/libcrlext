@@ -204,6 +204,14 @@ TEST_F(ApproxALPTest, TestSysadminFactoredBE) {
     double beval = algorithm::factoredBellmanError(_domain, _fval, elim_order);
     LOG_INFO("Bellman error: " << beval);
 
+    // compute Bellman residual `integral' over entire state space
+    auto retFns = algorithm::factoredBellmanResidual(_domain, _fval, elim_order, algorithm::marginalize);
+    double sumVal = 0.;
+    for(const auto& empty_fn : std::get<1>(retFns)) {
+        sumVal += empty_fn->eval(State(),Action());
+    }
+    LOG_INFO("Bellman residual integral: " << sumVal);
+
   }
   else {
     FAIL();

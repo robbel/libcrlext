@@ -266,10 +266,11 @@ DiscreteFunction<T> join(std::initializer_list<DiscreteFunction<T>> funcs) {
 
 /// \brief Runs variable elimination on the provided \a FunctionSet (the forward pass).
 /// The function set itself is modified in the process.
+/// \param op A function pointer denoting whether to perform max (MAP) or sum (marginalization)
 /// \return A tuple of (0) the generated intermediate functions, and (1) the generated functions with empty scope
-template<class T>
+template<class T, class Op = DiscreteFunction<T> (*)(const _DiscreteFunction<T>*, Size, bool)>
 std::tuple<std::vector<DiscreteFunction<T>>, std::vector<DiscreteFunction<T>>>
-variableElimination(FunctionSet<T>& F, const crl::SizeVec& elimination_order) {
+variableElimination(FunctionSet<T>& F, const crl::SizeVec& elimination_order, Op op = algorithm::maximize) {
   LOG_DEBUG("Number of variables to eliminate: " << elimination_order.size() << " out of " << F.getNumFactors());
 
   std::vector<DiscreteFunction<T>> elim_cache;
@@ -285,7 +286,7 @@ variableElimination(FunctionSet<T>& F, const crl::SizeVec& elimination_order) {
       }
 
       DiscreteFunction<T> esum = algorithm::join(r);
-      DiscreteFunction<T> emax = algorithm::maximize(esum.get(), v, false);
+      DiscreteFunction<T> emax = op(esum.get(), v, false);
       elim_cache.push_back(std::move(esum));
       F.eraseFactor(v);
       if(emax->getSubdomain()->getNumStateFactors() == 0 && emax->getSubdomain()->getNumActionFactors() == 0) {
