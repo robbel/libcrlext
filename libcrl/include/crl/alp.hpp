@@ -167,9 +167,7 @@ namespace algorithm {
             modbasis.push_back(std::move(wh));
         }
     }
-
-    // TODO: should just look for function that encompasses scope, they'll be joined in
-    // variable elimination anyway
+    // negate maxQ
     std::vector<DiscreteFunction<Reward>> modqfns;
     for(const auto& qf : qfns) {
         // supports only FDiscreteFunction for now
@@ -184,11 +182,11 @@ namespace algorithm {
     FunctionSet<Reward> F(domain);
     for(auto& bp : modqfns) {
         assert(bp->getSubdomain()->getNumStateFactors() != 0);
-        F.insert(bp);
+        F.insert(std::move(bp));
     }
     for(auto& b : modbasis) {
         assert(b->getSubdomain()->getNumStateFactors() != 0);
-        F.insert(b);
+        F.insert(std::move(b));
     }
 
     return algorithm::variableElimination(F, elimination_order, op);
