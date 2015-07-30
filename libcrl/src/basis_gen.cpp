@@ -24,12 +24,12 @@ void scoreBasis(const Domain& domain, const _DiscreteFunction<Reward>* basis, co
   const SizeVec elim_order = get_state_vars(domain, basis->getStateFactors());
   // evaluate max over basis function
   auto facfn = factoredBellmanResidual(domain, fval, elim_order, algorithm::maximize);
-  double maxVal = evalOpBasis(basis, facfn, false, -std::numeric_limits<double>::infinity(),
+  double maxVal = evalOpOverBasis(basis, facfn, false, -std::numeric_limits<double>::infinity(),
                               [](Reward& v1, Reward& v2) { if(v2 > v1) { v1 = v2; } });
 
   // evaluate min over basis function
   facfn = factoredBellmanResidual(domain, fval, elim_order, algorithm::minimize);
-  double minVal = evalOpBasis(basis, facfn, false, std::numeric_limits<double>::infinity(),
+  double minVal = evalOpOverBasis(basis, facfn, false, std::numeric_limits<double>::infinity(),
                               [](Reward& v1, Reward& v2) { if(v2 < v1) { v1 = v2; } });
   minVal = minVal < 0. ? 0. : minVal;
 
@@ -38,7 +38,7 @@ void scoreBasis(const Domain& domain, const _DiscreteFunction<Reward>* basis, co
 
   // evaluate marginal under basis
   facfn = factoredBellmanMarginal(domain, basis->getStateFactors(), fval);
-  double marVal = evalOpBasis(basis, facfn, false, 0.,
+  double marVal = evalOpOverBasis(basis, facfn, false, 0.,
                               [](Reward& v1, Reward& v2) { v1 += v2; });
   LOG_DEBUG("Marginal under feature: " << marVal);
 }

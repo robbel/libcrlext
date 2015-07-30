@@ -367,7 +367,7 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
     basis.addStateFactor(1);
     basis.pack(1); // set everywhere to enabled
     std::get<0>(tplBe) = std::move(F.getFunctions()); // make tplBe a valid `FactoredFunction'
-    beval2 = algorithm::evalOpBasis(&basis, tplBe, true, -std::numeric_limits<double>::infinity(),
+    beval2 = algorithm::evalOpOverBasis(&basis, tplBe, true, -std::numeric_limits<double>::infinity(),
                                     [](Reward& v1, Reward& v2) { if(v2 > v1) { v1 = v2; } });
     EXPECT_NEAR(beval, beval2, 1e-14);
 
@@ -378,7 +378,7 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
         I.addStateFactor(1);
         const State dummy_s(domain,fa);
         I.setState(dummy_s);
-        double v = algorithm::evalOpBasis(&I, tplBe, false, -std::numeric_limits<double>::infinity(),
+        double v = algorithm::evalOpOverBasis(&I, tplBe, false, -std::numeric_limits<double>::infinity(),
                                           [](Reward& v1, Reward& v2) { if(v2 > v1) { v1 = v2; } });
         LOG_DEBUG("Indicator on `Factor_1 == " << fa << " covers max BE of " << v);
         if(v > maxVal) {

@@ -16,6 +16,52 @@
 
 namespace crl {
 
+/**
+ * \todo
+ */
+class BasisScore {
+protected:
+  /// \brief The (global) domain
+  Domain _domain;
+  /// \brief The factored value function for which weights will be computed
+  FactoredValueFunction _value_fn;
+public:
+  BasisScore(const Domain& domain)
+  : _domain(domain) { }
+
+  /// \brief The (solved) factored value function that will be used for scoring
+  void setFactoredValueFunction(FactoredValueFunction vfn) {
+    _value_fn = std::move(vfn);
+  }
+
+  /// \brief The (abstract) scoring function for the given basis function
+  virtual double score(const _DiscreteFunction<Reward>* basis) const = 0;
+};
+
+/**
+ * \todo
+ */
+class EpsilonScore : public BasisScore {
+  /// \todo
+  virtual double score(const _DiscreteFunction<Reward>* basis) const {
+    return 0.;
+  }
+};
+
+/**
+ * \todo
+ */
+class BEBFScore : public BasisScore {
+  /// \todo
+  virtual double score(const _DiscreteFunction<Reward>* basis) const {
+    return 0.;
+  }
+};
+
+//
+// Algorithms for basis function evaluation
+//
+
 namespace algorithm {
 
 /// \brief Score a basis function under different criteria
@@ -24,7 +70,7 @@ void scoreBasis(const Domain& domain, const _DiscreteFunction<Reward>* basis, co
 /// \brief Perform a given operation (e.g., max, min, sum) on the \a FactoredFunction for all values where the basis is `active'
 /// \note Assumes that the FactoredFunction is defined over the same domain as `basis'
 template<class T, class BinOp>
-T evalOpBasis(const _DiscreteFunction<T>* basis, const FactoredFunction<T>& facfn, bool known_flat, T init, BinOp binOp) {
+T evalOpOverBasis(const _DiscreteFunction<T>* basis, const FactoredFunction<T>& facfn, bool known_flat, T init, BinOp binOp) {
   assert(basis->getActionFactors().empty());
   // optimization path for basis functions with tabular storage
   const _FDiscreteFunction<T>* of = is_flat(basis, known_flat);
