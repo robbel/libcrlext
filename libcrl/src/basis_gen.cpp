@@ -16,4 +16,20 @@ using namespace std;
 
 namespace crl {
 
+namespace algorithm {
+
+double scoreBasis(const Domain& domain, const DiscreteFunction<Reward>& basis, const FactoredValueFunction& fval) {
+  assert(basis->getActionFactors().empty());
+  // remove variables (here: under `max') to reach basis' domain
+  const SizeVec elim_order = get_state_vars(domain, basis->getStateFactors());
+  const auto facfn = factoredBellmanResidual(domain, fval, elim_order, algorithm::maximize);
+
+  // evaluate basis function
+  double v = evalOpBasis(basis.get(), facfn, false, -std::numeric_limits<double>::infinity(),
+                         [](Reward& v1, Reward& v2) { if(v2 > v1) { v1 = v2; } });
+  return v;
+}
+
+} // namespace algorithm
+
 } // namespace crl

@@ -174,7 +174,7 @@ void _FactoredValueFunction::discount() {
 
 namespace algorithm {
 
-FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, FactoredValueFunction& fval, bool adjust) {
+FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, const FactoredValueFunction& fval, bool adjust) {
   assert(fval->getWeight().size() == fval->getBasis().size());
   assert(!(adjust && domain->isBig()));
   const Size num_states = domain->getNumStates();
@@ -233,7 +233,7 @@ FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, FactoredVal
   return F;
 }
 
-double factoredBellmanError(const Domain& domain, FactoredValueFunction& fval, const SizeVec& elimination_order) {
+double factoredBellmanError(const Domain& domain, const FactoredValueFunction& fval, const SizeVec& elimination_order) {
   assert(elimination_order.size() == domain->getNumStateFactors());
   // maximize over all state factors
   auto retFns = factoredBellmanResidual(domain, fval, elimination_order, algorithm::maximize);
@@ -247,7 +247,7 @@ double factoredBellmanError(const Domain& domain, FactoredValueFunction& fval, c
   return maxVal;
 }
 
-FactoredFunction<Reward> factoredBellmanMarginal(const Domain& domain, const SizeVec& cvars, FactoredValueFunction& fval) {
+FactoredFunction<Reward> factoredBellmanMarginal(const Domain& domain, const SizeVec& cvars, const FactoredValueFunction& fval) {
   assert(!domain->isBig());
   // Obtain the variables to marginalize out
   SizeVec delVars = get_state_vars(domain, cvars);

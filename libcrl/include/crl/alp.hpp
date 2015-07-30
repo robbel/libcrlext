@@ -139,7 +139,7 @@ namespace algorithm {
   /// \brief Collect basis and max-Q functionals and return modified copies (e.g., after multiplication with weight vector)
   /// \note Helper function for factored Bellman error and residual computations
   /// \param adjust True iff all terms should be adjusted according to their coverage of the state space (useful for marginal computations)
-  FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, FactoredValueFunction& fval, bool adjust = false);
+  FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, const FactoredValueFunction& fval, bool adjust = false);
 
   //
   // Main algorithms
@@ -148,7 +148,7 @@ namespace algorithm {
   /// \param op A function pointer denoting the operation to perform (e.g., max or min)
   /// \return A tuple of (0) the generated functions with variable dependencies, and (1) the generated functions with empty scope
   template<class Op = DiscreteFunction<Reward> (*)(const _DiscreteFunction<Reward>*, Size, bool)>
-  FactoredFunction<Reward> factoredBellmanResidual(const Domain& domain, FactoredValueFunction& fval, const SizeVec& elimination_order, Op op) {
+  FactoredFunction<Reward> factoredBellmanResidual(const Domain& domain, const FactoredValueFunction& fval, const SizeVec& elimination_order, Op op) {
     FunctionSet<Reward> F = factoredBellmanFunctionals(domain, fval);
     // run variableElimination over state factors
     auto elimTpl = algorithm::variableElimination(F, elimination_order, op);
@@ -160,9 +160,9 @@ namespace algorithm {
   /// \brief Compute Bellman marginal, i.e., sum out all variables from residual except those in \a vars
   /// \param vars The variables spanning the domain of the returned marginal functions
   /// \return A tuple of (0) the generated functions that depend on \a vars, and (1) the generated functions with empty scope
-  FactoredFunction<Reward> factoredBellmanMarginal(const Domain& domain, const SizeVec& vars, FactoredValueFunction& fval);
+  FactoredFunction<Reward> factoredBellmanMarginal(const Domain& domain, const SizeVec& vars, const FactoredValueFunction& fval);
   /// \brief Computes the (factored) max. Bellman Error via variable elimination (given an \a elimination_order over all state factors)
-  double factoredBellmanError(const Domain& domain, FactoredValueFunction& fval, const SizeVec& elimination_order);
+  double factoredBellmanError(const Domain& domain, const FactoredValueFunction& fval, const SizeVec& elimination_order);
 }
 
 /**

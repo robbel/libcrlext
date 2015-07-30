@@ -18,6 +18,9 @@ namespace crl {
 
 namespace algorithm {
 
+/// \brief Score a basis function under different criteria (here: max Bellman error covered by `basis')
+double scoreBasis(const Domain& domain, const DiscreteFunction<Reward>& basis, const FactoredValueFunction& fval);
+
 /// \brief Perform a given operation (e.g., max, min, sum) on the \a FactoredFunction for all values where the basis is `active'
 /// \note Assumes that the FactoredFunction is defined over the same domain as `basis'
 template<class T, class BinOp>
