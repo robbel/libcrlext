@@ -45,10 +45,9 @@ namespace algorithm {
 template<class T> T sum_over_domain(const crl::_DiscreteFunction<T>* pf, bool known_flat);
 template<class T> DiscreteFunction<T> instantiate(const _DiscreteFunction<T>* pf, const State& s, bool known_flat);
 template<class T> std::vector<T> slice(const _DiscreteFunction<T>* pf, Size i, const State&s, const Action& a);
-template<class T> DiscreteFunction<T> maximize(const _DiscreteFunction<T>* pf, Size i, bool known_flat);
-template<class T> DiscreteFunction<T> marginalize(const _DiscreteFunction<T>* pf, SizeVec vars, bool known_flat);
 template<class T> DiscreteFunction<T> join(cpputil::Iterator<DiscreteFunction<T>>& funcs);
 template<class T> std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F, const crl::SizeVec& elimination_order);
+template<class T, class BinOp> DiscreteFunction<T> genericOp(const _DiscreteFunction<T>* pf, SizeVec vars, bool known_flat, T init, BinOp binOp);
 
 }
 
@@ -71,11 +70,12 @@ template<class T>
 class _DiscreteFunction {
   // friend declarations
   friend DiscreteFunction<T> algorithm::instantiate<T>(const _DiscreteFunction<T>* pf, const State& s, bool known_flat);
-  friend DiscreteFunction<T> algorithm::maximize<T>(const _DiscreteFunction<T>* pf, Size i, bool known_flat);
-  friend DiscreteFunction<T> algorithm::marginalize<T>(const _DiscreteFunction<T>* pf, SizeVec vars, bool known_flat);
   friend DiscreteFunction<T> algorithm::join<T>(cpputil::Iterator<DiscreteFunction<T>>& funcs);
   friend std::vector<T> algorithm::slice<T>(const _DiscreteFunction<T>* pf, Size i, const State&s, const Action& a);
   friend std::tuple<Action,T> algorithm::argVariableElimination<T>(FunctionSet<T>& F, const crl::SizeVec& elimination_order);
+  // C++ does not allow partial specialization of template friends; hence specified for types U, BinOp
+  template<class U, class BinOp>
+  friend DiscreteFunction<U> algorithm::genericOp(const _DiscreteFunction<U>* pf, SizeVec vars, bool known_flat, U init, BinOp binOp);
   // operator overloads
   friend std::ostream& operator<< <>(std::ostream& os, const _DiscreteFunction<T>& f);
 protected:

@@ -129,7 +129,7 @@ typedef boost::shared_ptr<_FactoredValueFunction> FactoredValueFunction;
 
 namespace algorithm {
   /// \brief Helper functions for factored Bellman error and residual computations
-  /// \param adjust True iff all terms should be adjusted according to their coverage ov the state space (useful for marginal computations)
+  /// \param adjust True iff all terms should be adjusted according to their coverage of the state space (useful for marginal computations)
   FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, FactoredValueFunction& fval, bool adjust = false);
   /// \brief Computes the (factored) max. Bellman Error via variable elimination (given an \a elimination_order over all state factors)
   /// \note Copies functions internally since they are modified during maximization
