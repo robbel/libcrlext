@@ -18,16 +18,29 @@ namespace crl {
 
 namespace algorithm {
 
-double scoreBasis(const Domain& domain, const DiscreteFunction<Reward>& basis, const FactoredValueFunction& fval) {
+void scoreBasis(const Domain& domain, const _DiscreteFunction<Reward>* basis, const FactoredValueFunction& fval) {
   assert(basis->getActionFactors().empty());
-  // remove variables (here: under `max') to reach basis' domain
+  // remove variables to reach basis' domain
   const SizeVec elim_order = get_state_vars(domain, basis->getStateFactors());
-  const auto facfn = factoredBellmanResidual(domain, fval, elim_order, algorithm::maximize);
+  // evaluate max over basis function
+  auto facfn = factoredBellmanResidual(domain, fval, elim_order, algorithm::maximize);
+  double maxVal = evalOpBasis(basis, facfn, false, -std::numeric_limits<double>::infinity(),
+                              [](Reward& v1, Reward& v2) { if(v2 > v1) { v1 = v2; } });
 
-  // evaluate basis function
-  double v = evalOpBasis(basis.get(), facfn, false, -std::numeric_limits<double>::infinity(),
-                         [](Reward& v1, Reward& v2) { if(v2 > v1) { v1 = v2; } });
-  return v;
+  // evaluate min over basis function
+  facfn = factoredBellmanResidual(domain, fval, elim_order, algorithm::minimize);
+  double minVal = evalOpBasis(basis, facfn, false, std::numeric_limits<double>::infinity(),
+                              [](Reward& v1, Reward& v2) { if(v2 < v1) { v1 = v2; } });
+  minVal = minVal < 0. ? 0. : minVal;
+
+  double range = maxVal - minVal;
+  LOG_DEBUG("Feature range: " << range);
+
+  // evaluate marginal under basis
+  facfn = factoredBellmanMarginal(domain, basis->getStateFactors(), fval);
+  double marVal = evalOpBasis(basis, facfn, false, 0.,
+                              [](Reward& v1, Reward& v2) { v1 += v2; });
+  LOG_DEBUG("Marginal under feature: " << marVal);
 }
 
 } // namespace algorithm
