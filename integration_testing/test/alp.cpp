@@ -227,7 +227,7 @@ TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
     //
 
     // First method
-    auto tplFn = algorithm::bellmanMarginal(domain,{},fval);
+    auto tplFn = algorithm::factoredBellmanMarginal(domain,{},fval);
     EXPECT_TRUE(std::get<0>(tplFn).empty());
     double intr1 = 0.;
     for(const auto& ef : std::get<1>(tplFn)) {
@@ -236,7 +236,7 @@ TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
     LOG_INFO("Bellman residual integral: " << intr1);
 
     // Second method: retain variable `1' in domain and sum manually
-    auto partMarg = algorithm::bellmanMarginal(domain,{1},fval);
+    auto partMarg = algorithm::factoredBellmanMarginal(domain,{1},fval);
     EXPECT_FALSE(std::get<0>(partMarg).empty());
     double intr2 = 0.;
     // loop over empty functions

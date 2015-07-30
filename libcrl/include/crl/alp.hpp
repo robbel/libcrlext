@@ -131,19 +131,19 @@ namespace algorithm {
   //
   // Helper functions
   //
-  /// \brief Helper function for state factor selection
-  /// \return All state factors from the \a Domain that are not in cvars
+  /// \brief Obtain all state factors from the \a Domain that are not in cvars
+  /// \note Helper function for state factor selection
   SizeVec removeFromDomain(const Domain& domain, const SizeVec& cvars);
-  /// \brief Helper function for factored Bellman error and residual computations
+  /// \brief Collect basis and max-Q functionals and return modified copies (e.g., after multiplication with weight vector)
+  /// \note Helper function for factored Bellman error and residual computations
   /// \param adjust True iff all terms should be adjusted according to their coverage of the state space (useful for marginal computations)
   FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, FactoredValueFunction& fval, bool adjust = false);
 
   //
   // Main algorithms
   //
-  /// \brief Computes the (factored) Bellman residual via variable elimination (given an \a elimination_order over subset of state factors)
-  /// \note Copies functions internally since they are modified during summation or maximization
-  /// \param op A function pointer denoting whether to perform max (MAP) or sum (marginalization)
+  /// \brief Compute expression over the (factored) Bellman residual via variable elimination (given an \a elimination_order over subset of state factors)
+  /// \param op A function pointer denoting the operation to perform (e.g., max or min)
   /// \return A tuple of (0) the generated intermediate functions, and (1) the generated functions with empty scope
   template<class Op = DiscreteFunction<Reward> (*)(const _DiscreteFunction<Reward>*, Size, bool)>
   std::tuple<std::vector<DiscreteFunction<Reward>>, std::vector<DiscreteFunction<Reward>>>
@@ -156,9 +156,8 @@ namespace algorithm {
   /// \param vars The variables spanning the domain of the returned marginal functions
   /// \return A tuple of (0) the generated functions that depend on \a vars, and (1) the generated functions with empty scope
   std::tuple<std::vector<DiscreteFunction<Reward>>, std::vector<DiscreteFunction<Reward>>>
-  bellmanMarginal(const Domain& domain, const SizeVec& vars, FactoredValueFunction& fval);
+  factoredBellmanMarginal(const Domain& domain, const SizeVec& vars, FactoredValueFunction& fval);
   /// \brief Computes the (factored) max. Bellman Error via variable elimination (given an \a elimination_order over all state factors)
-  /// \note Copies functions internally since they are modified during maximization
   double factoredBellmanError(const Domain& domain, FactoredValueFunction& fval, const SizeVec& elimination_order);
 }
 

@@ -258,7 +258,7 @@ double factoredBellmanError(const Domain& domain, FactoredValueFunction& fval, c
 }
 
 std::tuple<std::vector<DiscreteFunction<Reward>>, std::vector<DiscreteFunction<Reward>>>
-bellmanMarginal(const Domain& domain, const SizeVec& cvars, FactoredValueFunction& fval) {
+factoredBellmanMarginal(const Domain& domain, const SizeVec& cvars, FactoredValueFunction& fval) {
   assert(!domain->isBig());
   // Obtain the variables to marginalize out
   SizeVec delVars = removeFromDomain(domain, cvars);
