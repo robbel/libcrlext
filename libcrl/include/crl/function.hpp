@@ -46,7 +46,7 @@ template<class T> T sum_over_domain(const crl::_DiscreteFunction<T>* pf, bool kn
 template<class T> DiscreteFunction<T> instantiate(const _DiscreteFunction<T>* pf, const State& s, bool known_flat);
 template<class T> std::vector<T> slice(const _DiscreteFunction<T>* pf, Size i, const State&s, const Action& a);
 template<class T> DiscreteFunction<T> maximize(const _DiscreteFunction<T>* pf, Size i, bool known_flat);
-template<class T> DiscreteFunction<T> marginalize(const _DiscreteFunction<T>* pf, Size i, bool known_flat);
+template<class T> DiscreteFunction<T> marginalize(const _DiscreteFunction<T>* pf, SizeVec vars, bool known_flat);
 template<class T> DiscreteFunction<T> join(cpputil::Iterator<DiscreteFunction<T>>& funcs);
 template<class T> std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F, const crl::SizeVec& elimination_order);
 
@@ -72,7 +72,7 @@ class _DiscreteFunction {
   // friend declarations
   friend DiscreteFunction<T> algorithm::instantiate<T>(const _DiscreteFunction<T>* pf, const State& s, bool known_flat);
   friend DiscreteFunction<T> algorithm::maximize<T>(const _DiscreteFunction<T>* pf, Size i, bool known_flat);
-  friend DiscreteFunction<T> algorithm::marginalize<T>(const _DiscreteFunction<T>* pf, Size i, bool known_flat);
+  friend DiscreteFunction<T> algorithm::marginalize<T>(const _DiscreteFunction<T>* pf, SizeVec vars, bool known_flat);
   friend DiscreteFunction<T> algorithm::join<T>(cpputil::Iterator<DiscreteFunction<T>>& funcs);
   friend std::vector<T> algorithm::slice<T>(const _DiscreteFunction<T>* pf, Size i, const State&s, const Action& a);
   friend std::tuple<Action,T> algorithm::argVariableElimination<T>(FunctionSet<T>& F, const crl::SizeVec& elimination_order);

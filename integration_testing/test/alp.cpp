@@ -105,12 +105,42 @@ TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
   }
 
 #if 0
+  for(Size fa = 0; fa < ranges.size(); fa++) { // assumption: DBN covers all domain variables
+      auto I_o = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa}), State(domain,0));
+      _StateIncrementIterator sitr(I_o->getSubdomain());
+      while(sitr.hasNext()) {
+          auto I = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa}), sitr.next());
+          fval->addBasisFunction(std::move(I), 0.);
+      }
+  }
+
   for(Size fa = 0; fa < ranges.size(); fa+=2) { // assumption: DBN covers all domain variables
       auto I_o = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa,fa+1}), State(domain,0));
       _StateIncrementIterator sitr(I_o->getSubdomain());
       while(sitr.hasNext()) {
           auto I = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa,fa+1}), sitr.next());
           fval->addBasisFunction(std::move(I), 0.);
+      }
+  }
+
+  // add a link
+  auto I_o = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({1,2}), State(domain,0));
+  _StateIncrementIterator sitr(I_o->getSubdomain());
+  while(sitr.hasNext()) {
+      auto I = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({1,2}), sitr.next());
+      fval->addBasisFunction(std::move(I), 0.);
+  }
+#endif
+#if 0
+  // add some links between agents
+  for(Size fa = 1; fa < ranges.size(); fa+=2) { // assumption: DBN covers all domain variables
+      if(fa+1<ranges.size()) {
+        auto I_o = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa,fa+1}), State(domain,0));
+        _StateIncrementIterator sitr(I_o->getSubdomain());
+        while(sitr.hasNext()) {
+            auto I = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa,fa+1}), sitr.next());
+            fval->addBasisFunction(std::move(I), 0.);
+        }
       }
   }
 #endif
@@ -132,7 +162,9 @@ TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
         LOG_INFO(" W: " << w);
     }
 
-    // compare against value iteration solution if we have an exact LP solution (exhaustive basis function set)
+    //
+    // Compare against value iteration solution if we have an exact LP solution (exhaustive basis function set)
+    //
     if(fval->getBasis().size() == domain->getNumStates()) {
         LOG_INFO("Comparing with flat VI solution:");
 
@@ -152,7 +184,9 @@ TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
         }
     }
 
-    // compute maximum value for a specific state
+    //
+    // Compute maximum value for a specific state
+    //
     State js(domain);
     js.setFactor(0,2);
     js.setFactor(1,2);
@@ -169,10 +203,59 @@ TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
     LOG_DEBUG("Q value in " << js << " and another action " << oa << ": " << fval->getQ(js,oa));
     EXPECT_TRUE(fval->getV(js) >= fval->getQ(js,oa));
 
-    // compare value function with max-Q function
-    FunctionSet<Reward> f_set = fval->getMaxQ(elim_order);
+    //
+    // Debug print max-Q function factorization
+    //
+//  FunctionSet<Reward> f_set = fval->getMaxQ(elim_order);
+    FunctionSet<Reward> f_set = fval->getMaxQ();
     auto qfns = f_set.getFunctions();
-    LOG_INFO("MaxQ-Function has " << qfns.size() << " local terms.");
+    LOG_INFO("MaxQ-Function has " << qfns.size() << " local terms: ");
+    for(auto& qf : qfns) {
+        LOG_INFO("{ " << qf->getSubdomain()->getNumStateFactors() << " }");
+    }
+
+    //
+    // Compute Bellman error
+    //
+    const SizeVec elim_order_be = cpputil::ordered_vec<Size>(domain->getNumStateFactors());
+    LOG_DEBUG("Running factoredBellmanError");
+    double beval = algorithm::factoredBellmanError(domain, fval, elim_order_be);
+    LOG_INFO("Bellman error: " << beval);
+
+    //
+    // Compute Bellman residual `integral' over entire state space
+    //
+
+    // First method
+    auto tplFn = algorithm::bellmanMarginal(domain,{},fval);
+    EXPECT_TRUE(std::get<0>(tplFn).empty());
+    double intr1 = 0.;
+    for(const auto& ef : std::get<1>(tplFn)) {
+        intr1 += ef->eval(State(),Action());
+    }
+    LOG_INFO("Bellman residual integral: " << intr1);
+
+    // Second method: retain variable `1' in domain and sum manually
+    auto partMarg = algorithm::bellmanMarginal(domain,{1},fval);
+    EXPECT_FALSE(std::get<0>(partMarg).empty());
+    double intr2 = 0.;
+    // loop over empty functions
+    for(const auto& ef : std::get<1>(partMarg)) {
+        intr2 += ef->eval(State(),Action());
+    }
+    // loop over partially instantiated ones (dependence on `1')
+    for(const auto& f : std::get<0>(partMarg)) {
+        _StateIncrementIterator sitr(f->getSubdomain());
+        while(sitr.hasNext()) {
+          const State& s = sitr.next();
+          intr2 += f->eval(s,Action());
+        }
+    }
+    EXPECT_NE(intr1, intr2);
+
+    //
+    // Compare value function and max-Q function
+    //
     _StateIncrementIterator sitr(domain);
     while(sitr.hasNext()) {
       const State& s = sitr.next();

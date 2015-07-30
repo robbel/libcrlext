@@ -176,7 +176,7 @@ _LP::generateObjective(std::string name, const crl::RFunctionVec& C, const crl::
       bb++;
   }
 
-  return std::make_tuple(var_offset, empty_fns);
+  return std::make_tuple(std::move(var_offset),std::move(empty_fns));
 }
 
 void _LP::addStateActionConstraint(const State& s, const Action& a, const RFunctionVec& C, const RFunctionVec& b) {

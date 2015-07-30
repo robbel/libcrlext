@@ -83,7 +83,7 @@ std::tuple<Domain,FStateTable<Reward>> maxStateFactor(const Domain& d, const FSt
       fn->setValue(s, std::max(f->getValue(p1), f->getValue(p2)));
   }
 
-  return std::make_tuple(dn,fn);
+  return std::make_tuple(std::move(dn),std::move(fn));
 }
 
 /// \brief Reduce counter variable from a given domain by 1
@@ -138,7 +138,7 @@ std::tuple<Domain,FStateTable<Reward>> maxCount(const Domain& d, const FStateTab
       fn->setValue(s, std::max(f->getValue(p1), f->getValue(p2)));
   }
 
-  return std::make_tuple(dn,fn);
+  return std::make_tuple(std::move(dn),std::move(fn));
 }
 
 } // anonymous ns

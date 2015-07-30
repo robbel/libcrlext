@@ -174,6 +174,65 @@ void _FactoredValueFunction::discount() {
 
 namespace algorithm {
 
+FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, FactoredValueFunction& fval, bool adjust) {
+  assert(fval->getWeight().size() == fval->getBasis().size());
+  assert(!(adjust && domain->isBig()));
+  const Size num_states = domain->getNumStates();
+
+  // run variable elimination for max_a
+  FunctionSet<Reward> q_set = fval->getMaxQ();
+  auto qfns = q_set.getFunctions();
+  LOG_DEBUG("MaxQ-Function has " << qfns.size() << " local terms.");
+
+  // multiply basis with w vector
+  std::vector<DiscreteFunction<Reward>> modbasis;
+  const auto& weight = fval->getWeight();
+  std::vector<double>::size_type j = 0;
+  for(const auto& h : fval->getBasis()) {
+      // supports Indicator and FDiscreteFunction basis for now
+      const _Indicator<>* pI = dynamic_cast<const _Indicator<>*>(h.get());
+      if(pI) {
+          FDiscreteFunction<Reward> wh = boost::make_shared<_FDiscreteFunction<Reward>>(domain);
+          wh->join(pI->getStateFactors(), pI->getActionFactors(), pI->getLiftedFactors());
+          wh->pack();
+          wh->values()[pI->getStateIndex()] = weight[j++] *
+              (adjust ? num_states/wh->getSubdomain()->getNumStates() : 1.);
+          modbasis.push_back(std::move(wh));
+      }
+      else {
+          const _FDiscreteFunction<Reward>* pf = dynamic_cast<const _FDiscreteFunction<Reward>*>(h.get());
+          assert(pf);
+          FDiscreteFunction<Reward> wh = boost::make_shared<_FDiscreteFunction<Reward>>(*pf);
+          (*wh) *= weight[j++] *
+              (adjust ? num_states/wh->getSubdomain()->getNumStates() : 1.);
+          modbasis.push_back(std::move(wh));
+      }
+  }
+  // negate maxQ
+  std::vector<DiscreteFunction<Reward>> modqfns;
+  for(const auto& qf : qfns) {
+      // supports only FDiscreteFunction for now
+      const _FDiscreteFunction<Reward>* pqf = dynamic_cast<const _FDiscreteFunction<Reward>*>(qf.get());
+      assert(pqf);
+      FDiscreteFunction<Reward> nqf = boost::make_shared<_FDiscreteFunction<Reward>>(*pqf);
+      (*nqf) *= (-1.) *
+          (adjust ? num_states/nqf->getSubdomain()->getNumStates() : 1.);
+      modqfns.push_back(std::move(nqf));
+  }
+
+  FunctionSet<Reward> F(domain);
+  for(auto& bp : modqfns) {
+      assert(bp->getSubdomain()->getNumStateFactors() != 0);
+      F.insert(std::move(bp));
+  }
+  for(auto& b : modbasis) {
+      assert(b->getSubdomain()->getNumStateFactors() != 0);
+      F.insert(std::move(b));
+  }
+
+  return F;
+}
+
 double factoredBellmanError(const Domain& domain, FactoredValueFunction& fval, const SizeVec& elimination_order) {
   assert(elimination_order.size() == domain->getNumStateFactors());
   // maximize over all state factors
@@ -186,6 +245,36 @@ double factoredBellmanError(const Domain& domain, FactoredValueFunction& fval, c
       maxVal += empty_fn->eval(State(),Action());
   }
   return maxVal;
+}
+
+std::tuple<std::vector<DiscreteFunction<Reward>>, std::vector<DiscreteFunction<Reward>>>
+bellmanMarginal(const Domain& domain, const SizeVec& cvars, FactoredValueFunction& fval) {
+  assert(!domain->isBig());
+  // Obtain the variables to marginalize out
+  SizeVec allVars = cpputil::ordered_vec<Size>(domain->getNumStateFactors());
+  SizeVec keepVars(cvars);
+  std::sort(keepVars.begin(), keepVars.end());
+  SizeVec delVars;
+  std::set_difference(allVars.begin(), allVars.end(), keepVars.begin(), keepVars.end(), std::back_inserter(delVars));
+
+  // obtain Bellman functionals adjusted for their coverage of the state space
+  std::vector<DiscreteFunction<Reward>> funVec = factoredBellmanFunctionals(domain, fval, true).getFunctions();
+  // storage for functions with variable dependencies and empty scope
+  std::vector<DiscreteFunction<Reward>> elim_cache;
+  std::vector<DiscreteFunction<Reward>> empty_fns;
+
+  // marginalize all functions partially over `Dom \ {vars}'
+  for(const auto& fn : funVec) {
+      DiscreteFunction<Reward> margFn = algorithm::marginalize(fn.get(), delVars, false);
+      if(margFn->getSubdomain()->getNumStateFactors() == 0 && margFn->getSubdomain()->getNumActionFactors() == 0) {
+          empty_fns.push_back(std::move(margFn));
+      }
+      else {
+          elim_cache.push_back(std::move(margFn));
+      }
+  }
+
+  return std::make_tuple(std::move(elim_cache),std::move(empty_fns));
 }
 
 }

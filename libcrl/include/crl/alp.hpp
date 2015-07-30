@@ -128,6 +128,9 @@ typedef boost::shared_ptr<_FactoredValueFunction> FactoredValueFunction;
 //
 
 namespace algorithm {
+  /// \brief Helper functions for factored Bellman error and residual computations
+  /// \param adjust True iff all terms should be adjusted according to their coverage ov the state space (useful for marginal computations)
+  FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, FactoredValueFunction& fval, bool adjust = false);
   /// \brief Computes the (factored) max. Bellman Error via variable elimination (given an \a elimination_order over all state factors)
   /// \note Copies functions internally since they are modified during maximization
   double factoredBellmanError(const Domain& domain, FactoredValueFunction& fval, const SizeVec& elimination_order);
@@ -138,59 +141,18 @@ namespace algorithm {
   template<class Op = DiscreteFunction<Reward> (*)(const _DiscreteFunction<Reward>*, Size, bool)>
   std::tuple<std::vector<DiscreteFunction<Reward>>, std::vector<DiscreteFunction<Reward>>>
   factoredBellmanResidual(const Domain& domain, FactoredValueFunction& fval, const SizeVec& elimination_order, Op op) {
-    assert(fval->getWeight().size() == fval->getBasis().size());
-
-    // run variable elimination for max_a
-    FunctionSet<Reward> q_set = fval->getMaxQ();
-    auto qfns = q_set.getFunctions();
-    LOG_DEBUG("MaxQ-Function has " << qfns.size() << " local terms.");
-
-    // multiply basis with w vector
-    std::vector<DiscreteFunction<Reward>> modbasis;
-    const auto& weight = fval->getWeight();
-    std::vector<double>::size_type j = 0;
-    for(const auto& h : fval->getBasis()) {
-        // supports Indicator and FDiscreteFunction basis for now
-        const _Indicator<>* pI = dynamic_cast<const _Indicator<>*>(h.get());
-        if(pI) {
-            FDiscreteFunction<Reward> wh = boost::make_shared<_FDiscreteFunction<Reward>>(domain);
-            wh->join(pI->getStateFactors(), pI->getActionFactors(), pI->getLiftedFactors());
-            wh->pack();
-            wh->values()[pI->getStateIndex()] = weight[j++];
-            modbasis.push_back(std::move(wh));
-        }
-        else {
-            const _FDiscreteFunction<Reward>* pf = dynamic_cast<const _FDiscreteFunction<Reward>*>(h.get());
-            assert(pf);
-            FDiscreteFunction<Reward> wh = boost::make_shared<_FDiscreteFunction<Reward>>(*pf);
-            (*wh) *= weight[j++];
-            modbasis.push_back(std::move(wh));
-        }
-    }
-    // negate maxQ
-    std::vector<DiscreteFunction<Reward>> modqfns;
-    for(const auto& qf : qfns) {
-        // supports only FDiscreteFunction for now
-        const _FDiscreteFunction<Reward>* pqf = dynamic_cast<const _FDiscreteFunction<Reward>*>(qf.get());
-        assert(pqf);
-        FDiscreteFunction<Reward> nqf = boost::make_shared<_FDiscreteFunction<Reward>>(*pqf);
-        (*nqf) *= (-1.);
-        modqfns.push_back(std::move(nqf));
-    }
-
-    // run variableElimination for state factors
-    FunctionSet<Reward> F(domain);
-    for(auto& bp : modqfns) {
-        assert(bp->getSubdomain()->getNumStateFactors() != 0);
-        F.insert(std::move(bp));
-    }
-    for(auto& b : modbasis) {
-        assert(b->getSubdomain()->getNumStateFactors() != 0);
-        F.insert(std::move(b));
-    }
-
+    FunctionSet<Reward> F = factoredBellmanFunctionals(domain, fval);
+    // run variableElimination over state factors
     return algorithm::variableElimination(F, elimination_order, op);
   }
+  /// \brief Compute Bellman marginal, i.e., sum out all variables from residual except those in \a vars
+  /// \param vars The variables spanning the domain of the returned marginal functions
+  /// \return A tuple of (0) the generated functions that depend on \a vars, and (1) the generated functions with empty scope
+  std::tuple<std::vector<DiscreteFunction<Reward>>, std::vector<DiscreteFunction<Reward>>>
+  bellmanMarginal(const Domain& domain, const SizeVec& vars, FactoredValueFunction& fval);
+  /// \todo
+  std::tuple<double, double>
+  bellmanMinMax(const Domain& domain, const Indicator<>& I, FactoredValueFunction& fval, const SizeVec& elimination_order);
 }
 
 /**

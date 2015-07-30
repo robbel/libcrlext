@@ -173,19 +173,30 @@ DiscreteFunction<T> maximize(const _DiscreteFunction<T>* pf, Size i, bool known_
   return f;
 }
 
-/// \brief Marginalize the given function over a particular state or action variable `i' (i.e., `sum out' i)
+/// \brief Marginalize the given function over particular state or action variable `i' (i.e., `sum out' i)
 /// \param known_flat True iff function `pf' is known to be a \a _FDiscreteFunction (optimization)
 /// \return A new function that is marginalized over (and does not depend on) `i'
 /// \note If `i' is greater than the number of state factors, it is assumed to be an action factor
 template<class T>
 DiscreteFunction<T> marginalize(const _DiscreteFunction<T>* pf, Size i, bool known_flat) {
+  return marginalize(pf, {i}, known_flat);
+}
+
+/// \brief Marginalize the given function over particular state or action variables `vars' (i.e., `sum out' those variables)
+/// \param known_flat True iff function `pf' is known to be a \a _FDiscreteFunction (optimization)
+/// \return A new function that is marginalized over (and does not depend on) `vars'
+/// \note If any entry in `vars' is greater than the number of state factors, it is assumed to be an action factor
+template<class T>
+DiscreteFunction<T> marginalize(const _DiscreteFunction<T>* pf, SizeVec vars, bool known_flat) {
   const _FDiscreteFunction<T>* of = is_flat(pf, known_flat);
 
   // TODO: optimization paths for Indicator and ConstantFn
   FDiscreteFunction<T> f = boost::make_shared<_FDiscreteFunction<T>>(pf->_domain);
   f->_state_dom = pf->getStateFactors();
   f->_action_dom = pf->getActionFactors();
-  f->eraseFactor(i);
+  for(Size var : vars) {
+      f->eraseFactor(var);
+  }
   f->pack();
   const Size num_actions = f->_subdomain->getNumActions();
   auto& vals = f->values();
@@ -298,7 +309,7 @@ variableElimination(FunctionSet<T>& F, const crl::SizeVec& elimination_order, Op
       }
   }
 
-  return std::make_tuple(elim_cache,empty_fns);
+  return std::make_tuple(std::move(elim_cache),std::move(empty_fns));
 }
 
 /// \brief Runs variable elimination on the provided \a FunctionSet and computes the argmax (in a backward pass)
