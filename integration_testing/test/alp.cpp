@@ -251,7 +251,7 @@ TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
           intr2 += f->eval(s,Action());
         }
     }
-    EXPECT_NE(intr1, intr2);
+    EXPECT_NEAR(intr1, intr2, 1e-12);
 
     //
     // Compare value function and max-Q function
