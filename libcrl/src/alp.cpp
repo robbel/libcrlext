@@ -19,22 +19,6 @@
 
 using namespace std;
 
-namespace {
-
-/// \brief Helper function for state factor selection
-/// \return All state factors from the \a Domain that are not in cvars
-SizeVec removeFromDomain(const Domain& domain, const SizeVec& cvars) {
-  SizeVec allVars = cpputil::ordered_vec<Size>(domain->getNumStateFactors());
-  SizeVec keepVars(cvars);
-  std::sort(keepVars.begin(), keepVars.end());
-  SizeVec delVars;
-  std::set_difference(allVars.begin(), allVars.end(), keepVars.begin(), keepVars.end(), std::back_inserter(delVars));
-
-  return delVars;
-}
-
-} // anonymous ns
-
 namespace crl {
 
 //
@@ -189,6 +173,16 @@ void _FactoredValueFunction::discount() {
 //
 
 namespace algorithm {
+
+SizeVec removeFromDomain(const Domain& domain, const SizeVec& cvars) {
+    SizeVec allVars = cpputil::ordered_vec<Size>(domain->getNumStateFactors());
+    SizeVec keepVars(cvars);
+    std::sort(keepVars.begin(), keepVars.end());
+    SizeVec delVars;
+    std::set_difference(allVars.begin(), allVars.end(), keepVars.begin(), keepVars.end(), std::back_inserter(delVars));
+
+    return delVars;
+}
 
 FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, FactoredValueFunction& fval, bool adjust) {
   assert(fval->getWeight().size() == fval->getBasis().size());

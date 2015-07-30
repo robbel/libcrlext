@@ -131,16 +131,12 @@ namespace algorithm {
   //
   // Helper functions
   //
+  /// \brief Helper function for state factor selection
+  /// \return All state factors from the \a Domain that are not in cvars
+  SizeVec removeFromDomain(const Domain& domain, const SizeVec& cvars);
   /// \brief Helper function for factored Bellman error and residual computations
   /// \param adjust True iff all terms should be adjusted according to their coverage of the state space (useful for marginal computations)
   FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, FactoredValueFunction& fval, bool adjust = false);
-  /// \brief Helper function for \a factoredBellmanResidual that accepts a \a FunctionSet
-  template<class Op = DiscreteFunction<Reward> (*)(const _DiscreteFunction<Reward>*, Size, bool)>
-  std::tuple<std::vector<DiscreteFunction<Reward>>, std::vector<DiscreteFunction<Reward>>>
-  factoredBellmanResidual_F(FunctionSet<Reward>& F, const SizeVec& elimination_order, Op op) {
-    // run variableElimination over state factors
-    return algorithm::variableElimination(F, elimination_order, op);
-  }
 
   //
   // Main algorithms
@@ -153,7 +149,8 @@ namespace algorithm {
   std::tuple<std::vector<DiscreteFunction<Reward>>, std::vector<DiscreteFunction<Reward>>>
   factoredBellmanResidual(const Domain& domain, FactoredValueFunction& fval, const SizeVec& elimination_order, Op op) {
     FunctionSet<Reward> F = factoredBellmanFunctionals(domain, fval);
-    return factoredBellmanResidual_F(F, elimination_order, op);
+    // run variableElimination over state factors
+    return algorithm::variableElimination(F, elimination_order, op);
   }
   /// \brief Compute Bellman marginal, i.e., sum out all variables from residual except those in \a vars
   /// \param vars The variables spanning the domain of the returned marginal functions
