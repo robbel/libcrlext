@@ -44,6 +44,7 @@ T evalOpBasis(const _DiscreteFunction<T>* basis, const FactoredFunction<T>& facf
   if(pI) {
       // basis is active in exactly one state
       const State s(basis->getSubdomain(), pI->getStateIndex());
+      manVal = T(0);
       for(const auto& f : std::get<0>(facfn)) {
           manVal += f->eval(s,Action());
       }

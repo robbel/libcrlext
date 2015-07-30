@@ -363,13 +363,28 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
 
     // Third method: retain variable `1' in domain and maximize using evalOpBasis
     // maximize using evalOpBasis for a basis that is everywhere enabled in `1'
-    FDiscreteFunction<Reward> basis = boost::make_shared<_FDiscreteFunction<Reward>>(domain);
-    basis->addStateFactor(1);
-    basis->pack(1); // set everywhere to enabled
-    std::get<0>(tplBe) = std::move(F.getFunctions());
-    beval2 = algorithm::evalOpBasis(basis.get(), tplBe, true, -std::numeric_limits<double>::infinity(),
+    _FDiscreteFunction<Reward> basis(domain);
+    basis.addStateFactor(1);
+    basis.pack(1); // set everywhere to enabled
+    std::get<0>(tplBe) = std::move(F.getFunctions()); // make tplBe a valid `FactoredFunction'
+    beval2 = algorithm::evalOpBasis(&basis, tplBe, true, -std::numeric_limits<double>::infinity(),
                                     [](Reward& v1, Reward& v2) { if(v2 > v1) { v1 = v2; } });
     EXPECT_NEAR(beval, beval2, 1e-14);
+
+    // now for three separate indicator basis functions
+    maxVal = -std::numeric_limits<double>::infinity();
+    for(Factor fa = 0; fa < 3; fa++) {
+        _Indicator<Reward> I(domain);
+        I.addStateFactor(1);
+        const State dummy_s(domain,fa);
+        I.setState(dummy_s);
+        double v = algorithm::evalOpBasis(&I, tplBe, false, -std::numeric_limits<double>::infinity(),
+                                          [](Reward& v1, Reward& v2) { if(v2 > v1) { v1 = v2; } });
+        if(v > maxVal) {
+            maxVal = v;
+        }
+    }
+    EXPECT_NEAR(maxVal, beval2, 1e-14);
     LOG_DEBUG("Bellman error (3): " << beval2);
 
     // Forth method: retain variable `1' in domain and run variable elimination a second time
