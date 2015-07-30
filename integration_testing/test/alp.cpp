@@ -380,7 +380,9 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
         I.setState(dummy_s);
         double v = algorithm::evalOpBasis(&I, tplBe, false, -std::numeric_limits<double>::infinity(),
                                           [](Reward& v1, Reward& v2) { if(v2 > v1) { v1 = v2; } });
+        LOG_DEBUG("Indicator on `Factor_1 == " << fa << " covers max BE of " << v);
         if(v > maxVal) {
+            LOG_DEBUG("Indicator on `Factor_1 == " << fa << " (currently) holds max BE.");
             maxVal = v;
         }
     }

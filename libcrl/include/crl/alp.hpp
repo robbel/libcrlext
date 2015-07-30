@@ -124,6 +124,7 @@ public:
 typedef boost::shared_ptr<_FactoredValueFunction> FactoredValueFunction;
 
 /// \brief A factored function consisting of (0) functionals with variable dependencies, and (1) functionals with empty scope
+/// This represents a sum of locally-scoped (potentially empty-scoped) functionals
 template<class T>
 using FactoredFunction = std::tuple<std::vector<DiscreteFunction<T>>, std::vector<DiscreteFunction<T>>>;
 
