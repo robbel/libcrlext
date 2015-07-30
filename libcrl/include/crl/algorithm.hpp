@@ -17,13 +17,13 @@
 #include "crl/function.hpp"
 #include "logger.hpp"
 
-//
-// Some useful algorithms on functions
-//
-
-namespace {
-
 using namespace crl;
+
+namespace crl {
+
+//
+// Helper functions
+//
 
 /// \brief Returns a valid pointer if passed function has a tabular representation, nullptr otherwise
 template<class T>
@@ -31,23 +31,23 @@ const _FDiscreteFunction<T>* is_flat(const _DiscreteFunction<T>* pf, bool known_
     return(known_flat ? static_cast<const _FDiscreteFunction<T>*>(pf) : dynamic_cast<const _FDiscreteFunction<T>*>(pf));
 }
 
-} // anonymous ns
-
-namespace crl {
-
-namespace algorithm {
-
 /// \brief Obtain all state factors from the \a Domain that are not in cvars
 /// \note Helper function for state factor selection
 inline SizeVec get_state_vars(const Domain& domain, const SizeVec& cvars) {
-  SizeVec allVars = cpputil::ordered_vec<Size>(domain->getNumStateFactors());
-  SizeVec keepVars(cvars);
-  std::sort(keepVars.begin(), keepVars.end());
-  SizeVec delVars;
-  std::set_difference(allVars.begin(), allVars.end(), keepVars.begin(), keepVars.end(), std::back_inserter(delVars));
+    SizeVec allVars = cpputil::ordered_vec<Size>(domain->getNumStateFactors());
+    SizeVec keepVars(cvars);
+    std::sort(keepVars.begin(), keepVars.end());
+    SizeVec delVars;
+    std::set_difference(allVars.begin(), allVars.end(), keepVars.begin(), keepVars.end(), std::back_inserter(delVars));
 
-  return delVars;
+    return delVars;
 }
+
+//
+// Some useful algorithms on functions
+//
+
+namespace algorithm {
 
 /// \brief Sum the given function over its entire domain
 /// \param known_flat True iff function `pf' is known to be a \a _FDiscreteFunction (optimization)

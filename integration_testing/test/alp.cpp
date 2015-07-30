@@ -12,6 +12,7 @@
 #include <gtest/gtest.h>
 
 #include "crl/alp.hpp"
+#include "crl/basis_gen.hpp"
 #include "crl/env_sysadmin.hpp"
 #include "crl/vi.hpp"
 #include "crl/conversions.hpp"
@@ -335,7 +336,7 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
     LOG_INFO("Bellman error (1): " << beval);
 
     // Second method: retain variable `1' in domain and maximize manually
-    const SizeVec red_elim_order_be = algorithm::get_state_vars(domain, {1});
+    const SizeVec red_elim_order_be = get_state_vars(domain, {1});
     FunctionSet<Reward> F = algorithm::factoredBellmanFunctionals(domain, fval);
     auto tplBe = algorithm::variableElimination(F, red_elim_order_be, algorithm::maximize);
     double beval2 = 0.;
@@ -360,7 +361,18 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
     EXPECT_NEAR(beval, beval2, 1e-14);
     LOG_DEBUG("Bellman error (2): " << beval2);
 
-    // Third method: retain variable `1' in domain and run variable elimination a second time
+    // Third method: retain variable `1' in domain and maximize using evalOpBasis
+    // maximize using evalOpBasis for a basis that is everywhere enabled in `1'
+    FDiscreteFunction<Reward> basis = boost::make_shared<_FDiscreteFunction<Reward>>(domain);
+    basis->addStateFactor(1);
+    basis->pack(1); // set everywhere to enabled
+    std::get<0>(tplBe) = std::move(F.getFunctions());
+    beval2 = algorithm::evalOpBasis(basis.get(), tplBe, true, -std::numeric_limits<double>::infinity(),
+                                    [](Reward& v1, Reward& v2) { if(v2 > v1) { v1 = v2; } });
+    EXPECT_NEAR(beval, beval2, 1e-14);
+    LOG_DEBUG("Bellman error (3): " << beval2);
+
+    // Forth method: retain variable `1' in domain and run variable elimination a second time
     beval2 = 0.;
     // loop over empty functions
     for(const auto& ef : std::get<1>(tplBe)) {
@@ -373,7 +385,7 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
         beval2 += ef->eval(State(),Action());
     }
     EXPECT_NEAR(beval, beval2, 1e-14);
-    LOG_DEBUG("Bellman error (3): " << beval2);
+    LOG_DEBUG("Bellman error (4): " << beval2);
 
     //
     // Compute minimal Bellman residual

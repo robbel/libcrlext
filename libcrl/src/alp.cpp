@@ -247,8 +247,7 @@ double factoredBellmanError(const Domain& domain, FactoredValueFunction& fval, c
   return maxVal;
 }
 
-std::tuple<std::vector<DiscreteFunction<Reward>>, std::vector<DiscreteFunction<Reward>>>
-factoredBellmanMarginal(const Domain& domain, const SizeVec& cvars, FactoredValueFunction& fval) {
+FactoredFunction<Reward> factoredBellmanMarginal(const Domain& domain, const SizeVec& cvars, FactoredValueFunction& fval) {
   assert(!domain->isBig());
   // Obtain the variables to marginalize out
   SizeVec delVars = get_state_vars(domain, cvars);
@@ -256,7 +255,7 @@ factoredBellmanMarginal(const Domain& domain, const SizeVec& cvars, FactoredValu
   // obtain Bellman functionals adjusted for their coverage of the state space
   std::vector<DiscreteFunction<Reward>> funVec = factoredBellmanFunctionals(domain, fval, true).getFunctions();
   // storage for functions with variable dependencies and empty scope
-  std::vector<DiscreteFunction<Reward>> elim_cache;
+  std::vector<DiscreteFunction<Reward>> var_fns;
   std::vector<DiscreteFunction<Reward>> empty_fns;
 
   // marginalize all functions partially over `Dom \ {vars}'
@@ -266,11 +265,11 @@ factoredBellmanMarginal(const Domain& domain, const SizeVec& cvars, FactoredValu
           empty_fns.push_back(std::move(margFn));
       }
       else {
-          elim_cache.push_back(std::move(margFn));
+          var_fns.push_back(std::move(margFn));
       }
   }
 
-  return std::make_tuple(std::move(elim_cache),std::move(empty_fns));
+  return std::make_tuple(std::move(var_fns),std::move(empty_fns));
 }
 
 }
