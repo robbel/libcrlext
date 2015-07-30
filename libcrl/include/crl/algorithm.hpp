@@ -37,6 +37,18 @@ namespace crl {
 
 namespace algorithm {
 
+/// \brief Obtain all state factors from the \a Domain that are not in cvars
+/// \note Helper function for state factor selection
+inline SizeVec get_state_vars(const Domain& domain, const SizeVec& cvars) {
+  SizeVec allVars = cpputil::ordered_vec<Size>(domain->getNumStateFactors());
+  SizeVec keepVars(cvars);
+  std::sort(keepVars.begin(), keepVars.end());
+  SizeVec delVars;
+  std::set_difference(allVars.begin(), allVars.end(), keepVars.begin(), keepVars.end(), std::back_inserter(delVars));
+
+  return delVars;
+}
+
 /// \brief Sum the given function over its entire domain
 /// \param known_flat True iff function `pf' is known to be a \a _FDiscreteFunction (optimization)
 template<class T>

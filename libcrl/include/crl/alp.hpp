@@ -131,9 +131,6 @@ namespace algorithm {
   //
   // Helper functions
   //
-  /// \brief Obtain all state factors from the \a Domain that are not in cvars
-  /// \note Helper function for state factor selection
-  SizeVec removeFromDomain(const Domain& domain, const SizeVec& cvars);
   /// \brief Collect basis and max-Q functionals and return modified copies (e.g., after multiplication with weight vector)
   /// \note Helper function for factored Bellman error and residual computations
   /// \param adjust True iff all terms should be adjusted according to their coverage of the state space (useful for marginal computations)

@@ -174,16 +174,6 @@ void _FactoredValueFunction::discount() {
 
 namespace algorithm {
 
-SizeVec removeFromDomain(const Domain& domain, const SizeVec& cvars) {
-    SizeVec allVars = cpputil::ordered_vec<Size>(domain->getNumStateFactors());
-    SizeVec keepVars(cvars);
-    std::sort(keepVars.begin(), keepVars.end());
-    SizeVec delVars;
-    std::set_difference(allVars.begin(), allVars.end(), keepVars.begin(), keepVars.end(), std::back_inserter(delVars));
-
-    return delVars;
-}
-
 FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, FactoredValueFunction& fval, bool adjust) {
   assert(fval->getWeight().size() == fval->getBasis().size());
   assert(!(adjust && domain->isBig()));
@@ -261,7 +251,7 @@ std::tuple<std::vector<DiscreteFunction<Reward>>, std::vector<DiscreteFunction<R
 factoredBellmanMarginal(const Domain& domain, const SizeVec& cvars, FactoredValueFunction& fval) {
   assert(!domain->isBig());
   // Obtain the variables to marginalize out
-  SizeVec delVars = removeFromDomain(domain, cvars);
+  SizeVec delVars = get_state_vars(domain, cvars);
 
   // obtain Bellman functionals adjusted for their coverage of the state space
   std::vector<DiscreteFunction<Reward>> funVec = factoredBellmanFunctionals(domain, fval, true).getFunctions();
