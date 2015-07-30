@@ -128,12 +128,23 @@ typedef boost::shared_ptr<_FactoredValueFunction> FactoredValueFunction;
 //
 
 namespace algorithm {
-  /// \brief Helper functions for factored Bellman error and residual computations
+  //
+  // Helper functions
+  //
+  /// \brief Helper function for factored Bellman error and residual computations
   /// \param adjust True iff all terms should be adjusted according to their coverage of the state space (useful for marginal computations)
   FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, FactoredValueFunction& fval, bool adjust = false);
-  /// \brief Computes the (factored) max. Bellman Error via variable elimination (given an \a elimination_order over all state factors)
-  /// \note Copies functions internally since they are modified during maximization
-  double factoredBellmanError(const Domain& domain, FactoredValueFunction& fval, const SizeVec& elimination_order);
+  /// \brief Helper function for \a factoredBellmanResidual that accepts a \a FunctionSet
+  template<class Op = DiscreteFunction<Reward> (*)(const _DiscreteFunction<Reward>*, Size, bool)>
+  std::tuple<std::vector<DiscreteFunction<Reward>>, std::vector<DiscreteFunction<Reward>>>
+  factoredBellmanResidual_F(FunctionSet<Reward>& F, const SizeVec& elimination_order, Op op) {
+    // run variableElimination over state factors
+    return algorithm::variableElimination(F, elimination_order, op);
+  }
+
+  //
+  // Main algorithms
+  //
   /// \brief Computes the (factored) Bellman residual via variable elimination (given an \a elimination_order over subset of state factors)
   /// \note Copies functions internally since they are modified during summation or maximization
   /// \param op A function pointer denoting whether to perform max (MAP) or sum (marginalization)
@@ -142,17 +153,16 @@ namespace algorithm {
   std::tuple<std::vector<DiscreteFunction<Reward>>, std::vector<DiscreteFunction<Reward>>>
   factoredBellmanResidual(const Domain& domain, FactoredValueFunction& fval, const SizeVec& elimination_order, Op op) {
     FunctionSet<Reward> F = factoredBellmanFunctionals(domain, fval);
-    // run variableElimination over state factors
-    return algorithm::variableElimination(F, elimination_order, op);
+    return factoredBellmanResidual_F(F, elimination_order, op);
   }
   /// \brief Compute Bellman marginal, i.e., sum out all variables from residual except those in \a vars
   /// \param vars The variables spanning the domain of the returned marginal functions
   /// \return A tuple of (0) the generated functions that depend on \a vars, and (1) the generated functions with empty scope
   std::tuple<std::vector<DiscreteFunction<Reward>>, std::vector<DiscreteFunction<Reward>>>
   bellmanMarginal(const Domain& domain, const SizeVec& vars, FactoredValueFunction& fval);
-  /// \todo
-  std::tuple<double, double>
-  bellmanMinMax(const Domain& domain, const Indicator<>& I, FactoredValueFunction& fval, const SizeVec& elimination_order);
+  /// \brief Computes the (factored) max. Bellman Error via variable elimination (given an \a elimination_order over all state factors)
+  /// \note Copies functions internally since they are modified during maximization
+  double factoredBellmanError(const Domain& domain, FactoredValueFunction& fval, const SizeVec& elimination_order);
 }
 
 /**
