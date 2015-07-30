@@ -18,7 +18,7 @@
 
 using boost::assign::map_list_of;
 
-/*
+/**
  *  The minimum level to log (0 = Debug, ..., 4 = Fatal)
  */
 #define MIN_LOG_LEVEL 0

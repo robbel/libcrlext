@@ -3,6 +3,7 @@ include/crl/alp.hpp
 include/crl/alp_gurobi.hpp
 include/crl/alp_lpsolve.hpp
 include/crl/approx_alp.hpp
+include/crl/basis_gen.hpp
 include/crl/bigindex.hpp
 include/crl/common.hpp
 include/crl/conversions.hpp
@@ -32,6 +33,7 @@ src/alp.cpp
 src/alp_gurobi.cpp
 src/alp_lpsolve.cpp
 src/approx_alp.cpp
+src/basis_gen.cpp
 src/bigindex.cpp
 src/conversions.cpp
 src/crl.cpp
