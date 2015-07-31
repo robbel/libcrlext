@@ -24,6 +24,7 @@ namespace crl {
 // Forward declarations, typedefs
 namespace algorithm {
 template<class T> DiscreteFunction<T> pair(const SizeVec& joint_base, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
+template<class T, class BinOp> T evalOpOverBasis(const _DiscreteFunction<T>* basis, const FactoredFunction<T>& facfn, bool known_flat, T init, BinOp binOp);
 }
 
 template<class T> class _ConjunctiveFeature;
@@ -97,15 +98,10 @@ std::ostream& operator<<(std::ostream &os, const _ConjunctiveFeature<T>& f) {
   return os;
 }
 
-// cool, construct feature & (compute subdomain). Only pack() if new feature.
-// - can use join (as before) to construct domain..
-// - can then add other function? (optimization path for indicator)
-
-// iterator will check for collisions internally and only return valid ones? (mb. param)
-
+// TODO: iterator that checks for collisions internally and only returns valid ones? (mb. param)
 
 /**
- * \todo
+ * \brief Base class for different basis function scoring implementations
  */
 class BasisScore {
 protected:
@@ -116,33 +112,55 @@ protected:
 public:
   BasisScore(const Domain& domain)
   : _domain(domain) { }
-
   /// \brief The (solved) factored value function that will be used for scoring
   void setFactoredValueFunction(FactoredValueFunction vfn) {
     _value_fn = std::move(vfn);
   }
-
   /// \brief The (abstract) scoring function for the given basis function
-  virtual double score(const _DiscreteFunction<Reward>* basis) const = 0;
+  virtual double score(const _DiscreteFunction<Reward>* basis) const { return 0.; }
 };
 
 /**
- * \todo
+ * \brief Computing (max BE(f) - min BE(f)) over the region where the feature f is active
  */
 class EpsilonScore : public BasisScore {
   /// \todo
   virtual double score(const _DiscreteFunction<Reward>* basis) const {
-    return 0.;
+    assert(basis->getActionFactors().empty());
+    // remove variables to reach basis' domain
+    const SizeVec elim_order = get_state_vars(_domain, basis->getStateFactors());
+
+    // evaluate max over basis function
+    auto facfn = algorithm::factoredBellmanResidual(_domain, _value_fn, elim_order, algorithm::maximize);
+    double maxVal = algorithm::evalOpOverBasis(basis, facfn, false, -std::numeric_limits<double>::infinity(),
+                                               [](Reward& v1, Reward& v2) { if(v2 > v1) { v1 = v2; } });
+    // evaluate min over basis function
+    facfn = algorithm::factoredBellmanResidual(_domain, _value_fn, elim_order, algorithm::minimize);
+    double minVal = algorithm::evalOpOverBasis(basis, facfn, false, std::numeric_limits<double>::infinity(),
+                                               [](Reward& v1, Reward& v2) { if(v2 < v1) { v1 = v2; } });
+    minVal = minVal < 0. ? 0. : minVal;
+
+    double range = maxVal - minVal;
+    LOG_DEBUG("Feature range: " << range);
+    return range;
   }
 };
 
 /**
- * \todo
+ * \brief Computing the BEBF score Sum_BE(f) / sqrt(|Coverage(f)|)
  */
 class BEBFScore : public BasisScore {
   /// \todo
   virtual double score(const _DiscreteFunction<Reward>* basis) const {
-    return 0.;
+    // evaluate marginal under basis
+    auto facfn = algorithm::factoredBellmanMarginal(_domain, basis->getStateFactors(), _value_fn);
+    double marVal = algorithm::evalOpOverBasis(basis, facfn, false, 0.,
+                                               [](Reward& v1, Reward& v2) { v1 += v2; });
+    LOG_DEBUG("Marginal under feature: " << marVal);
+
+    // TODO: include coverage of a feature (size of dom where it's active)
+
+    return marVal;
   }
 };
 
