@@ -105,8 +105,6 @@ std::ostream& operator<<(std::ostream &os, const _ConjunctiveFeature<T>& f) {
   return os;
 }
 
-// TODO: iterator that checks for collisions internally and only returns valid ones? (mb. param)
-
 /**
  * \brief Base class for different basis function scoring implementations
  */
@@ -137,26 +135,7 @@ public:
   EpsilonScore(const Domain& domain, const FactoredValueFunction& vfn)
   : BasisScore(domain, vfn) { }
   /// \brief score implementation
-  double score(const _DiscreteFunction<Reward>* basis) const {
-    assert(basis->getActionFactors().empty());
-    // remove variables to reach basis' domain
-    const SizeVec elim_order = get_state_vars(_domain, basis->getStateFactors());
-
-    // evaluate max over basis function
-    auto facfn = algorithm::factoredBellmanResidual(_domain, _value_fn, elim_order, algorithm::maximize);
-    double maxVal = algorithm::evalOpOverBasis(basis, facfn, false, -std::numeric_limits<double>::infinity(),
-                                               [](Reward& v1, Reward& v2) { if(v2 > v1) { v1 = v2; } });
-    // evaluate min over basis function
-    facfn = algorithm::factoredBellmanResidual(_domain, _value_fn, elim_order, algorithm::minimize);
-    double minVal = algorithm::evalOpOverBasis(basis, facfn, false, std::numeric_limits<double>::infinity(),
-                                               [](Reward& v1, Reward& v2) { if(v2 < v1) { v1 = v2; } });
-    minVal = minVal < 0. ? 0. : minVal;
-
-    double range = maxVal - minVal;
-    LOG_DEBUG("Feature range: " << range);
-    return range;
-  }
-
+  double score(const _DiscreteFunction<Reward>* basis) const;
   std::string getName() const {
     return "EpsilonScore";
   }
@@ -171,26 +150,11 @@ class BEBFScore : public BasisScore {
   BEBFScore(const Domain& domain, const FactoredValueFunction& vfn)
   : BasisScore(domain, vfn) { }
   /// \brief score implementation
-  double score(const _DiscreteFunction<Reward>* basis) const {
-    // evaluate marginal under basis
-    auto facfn = algorithm::factoredBellmanMarginal(_domain, basis->getStateFactors(), _value_fn);
-    double marVal = algorithm::evalOpOverBasis(basis, facfn, false, 0.,
-                                               [](Reward& v1, Reward& v2) { v1 += v2; });
-    LOG_DEBUG("Marginal under feature: " << marVal);
-
-    // TODO: include coverage of a feature (size of dom where it's active)
-
-    return marVal;
-  }
-
+  double score(const _DiscreteFunction<Reward>* basis) const;
   std::string getName() const {
     return "BEBFScore";
   }
 };
-
-//
-// TODO re-inits vfn after scoring / resolving / etc.
-//
 
 /**
  * \brief A BasisGenerator uses a scoring mechanism to compute the next best basis
@@ -222,6 +186,10 @@ public:
     SizeVec basisIds = cpputil::ordered_vec<Size>(basisVec.size());
     It biter(basisIds);
     //int j = 0;
+
+    // TODO: check iterator for collisions (existing features)
+    // TODO re-inits vfn after scoring / resolving / etc.
+    // TODO: pass `AND' to join() call for logical and.
 
 #if 0
     Size h1_id = 37;
@@ -304,9 +272,6 @@ DiscreteFunction<T> pair(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, 
   SizeVec joint_base = pair_basis(h1_id, h2_id, h1, h2);
   return pair(joint_base, h1, h2);
 }
-
-/// \brief Score a basis function under different criteria
-void scoreBasis(const Domain& domain, const _DiscreteFunction<Reward>* basis, const FactoredValueFunction& fval);
 
 /// \brief Perform a given operation (e.g., max, min, sum) on the \a FactoredFunction for all values where the basis is `active'
 /// \note Assumes that the FactoredFunction is defined over the same domain as `basis'

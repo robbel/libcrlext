@@ -16,33 +16,38 @@ using namespace std;
 
 namespace crl {
 
-namespace algorithm {
-
-void scoreBasis(const Domain& domain, const _DiscreteFunction<Reward>* basis, const FactoredValueFunction& fval) {
+double EpsilonScore::score(const _DiscreteFunction<Reward>* basis) const {
   assert(basis->getActionFactors().empty());
   // remove variables to reach basis' domain
-  const SizeVec elim_order = get_state_vars(domain, basis->getStateFactors());
-  // evaluate max over basis function
-  auto facfn = factoredBellmanResidual(domain, fval, elim_order, algorithm::maximize);
-  double maxVal = evalOpOverBasis(basis, facfn, false, -std::numeric_limits<double>::infinity(),
-                              [](Reward& v1, Reward& v2) { if(v2 > v1) { v1 = v2; } });
+  const SizeVec elim_order = get_state_vars(_domain, basis->getStateFactors());
 
+  // evaluate max over basis function
+  auto facfn = algorithm::factoredBellmanResidual(_domain, _value_fn, elim_order, algorithm::maximize);
+  double maxVal = algorithm::evalOpOverBasis(basis, facfn, false, -std::numeric_limits<double>::infinity(),
+                                             [](Reward& v1, Reward& v2) { if(v2 > v1) { v1 = v2; } });
   // evaluate min over basis function
-  facfn = factoredBellmanResidual(domain, fval, elim_order, algorithm::minimize);
-  double minVal = evalOpOverBasis(basis, facfn, false, std::numeric_limits<double>::infinity(),
-                              [](Reward& v1, Reward& v2) { if(v2 < v1) { v1 = v2; } });
+  facfn = algorithm::factoredBellmanResidual(_domain, _value_fn, elim_order, algorithm::minimize);
+  double minVal = algorithm::evalOpOverBasis(basis, facfn, false, std::numeric_limits<double>::infinity(),
+                                             [](Reward& v1, Reward& v2) { if(v2 < v1) { v1 = v2; } });
   minVal = minVal < 0. ? 0. : minVal;
 
   double range = maxVal - minVal;
   LOG_DEBUG("Feature range: " << range);
-
-  // evaluate marginal under basis
-  facfn = factoredBellmanMarginal(domain, basis->getStateFactors(), fval);
-  double marVal = evalOpOverBasis(basis, facfn, false, 0.,
-                              [](Reward& v1, Reward& v2) { v1 += v2; });
-  LOG_DEBUG("Marginal under feature: " << marVal);
+  return range;
 }
 
-} // namespace algorithm
+double BEBFScore::score(const _DiscreteFunction<Reward> *basis) const {
+  assert(basis->getActionFactors().empty());
+
+  // evaluate marginal under basis
+  auto facfn = algorithm::factoredBellmanMarginal(_domain, basis->getStateFactors(), _value_fn);
+  double marVal = algorithm::evalOpOverBasis(basis, facfn, false, 0.,
+                                             [](Reward& v1, Reward& v2) { v1 += v2; });
+  LOG_DEBUG("Marginal under feature: " << marVal);
+
+  // TODO: include coverage of a feature (size of dom where it's active)
+
+  return marVal;
+}
 
 } // namespace crl
