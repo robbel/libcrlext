@@ -49,6 +49,7 @@ template<class T, class BinOp = decltype(std::plus<T>())>
 DiscreteFunction<T> join(cpputil::Iterator<DiscreteFunction<T>>& funcs, BinOp binOp = std::plus<T>());
 template<class T> std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F, const crl::SizeVec& elimination_order);
 template<class T, class BinOp> DiscreteFunction<T> genericOp(const _DiscreteFunction<T>* pf, SizeVec vars, bool known_flat, T init, BinOp binOp);
+template<class T> DiscreteFunction<T> binpair(const SizeVec& joint_base, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
 
 }
 
@@ -73,6 +74,7 @@ class _DiscreteFunction {
   friend DiscreteFunction<T> algorithm::instantiate<T>(const _DiscreteFunction<T>* pf, const State& s, bool known_flat);
   friend std::vector<T> algorithm::slice<T>(const _DiscreteFunction<T>* pf, Size i, const State&s, const Action& a);
   friend std::tuple<Action,T> algorithm::argVariableElimination<T>(FunctionSet<T>& F, const crl::SizeVec& elimination_order);
+  friend DiscreteFunction<T> algorithm::binpair<T>(const SizeVec& joint_base, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
   // C++ does not allow partial specialization of template friends; hence specified for types U, BinOp
   template<class U, class BinOp>
   friend DiscreteFunction<U> algorithm::join(cpputil::Iterator<DiscreteFunction<U>>& funcs, BinOp binOp);

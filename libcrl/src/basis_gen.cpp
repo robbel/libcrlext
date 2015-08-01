@@ -16,6 +16,17 @@ using namespace std;
 
 namespace crl {
 
+const std::size_t Conjunction::EMPTY_HASH = 0;
+
+std::ostream& operator<<(std::ostream &os, const Conjunction& conj) {
+  os << "Conj({";
+  for(auto h : conj.getBaseFeatures()) {
+      os << "h" << h << "^";
+  }
+  os << "}";
+  return os;
+}
+
 double EpsilonScore::score(const _DiscreteFunction<Reward>* basis) const {
   assert(basis->getActionFactors().empty());
   // remove variables to reach basis' domain
