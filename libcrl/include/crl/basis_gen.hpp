@@ -229,25 +229,22 @@ public:
     SizeVec basisIds = cpputil::ordered_vec<Size>(basisVec.size());
     It biter(basisIds);
 
-    // TODO: check iterator for collisions (existing features)
-    // TODO: continue to use just indicators throughout for this impl (i.e., BinaryConjunctiveFeature)
-
     DiscreteFunction<Reward> bestf;
     double bestVal = -std::numeric_limits<double>::infinity();
     while(biter.hasNext()) {
         const auto& tpl = biter.next();
         Size h1_id = std::get<0>(tpl);
         Size h2_id = std::get<1>(tpl);
-        // hack to do a logical `AND' with BinOp over two functions
-//        int land = 0; // start with logical `OR' over first two values, then iterate `AND'
-//        DiscreteFunction<Reward> candf = algorithm::pair(h1_id, h2_id, basisVec[h1_id], basisVec[h2_id],
-//            [&land](Reward r1, Reward r2) -> Reward { return !(land++%2) ? r2 : (r1 != 0 && r2 != 0); });
+
+        // TODO: check iterator for collisions (existing features)
+
+        // perform a logical `AND' to obtain new joint indicator
         DiscreteFunction<Reward> candf = algorithm::binpair(h1_id, h2_id, basisVec[h1_id], basisVec[h2_id]);
-        double s = 0.;
-        if(candf)
-          s = _score.score(candf.get());
-        else
-          s = -std::numeric_limits<double>::infinity();
+        if(!candf) { // no consistent indicator exists for h1 ^ h2
+            continue;
+        }
+        // score candidate function
+        double s = _score.score(candf.get());
         LOG_DEBUG("<" << h1_id << "," << h2_id << ">: " << s);
         if(s > bestVal) {
           bestf = std::move(candf);
@@ -255,7 +252,8 @@ public:
         }
     }
 
-    LOG_INFO("Best next function (score: " << bestVal << "): " << *bestf );
+    if(bestf)
+      LOG_INFO("Best next function (score: " << bestVal << "): " << *bestf);
     return bestf;
   }
 };
