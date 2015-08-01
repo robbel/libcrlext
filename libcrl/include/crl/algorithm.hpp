@@ -142,8 +142,8 @@ std::vector<T> slice(const _DiscreteFunction<T>* pf, Size i, const State&s, cons
 }
 
 /// \brief Actual implementation for marginalization, minimization, and maximization functions
-template<class T, class BinOp>
-DiscreteFunction<T> genericOp(const _DiscreteFunction<T>* pf, SizeVec vars, bool known_flat, T init, BinOp binOp) {
+template<class T, class BinRefOp>
+DiscreteFunction<T> genericOp(const _DiscreteFunction<T>* pf, SizeVec vars, bool known_flat, T init, BinRefOp binOp) {
   const _FDiscreteFunction<T>* of = is_flat(pf, known_flat);
 
   // TODO: optimization paths for Indicator and ConstantFn
@@ -225,10 +225,11 @@ DiscreteFunction<T> marginalize(const _DiscreteFunction<T>* pf, SizeVec vars, bo
                               [](T& v1, T& v2) { v1 += v2; });
 }
 
-/// \brief Joins the given set of functions into a larger one defined as the function sum over the joint domain
+/// \brief Joins the given set of functions into a larger one
+/// \param binOp The operation to perform (default: sum)
 /// \return A new function defined over the union of all function domains represented in `funcs'
-template<class T>
-DiscreteFunction<T> join(cpputil::Iterator<DiscreteFunction<T>>& funcs) {
+template<class T, class BinOp>
+DiscreteFunction<T> join(cpputil::Iterator<DiscreteFunction<T>>& funcs, BinOp binOp) {
     assert(funcs.hasNext());
     const Domain& domain = funcs.next()->_domain; // same domain
     FDiscreteFunction<T> jf = boost::make_shared<_FDiscreteFunction<T>>(domain);
@@ -255,7 +256,7 @@ DiscreteFunction<T> join(cpputil::Iterator<DiscreteFunction<T>>& funcs) {
             const auto& f = funcs.next();
             State ms = f->mapState(s,s_dom);
             Action ma = f->mapAction(a,a_dom);
-            v += f->eval(ms,ma);
+            v = binOp(v, f->eval(ms,ma));
         }
         vals[i++] = v;
     }
@@ -264,10 +265,10 @@ DiscreteFunction<T> join(cpputil::Iterator<DiscreteFunction<T>>& funcs) {
 }
 
 /// \brief Convenience function
-template<class T>
-DiscreteFunction<T> join(std::initializer_list<DiscreteFunction<T>> funcs) {
+template<class T, class BinOp = decltype(std::plus<T>())>
+DiscreteFunction<T> join(std::initializer_list<DiscreteFunction<T>> funcs, BinOp binOp = std::plus<T>()) {
     cpputil::ContainerIterator<DiscreteFunction<double>,std::initializer_list<DiscreteFunction<double>>> fiter(std::move(funcs));
-    return join(fiter);
+    return join(fiter, binOp);
 }
 
 //

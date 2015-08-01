@@ -24,8 +24,10 @@ namespace crl {
 
 // Forward declarations, typedefs
 namespace algorithm {
-template<class T> DiscreteFunction<T> pair(const SizeVec& joint_base, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
-template<class T> DiscreteFunction<T> pair(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
+template<class T, class BinOp = decltype(std::plus<T>())>
+DiscreteFunction<T> pair(const SizeVec& joint_base, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2, BinOp binOp);
+template<class T, class BinOp = decltype(std::plus<T>())>
+DiscreteFunction<T> pair(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2, BinOp binOp);
 template<class T, class BinOp> T evalOpOverBasis(const _DiscreteFunction<T>* basis, const FactoredFunction<T>& facfn, bool known_flat, T init, BinOp binOp);
 }
 
@@ -44,8 +46,9 @@ typedef boost::shared_ptr<_SizeChooseTwoIterator> SizeChooseTwoIterator;
  */
 template<class T>
 class _ConjunctiveFeature : public _FDiscreteFunction<T> {
-  // friend declarations
-  friend DiscreteFunction<T> algorithm::pair<T>(const SizeVec& joint_base, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
+  // C++ does not allow partial specialization of template friends; hence specified for types U, BinOp
+  template<class U, class BinOp>
+  friend DiscreteFunction<U> algorithm::pair(const SizeVec& joint_base, const DiscreteFunction<U>& h1, const DiscreteFunction<U>& h2, BinOp binOp);
 protected:
   /// \brief The (sorted) index set of basis functions that make up this conjunctive feature
   SizeVec _base_fns;
@@ -185,20 +188,21 @@ public:
     const auto& basisVec = _value_fn->getBasis();
     SizeVec basisIds = cpputil::ordered_vec<Size>(basisVec.size());
     It biter(basisIds);
-    //int j = 0;
 
     // TODO: check iterator for collisions (existing features)
-    // TODO re-inits vfn after scoring / resolving / etc.
-    // TODO: pass `AND' to join() call for logical and.
 
-#if 0
+    // Test:
     Size h1_id = 37;
     Size h2_id = 58;
-    DiscreteFunction<Reward> candf = algorithm::pair(h1_id, h2_id, basisVec[h1_id], basisVec[h2_id]);
+    // hack to do a logical `AND' with BinOp over two functions
+    int land = 0; // start with logical `OR' over first two values, then iterate `AND'
+    DiscreteFunction<Reward> candf = algorithm::pair(h1_id, h2_id, basisVec[h1_id], basisVec[h2_id],
+        [&land](Reward r1, Reward r2) -> Reward { return !(land++%2) ? r2 : (r1 != 0 && r2 != 0); });
+
     double s = _score.score(candf.get());
     LOG_DEBUG("<" << h1_id << "," << h2_id << ">: " << s);
-#endif
-    return nullptr;
+
+    return candf;
   }
 };
 
@@ -241,16 +245,16 @@ SizeVec pair_basis(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const 
   return joint_base;
 }
 
-/// \brief Compute the conjunction (`AND') of two features defined over state factors
-/// This is a specialization of the general algorithm::join to obtain a ConjunctiveFeature
+/// \brief Compute the conjunction of two features defined over state factors
+/// \param binOp The operation to perform when joining features (e.g., `AND')
 /// \param joint_base The (flat, ordered) conjunction of original basis functions that make up joint feature
 /// \see algorithm::join, algorithm::pair_basis
-template<class T>
-DiscreteFunction<T> pair(const SizeVec& joint_base, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2) {
+template<class T, class BinOp>
+DiscreteFunction<T> pair(const SizeVec& joint_base, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2, BinOp binOp) {
   assert(h1 && h2 && h1->getActionFactors().empty() && h2->getActionFactors().empty());
   // TODO: add optimization path for indicator functions
   // TODO: add optimization path when h1, h2 subdomains are identical/subsets, see _FDiscreteFunction::transform
-  FDiscreteFunction<T> jf = boost::static_pointer_cast<_FDiscreteFunction<T>>(algorithm::join({h1,h2}));
+  FDiscreteFunction<T> jf = boost::static_pointer_cast<_FDiscreteFunction<T>>(algorithm::join({h1,h2}, binOp));
   ConjunctiveFeature<T> cof = boost::make_shared<_ConjunctiveFeature<T>>(std::move(*jf));
 
   // update basis features that are active in conjunction
@@ -266,11 +270,11 @@ DiscreteFunction<T> pair(const SizeVec& joint_base, const DiscreteFunction<T>& h
 /// \param h1_id The unique Id of function h1 (e.g., position in basis vector)
 /// \param h2_id The unique Id of function h2 (e.g., position in basis vector)
 /// \see algorithm::join
-template<class T>
-DiscreteFunction<T> pair(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2) {
+template<class T, class BinOp>
+DiscreteFunction<T> pair(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2, BinOp binOp) {
   // compute basis features that are active in conjunction
   SizeVec joint_base = pair_basis(h1_id, h2_id, h1, h2);
-  return pair(joint_base, h1, h2);
+  return pair(joint_base, h1, h2, binOp);
 }
 
 /// \brief Perform a given operation (e.g., max, min, sum) on the \a FactoredFunction for all values where the basis is `active'

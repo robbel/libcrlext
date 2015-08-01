@@ -45,7 +45,8 @@ namespace algorithm {
 template<class T> T sum_over_domain(const crl::_DiscreteFunction<T>* pf, bool known_flat);
 template<class T> DiscreteFunction<T> instantiate(const _DiscreteFunction<T>* pf, const State& s, bool known_flat);
 template<class T> std::vector<T> slice(const _DiscreteFunction<T>* pf, Size i, const State&s, const Action& a);
-template<class T> DiscreteFunction<T> join(cpputil::Iterator<DiscreteFunction<T>>& funcs);
+template<class T, class BinOp = decltype(std::plus<T>())>
+DiscreteFunction<T> join(cpputil::Iterator<DiscreteFunction<T>>& funcs, BinOp binOp = std::plus<T>());
 template<class T> std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F, const crl::SizeVec& elimination_order);
 template<class T, class BinOp> DiscreteFunction<T> genericOp(const _DiscreteFunction<T>* pf, SizeVec vars, bool known_flat, T init, BinOp binOp);
 
@@ -70,10 +71,11 @@ template<class T>
 class _DiscreteFunction {
   // friend declarations
   friend DiscreteFunction<T> algorithm::instantiate<T>(const _DiscreteFunction<T>* pf, const State& s, bool known_flat);
-  friend DiscreteFunction<T> algorithm::join<T>(cpputil::Iterator<DiscreteFunction<T>>& funcs);
   friend std::vector<T> algorithm::slice<T>(const _DiscreteFunction<T>* pf, Size i, const State&s, const Action& a);
   friend std::tuple<Action,T> algorithm::argVariableElimination<T>(FunctionSet<T>& F, const crl::SizeVec& elimination_order);
   // C++ does not allow partial specialization of template friends; hence specified for types U, BinOp
+  template<class U, class BinOp>
+  friend DiscreteFunction<U> algorithm::join(cpputil::Iterator<DiscreteFunction<U>>& funcs, BinOp binOp);
   template<class U, class BinOp>
   friend DiscreteFunction<U> algorithm::genericOp(const _DiscreteFunction<U>* pf, SizeVec vars, bool known_flat, U init, BinOp binOp);
   // operator overloads
@@ -751,8 +753,8 @@ protected:
     /// \brief General in-place transformation method with another function
     /// \param known_flat True iff `other' is known to be a _FDiscreteFunction and special optimizations apply
     /// \note Supports the case that function \a other is defined over a (proper) subset of factors from this function
-    template<class F>
-    void transform(const _DiscreteFunction<T>* other, F f, bool known_flat) {
+    template<class BinOp>
+    void transform(const _DiscreteFunction<T>* other, BinOp binOp, bool known_flat) {
       auto& vals = _sa_table->values();
       // optional rtti check to allow optimizations below
       const _FDiscreteFunction<T>* fother;
@@ -766,7 +768,7 @@ protected:
       }
       // implementation
       if(known_flat && vals.size() == fother->_sa_table->values().size()) { // efficient transform possible
-          std::transform(vals.begin(), vals.end(), fother->_sa_table->values().begin(), vals.begin(), f);
+          std::transform(vals.begin(), vals.end(), fother->_sa_table->values().begin(), vals.begin(), binOp);
           return;
       }
 
@@ -788,7 +790,7 @@ protected:
                   T val = other->eval(ms); // evaluate `other' function
                   T& start = vals[s.getIndex()*num_actions]; // fill from here
                   auto start_it = vals.begin() + (&start - vals.data());
-                  std::transform(start_it, start_it+num_actions, start_it, std::bind2nd(f, val));
+                  std::transform(start_it, start_it+num_actions, start_it, std::bind2nd(binOp, val));
               }
           }
           else if(std::includes(this->getActionFactors().begin(), this->getActionFactors().end(), // check if other domain is proper subset
@@ -803,7 +805,7 @@ protected:
                   Action ma = other->mapAction(a, a_dom);
                   T val = other->eval(ms,ma); // evaluate `other' function
                   const auto idx = s.getIndex()*num_actions+a.getIndex();
-                  vals[idx] = f(vals[idx],val);
+                  vals[idx] = binOp(vals[idx],val);
               }
           }
       }
