@@ -161,11 +161,12 @@ class BEBFScore : public BasisScore {
 
 /**
  * \brief A BasisGenerator uses a scoring mechanism to compute the next best basis
+ * Computes (binary) indicator features based on conjunctions of existing features
  * \tparam It The iterator to compute new candidate basis Id-tuples
  * \tparam Sc The type of the scoring method
  */
 template<class It, class Sc>
-class BasisGenerator {
+class BinaryBasisGenerator {
 protected:
   /// \brief The (global) domain
   Domain _domain;
@@ -178,7 +179,7 @@ protected:
   /// \brief Hash-Set to keep track of existing features
 //  std::unordered_set
 public:
-  BasisGenerator(const Domain& domain, FactoredValueFunction vfn, std::string name = "")
+  BinaryBasisGenerator(const Domain& domain, FactoredValueFunction vfn, std::string name = "")
   : _domain(domain), _value_fn(std::move(vfn)), _score(_domain, _value_fn), _name(name) { }
 
   /// \brief Return the next best basis function
@@ -190,6 +191,7 @@ public:
     It biter(basisIds);
 
     // TODO: check iterator for collisions (existing features)
+    // TODO: continue to use just indicators throughout for this impl (i.e., BinaryConjunctiveFeature)
 
     DiscreteFunction<Reward> bestf;
     double bestVal = -std::numeric_limits<double>::infinity();
