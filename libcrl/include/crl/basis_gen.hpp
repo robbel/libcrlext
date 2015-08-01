@@ -191,18 +191,27 @@ public:
 
     // TODO: check iterator for collisions (existing features)
 
-    // Test:
-    Size h1_id = 37;
-    Size h2_id = 58;
-    // hack to do a logical `AND' with BinOp over two functions
-    int land = 0; // start with logical `OR' over first two values, then iterate `AND'
-    DiscreteFunction<Reward> candf = algorithm::pair(h1_id, h2_id, basisVec[h1_id], basisVec[h2_id],
-        [&land](Reward r1, Reward r2) -> Reward { return !(land++%2) ? r2 : (r1 != 0 && r2 != 0); });
+    DiscreteFunction<Reward> bestf;
+    double bestVal = -std::numeric_limits<double>::infinity();
+    while(biter.hasNext()) {
+        const auto& tpl = biter.next();
+        Size h1_id = std::get<0>(tpl);
+        Size h2_id = std::get<1>(tpl);
+        // hack to do a logical `AND' with BinOp over two functions
+        int land = 0; // start with logical `OR' over first two values, then iterate `AND'
+        DiscreteFunction<Reward> candf = algorithm::pair(h1_id, h2_id, basisVec[h1_id], basisVec[h2_id],
+            [&land](Reward r1, Reward r2) -> Reward { return !(land++%2) ? r2 : (r1 != 0 && r2 != 0); });
 
-    double s = _score.score(candf.get());
-    LOG_DEBUG("<" << h1_id << "," << h2_id << ">: " << s);
+        double s = _score.score(candf.get());
+        LOG_DEBUG("<" << h1_id << "," << h2_id << ">: " << s);
+        if(s > bestVal) {
+          bestf = std::move(candf);
+          bestVal = s;
+        }
+    }
 
-    return candf;
+    LOG_INFO("Best next function (score: " << bestVal << "): " << *bestf );
+    return bestf;
   }
 };
 
