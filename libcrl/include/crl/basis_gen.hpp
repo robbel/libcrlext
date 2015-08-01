@@ -23,15 +23,7 @@
 namespace crl {
 
 // Forward declarations, typedefs
-namespace algorithm {
-template<class T, class BinOp = decltype(std::plus<T>())>
-DiscreteFunction<T> pair(const SizeVec& joint_base, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2, BinOp binOp);
-template<class T, class BinOp = decltype(std::plus<T>())>
-DiscreteFunction<T> pair(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2, BinOp binOp);
-template<class T> DiscreteFunction<T> binpair(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
-template<class T, class BinOp> T evalOpOverBasis(const _DiscreteFunction<T>* basis, const FactoredFunction<T>& facfn, bool known_flat, T init, BinOp binOp);
-}
-
+class Conjunction;
 template<class T> class _FConjunctiveFeature;
 template<class T> class _BinConjunctiveFeature;
 template<class T> std::ostream& operator<<(std::ostream& os, const _FConjunctiveFeature<T>& f);
@@ -41,10 +33,24 @@ template<class T> std::ostream& operator<<(std::ostream& os, const _BinConjuncti
 typedef cpputil::NChooseTwoIterator<Size, SizeVec> _SizeChooseTwoIterator;
 typedef boost::shared_ptr<_SizeChooseTwoIterator> SizeChooseTwoIterator;
 
+namespace algorithm {
+
+template<class T, class BinOp = decltype(std::plus<T>())>
+DiscreteFunction<T> pair(const Conjunction& joint_base, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2, BinOp binOp);
+template<class T, class BinOp = decltype(std::plus<T>())>
+DiscreteFunction<T> pair(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2, BinOp binOp);
+template<class T> Conjunction pair_basis(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
+template<class T> DiscreteFunction<T> binpair(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
+template<class T, class BinOp> T evalOpOverBasis(const _DiscreteFunction<T>* basis, const FactoredFunction<T>& facfn, bool known_flat, T init, BinOp binOp);
+
+}
+
 /**
- * \brief Stores the (flat) conjunction of original basis functions that make up a \a ConjunctiveFeature
+ * \brief Stores the (flat) conjunction of original basis functions that make up a conjunctive feature
  */
 class Conjunction {
+  template<class T>
+  friend Conjunction algorithm::pair_basis(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
 protected:
   /// \brief The (sorted) index set of basis functions that make up this conjunction
   SizeVec _base_fns;
@@ -62,6 +68,10 @@ public:
   }
   /// \brief Return unique hash of this conjunction
   std::size_t getHash() const {
+    return _hash;
+  }
+  /// \brief Return unique hash of this conjunction
+  operator std::size_t() const {
     return _hash;
   }
   /// \brief operators
@@ -89,7 +99,7 @@ template<class T>
 class _FConjunctiveFeature : public _FDiscreteFunction<T>, public Conjunction {
   // C++ does not allow partial specialization of template friends; hence specified for types U, BinOp
   template<class U, class BinOp>
-  friend DiscreteFunction<U> algorithm::pair(const SizeVec& joint_base, const DiscreteFunction<U>& h1, const DiscreteFunction<U>& h2, BinOp binOp);
+  friend DiscreteFunction<U> algorithm::pair(const Conjunction& joint_base, const DiscreteFunction<U>& h1, const DiscreteFunction<U>& h2, BinOp binOp);
 public:
   /// \brief ctor
   _FConjunctiveFeature(const Domain& domain, std::string name = "")
@@ -126,7 +136,7 @@ std::ostream& operator<<(std::ostream &os, const _FConjunctiveFeature<T>& f) {
  */
 template<class T>
 class _BinConjunctiveFeature : public _Indicator<T>, public Conjunction {
-  friend DiscreteFunction<T> algorithm::binpair<T>(const SizeVec& joint_base, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
+  friend DiscreteFunction<T> algorithm::binpair<T>(const Conjunction& joint_base, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
 public:
   /// \brief ctor
   _BinConjunctiveFeature(const Domain& domain, std::string name = "")
@@ -199,10 +209,11 @@ class BEBFScore : public BasisScore {
 };
 
 /**
- * \brief A BasisGenerator uses a scoring mechanism to compute the next best basis
- * Computes (binary) indicator features based on conjunctions of existing features
+ * \brief A BinaryBasisGenerator uses a scoring mechanism to compute the next best indicator basis
+ * Evaluates (binary) indicator features based on conjunctions of existing features and the supplied scoring method
  * \tparam It The iterator to compute new candidate basis Id-tuples
  * \tparam Sc The type of the scoring method
+ * \see cpputil::NChooseTwoIterator, BasisScore
  */
 template<class It, class Sc>
 class BinaryBasisGenerator {
@@ -216,13 +227,13 @@ protected:
   /// \brief Unique name of this basis generator
   std::string _name;
   /// \brief Hash-Set to keep track of existing features
-//  std::unordered_set
+  std::unordered_set<Conjunction,std::hash<std::size_t>> _exists;
 public:
   BinaryBasisGenerator(const Domain& domain, FactoredValueFunction vfn, std::string name = "")
   : _domain(domain), _value_fn(std::move(vfn)), _score(_domain, _value_fn), _name(name) { }
 
   /// \brief Return the next best basis function
-  DiscreteFunction<Reward> nextBest() const {
+  DiscreteFunction<Reward> nextBest() {
     // Note: sort by size?
     LOG_DEBUG("Basis size: " << _value_fn->getBasis().size());
     const auto& basisVec = _value_fn->getBasis();
@@ -235,11 +246,21 @@ public:
         const auto& tpl = biter.next();
         Size h1_id = std::get<0>(tpl);
         Size h2_id = std::get<1>(tpl);
+        Conjunction joint_base = algorithm::pair_basis(h1_id, h2_id, basisVec[h1_id], basisVec[h2_id]);
 
-        // TODO: check iterator for collisions (existing features)
+        // test whether this conjunctive feature was already checked
+        auto cit = _exists.find(joint_base);
+        if(cit != _exists.end()) {
+            LOG_DEBUG("Skipping " << joint_base << ": already checked.");
+            continue;
+        }
+        else { // update checked hashes
+            auto retVal = _exists.insert(joint_base);
+            assert(retVal.second); // assert no hash collisions
+        }
 
         // perform a logical `AND' to obtain new joint indicator
-        DiscreteFunction<Reward> candf = algorithm::binpair(h1_id, h2_id, basisVec[h1_id], basisVec[h2_id]);
+        DiscreteFunction<Reward> candf = algorithm::binpair(joint_base, basisVec[h1_id], basisVec[h2_id]);
         if(!candf) { // no consistent indicator exists for h1 ^ h2
             continue;
         }
@@ -252,8 +273,10 @@ public:
         }
     }
 
-    if(bestf)
-      LOG_INFO("Best next function (score: " << bestVal << "): " << *bestf);
+    if(bestf) {
+      const Conjunction* bestc = dynamic_cast<const Conjunction*>(bestf.get());
+      LOG_INFO("Best next function (score: " << bestVal << "): " << *bestf << " which is: " << *bestc);
+    }
     return bestf;
   }
 };
@@ -277,23 +300,26 @@ inline void pair_helper(It it1b, It it1e, const Conjunction* cf2, const Size (&h
 
 namespace algorithm {
 
-/// \brief Compute the (flat, ordered) union of original basis functions that make up joint feature
+/// \brief Compute the (flat, ordered) union of original basis functions that make up the joint feature
+/// \return The conjunction of basis functions
 template<class T>
-SizeVec pair_basis(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2) {
+Conjunction pair_basis(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2) {
   // compute basis features that are active in conjunction
-  SizeVec joint_base;
+  Conjunction joint_base;
   const Conjunction* cf1 = dynamic_cast<const Conjunction*>(h1.get());
   const Conjunction* cf2 = dynamic_cast<const Conjunction*>(h2.get());
   Size h1_arr[] = { h1_id };
   Size h2_arr[] = { h2_id };
   // do std::set_union in canonical form for all instances instead of using, e.g., boost::any_range
-  auto ins = std::inserter(joint_base, joint_base.begin());
+  auto ins = std::inserter(joint_base._base_fns, joint_base._base_fns.begin());
   if(cf1) {
       pair_helper(std::begin(cf1->getBaseFeatures()), std::end(cf1->getBaseFeatures()), cf2, h2_arr, ins);
   }
   else {
       pair_helper(std::begin(h1_arr), std::end(h1_arr), cf2, h2_arr, ins);
   }
+  // compute the hash for the conjunction
+  joint_base._hash = boost::hash_range(joint_base._base_fns.begin(), joint_base._base_fns.end());
   return joint_base;
 }
 
@@ -303,17 +329,15 @@ SizeVec pair_basis(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const 
 /// \param binOp The operation to perform when joining features (e.g., sum)
 /// \see algorithm::join, algorithm::pair_basis
 template<class T, class BinOp>
-DiscreteFunction<T> pair(const SizeVec& joint_base, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2, BinOp binOp) {
+DiscreteFunction<T> pair(const Conjunction& joint_base, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2, BinOp binOp) {
   assert(h1 && h2 && h1->getActionFactors().empty() && h2->getActionFactors().empty());
   // TODO: add optimization path when h1, h2 subdomains are identical/subsets, see _FDiscreteFunction::transform
   FDiscreteFunction<T> jf = boost::static_pointer_cast<_FDiscreteFunction<T>>(algorithm::join({h1,h2}, binOp));
   FConjunctiveFeature<T> cof = boost::make_shared<_FConjunctiveFeature<T>>(std::move(*jf));
 
   // update basis features that are active in conjunction
-  auto& base_fns = cof->_base_fns;
-  base_fns = joint_base;
-  // update hash
-  cof->_hash = boost::hash_range(base_fns.begin(), base_fns.end());
+  cof->_base_fns = joint_base.getBaseFeatures();
+  cof->_hash = joint_base.getHash();
   return cof;
 }
 
@@ -323,7 +347,7 @@ DiscreteFunction<T> pair(const SizeVec& joint_base, const DiscreteFunction<T>& h
 /// \return A \a _BinConjunctiveFeature wrapped as a DiscreteFunction. Nullptr if no joint indicator exists.
 /// \see crl::_Indicator, algorithm::pair_basis
 template<class T>
-DiscreteFunction<T> binpair(const SizeVec& joint_base, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2) {
+DiscreteFunction<T> binpair(const Conjunction& joint_base, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2) {
   assert(h1 && h2 && h1->getActionFactors().empty() && h2->getActionFactors().empty());
   // join function scopes
   BinConjunctiveFeature<T> jb = boost::make_shared<_BinConjunctiveFeature<T>>(h1->_domain);
@@ -369,10 +393,8 @@ DiscreteFunction<T> binpair(const SizeVec& joint_base, const DiscreteFunction<T>
   jb->setState(js);
 
   // update basis features that are active in conjunction
-  auto& base_fns = jb->_base_fns;
-  base_fns = joint_base;
-  // update hash
-  jb->_hash = boost::hash_range(base_fns.begin(), base_fns.end());
+  jb->_base_fns = joint_base.getBaseFeatures();
+  jb->_hash = joint_base.getHash();
   return jb;
 }
 
@@ -385,7 +407,7 @@ DiscreteFunction<T> binpair(const SizeVec& joint_base, const DiscreteFunction<T>
 template<class T, class BinOp>
 DiscreteFunction<T> pair(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2, BinOp binOp) {
   // compute basis features that are active in conjunction
-  SizeVec joint_base = pair_basis(h1_id, h2_id, h1, h2);
+  Conjunction joint_base = pair_basis(h1_id, h2_id, h1, h2);
   return pair(joint_base, h1, h2, binOp);
 }
 
@@ -398,7 +420,7 @@ DiscreteFunction<T> pair(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, 
 template<class T>
 DiscreteFunction<T> binpair(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2) {
   // compute basis features that are active in conjunction
-  SizeVec joint_base = pair_basis(h1_id, h2_id, h1, h2);
+  Conjunction joint_base = pair_basis(h1_id, h2_id, h1, h2);
   return binpair(joint_base, h1, h2);
 }
 
