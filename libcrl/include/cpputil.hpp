@@ -476,6 +476,53 @@ public:
 	}
 };
 
+template<class T>
+using TupleIterator = cpputil::Iterator<std::tuple<T,T>>;
+
+/**
+ * \brief Iterator returning tuples of entries in the original container.
+ * Tuples are chosen as per N-choose-2 combinations.
+ */
+template<class T, class C>
+class NChooseTwoIterator : public TupleIterator<T> {
+protected:
+  const C& _container;
+  typename C::const_iterator _itr1, _itr2;
+  typename C::const_iterator _end;
+  std::tuple<T,T> _cur;
+  typedef typename C::size_type size_type;
+public:
+  /// \brief ctor
+  /// \param container The container of type T of which to generate N-choose-2 combinations
+  NChooseTwoIterator(const C& container)
+  : _container(container) {
+    if (_container.size() < 2)
+      throw cpputil::IteratorException("NChooseTwoIterator undefined for less than two elements");
+    _itr1 = _container.begin();
+    _itr2 = _itr1+1;
+    _end = _container.end();
+  }
+  virtual const std::tuple<T,T>& next() override {
+    if (_itr2 == _end)
+      throw cpputil::IteratorException("Attempting to get next element of exhausted iterator");
+    std::get<0>(_cur) = *_itr1;
+    std::get<1>(_cur) = *_itr2;
+    ++_itr2;
+    if(_itr2 == _end) {
+      ++_itr1;
+      _itr2 = _itr1+1;
+    }
+    return _cur;
+  }
+  virtual bool hasNext() const override {
+    return _itr2 != _end;
+  }
+  virtual void reset() override {
+    _itr1 = _container.begin();
+    _itr2 = _itr1+1;
+  }
+};
+
 ///
 /// \brief Class for denoting a range [min,max]
 ///
