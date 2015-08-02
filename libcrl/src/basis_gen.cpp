@@ -10,6 +10,7 @@
  */
 
 #include <iostream>
+#include <cmath>
 #include "crl/basis_gen.hpp"
 
 using namespace std;
@@ -44,6 +45,9 @@ double EpsilonScore::score(const _DiscreteFunction<Reward>* basis) const {
 
   double range = maxVal - minVal;
   LOG_DEBUG("Feature range: " << range);
+
+  // TODO: add some coverage metric
+
   return range;
 }
 
@@ -56,9 +60,13 @@ double BEBFScore::score(const _DiscreteFunction<Reward> *basis) const {
                                              [](Reward& v1, Reward& v2) { v1 += v2; });
   LOG_DEBUG("Marginal under feature: " << marVal);
 
-  // TODO: include coverage of a feature (size of dom where it's active)
+  // TODO: assert no overflow
 
-  return marVal;
+  Size cov = algorithm::basisCoverage(_domain, basis);
+  if(cov == 0) {
+      return -std::numeric_limits<double>::infinity();
+  }
+  return marVal / sqrt(static_cast<double>(cov));
 }
 
 } // namespace crl
