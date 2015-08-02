@@ -197,6 +197,7 @@ public:
  * \brief Computing the BEBF score Sum_BE(f) / sqrt(|Coverage(f)|) over the region where feature f is active
  */
 class BEBFScore : public BasisScore {
+public:
   /// \brief ctor
   /// \param vfn The (solved) factored value function that will be used for scoring
   BEBFScore(const Domain& domain, const FactoredValueFunction& vfn)
@@ -482,6 +483,37 @@ T evalOpOverBasis(const _DiscreteFunction<T>* basis, const FactoredFunction<T>& 
   }
   val += manVal;
   return val;
+}
+
+/// \brief Compute a feature f's |Coverage(f)| with respect to the global state space.
+/// \note The coverage of a feature can be zero if it is nowhere active!
+// TODO: Size return ok?
+template<class T>
+Size basisCoverage(const Domain& domain, const _DiscreteFunction<T>* basis) {
+  assert(!domain->isBig() && basis->getActionFactors().empty());
+  const Size active_dom = domain->getNumStates()/basis->getSubdomain()->getNumStates();
+  Size mul = 1;
+
+  // an indicator is active in exactly one state
+  const _Indicator<T>* pI = dynamic_cast<const _Indicator<T>*>(basis);
+  if(!pI) {
+      const _FDiscreteFunction<T>* ff = is_flat(basis, false);
+      if(ff) {
+          mul = std::count_if(ff->_sa_table->values().begin(), ff->_sa_table->values().end(),
+                              [](T i) { return i != T(0); });
+      } else {
+          mul = 0;
+          _StateIncrementIterator sitr(basis->getSubdomain());
+          while(sitr.hasNext()) {
+              const State& s = sitr.next();
+              T basisVal = (*basis)(s,Action());
+              if(basisVal != T(0)) { // basis is active in `s'
+                  mul++;
+              }
+          }
+      }
+  }
+  return active_dom * mul;
 }
 
 } // namespace algorithm

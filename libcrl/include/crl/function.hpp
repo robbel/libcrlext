@@ -43,14 +43,15 @@ using DiscreteFunction = boost::shared_ptr<_DiscreteFunction<T>>;
 //
 namespace algorithm {
 
-template<class T> T sum_over_domain(const crl::_DiscreteFunction<T>* pf, bool known_flat);
+template<class T> T sum_over_domain(const _DiscreteFunction<T>* pf, bool known_flat);
 template<class T> DiscreteFunction<T> instantiate(const _DiscreteFunction<T>* pf, const State& s, bool known_flat);
 template<class T> std::vector<T> slice(const _DiscreteFunction<T>* pf, Size i, const State&s, const Action& a);
 template<class T, class BinOp = decltype(std::plus<T>())>
 DiscreteFunction<T> join(cpputil::Iterator<DiscreteFunction<T>>& funcs, BinOp binOp = std::plus<T>());
-template<class T> std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F, const crl::SizeVec& elimination_order);
+template<class T> std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F, const SizeVec& elimination_order);
 template<class T, class BinOp> DiscreteFunction<T> genericOp(const _DiscreteFunction<T>* pf, SizeVec vars, bool known_flat, T init, BinOp binOp);
 template<class T> DiscreteFunction<T> binpair(const Conjunction& joint_base, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
+template<class T> Size basisCoverage(const Domain& domain, const _DiscreteFunction<T>* basis);
 
 }
 
@@ -74,7 +75,7 @@ class _DiscreteFunction {
   // friend declarations
   friend DiscreteFunction<T> algorithm::instantiate<T>(const _DiscreteFunction<T>* pf, const State& s, bool known_flat);
   friend std::vector<T> algorithm::slice<T>(const _DiscreteFunction<T>* pf, Size i, const State&s, const Action& a);
-  friend std::tuple<Action,T> algorithm::argVariableElimination<T>(FunctionSet<T>& F, const crl::SizeVec& elimination_order);
+  friend std::tuple<Action,T> algorithm::argVariableElimination<T>(FunctionSet<T>& F, const SizeVec& elimination_order);
   friend DiscreteFunction<T> algorithm::binpair<T>(const Conjunction& joint_base, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
   // C++ does not allow partial specialization of template friends; hence specified for types U, BinOp
   template<class U, class BinOp>
@@ -748,6 +749,7 @@ template<class T>
 class _FDiscreteFunction : public _DiscreteFunction<T> {
     friend T algorithm::sum_over_domain<T>(const _DiscreteFunction<T>* pf, bool known_flat);
     friend DiscreteFunction<T> algorithm::instantiate<T>(const _DiscreteFunction<T>* pf, const State& s, bool known_flat);
+    friend Size algorithm::basisCoverage<T>(const Domain& domain, const _DiscreteFunction<T>* basis);
 protected:
     /// \brief The internal storage for this function
     boost::shared_ptr<_FStateActionTable<T>> _sa_table;
