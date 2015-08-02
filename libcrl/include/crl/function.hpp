@@ -448,13 +448,13 @@ public:
   virtual void join(const SizeVec& state_dom, const SizeVec& action_dom, const LiftedVec& lifted_dom) {
     if(_state_dom != state_dom) {
         SizeVec joint_s;
-        std::set_union(_state_dom.begin(), _state_dom.end(), state_dom.begin(), state_dom.end(), std::inserter(joint_s, joint_s.begin()));
+        std::set_union(_state_dom.begin(), _state_dom.end(), state_dom.begin(), state_dom.end(), std::back_inserter(joint_s));
         _state_dom = std::move(joint_s);
         _computed = false;
     }
     if(_action_dom != action_dom) {
         SizeVec joint_a;
-        std::set_union(_action_dom.begin(), _action_dom.end(), action_dom.begin(), action_dom.end(), std::inserter(joint_a, joint_a.begin()));
+        std::set_union(_action_dom.begin(), _action_dom.end(), action_dom.begin(), action_dom.end(), std::back_inserter(joint_a));
         _action_dom = std::move(joint_a);
         _computed = false;
     }
@@ -462,7 +462,7 @@ public:
     if(_lifted_dom.size() != lifted_dom.size() ||
        !std::equal(_lifted_dom.begin(), _lifted_dom.end(), lifted_dom.begin(), [](const LiftedFactor& a, const LiftedFactor& b) { return *a == *b; })) {
       LiftedVec joint_l;
-      std::set_union(_lifted_dom.begin(), _lifted_dom.end(), lifted_dom.begin(), lifted_dom.end(), std::inserter(joint_l, joint_l.begin()), lifted_comp);
+      std::set_union(_lifted_dom.begin(), _lifted_dom.end(), lifted_dom.begin(), lifted_dom.end(), std::back_inserter(joint_l), lifted_comp);
       // copy these variables explicitly
       _lifted_dom.clear();
       for(const auto& lf : joint_l) {

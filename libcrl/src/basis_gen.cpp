@@ -41,9 +41,6 @@ double EpsilonScore::score(const _DiscreteFunction<Reward>* basis) const {
   facfn = algorithm::factoredBellmanResidual(_domain, _value_fn, elim_order, algorithm::minimize);
   double minVal = algorithm::evalOpOverBasis(basis, facfn, false, std::numeric_limits<double>::infinity(),
                                              [](Reward& v1, Reward& v2) { if(v2 < v1) { v1 = v2; } });
-  if(minVal < 0.) {
-      LOG_DEBUG("[EpsilonScore::score]: minVal " << minVal);
-  }
   minVal = minVal < 0. ? 0. : minVal;
 
   double range = 0.5*(maxVal - minVal);
@@ -71,9 +68,6 @@ double AbsoluteReductionScore::score(const _DiscreteFunction<Reward>* basis) con
   facfn = algorithm::factoredBellmanResidual(_domain, _value_fn, elim_order, algorithm::minimize);
   double minVal = algorithm::evalOpOverBasis(basis, facfn, false, std::numeric_limits<double>::infinity(),
                                              [](Reward& v1, Reward& v2) { if(v2 < v1) { v1 = v2; } });
-  if(minVal < 0.) {
-      LOG_DEBUG("[AbsoluteReductionScore::score]: minVal " << minVal);
-  }
   minVal = minVal < 0. ? 0. : minVal;
 
   double red = 0.5*(maxVal + minVal);

@@ -63,7 +63,7 @@ public:
   Conjunction()
   : _hash(EMPTY_HASH) { }
   /// \brief Return the (sorted) index set of basis functions that make up this conjunction
-  const SizeVec getBaseFeatures() const {
+  const SizeVec& getBaseFeatures() const {
       return _base_fns;
   }
   /// \brief Return unique hash of this conjunction
@@ -246,9 +246,13 @@ protected:
   /// \brief Hash-Set to keep track of existing features
   std::unordered_multiset<Conjunction,std::hash<std::size_t>> _exists;
 public:
+  /// \brief ctor
   BinaryBasisGenerator(const Domain& domain, FactoredValueFunction vfn, std::string name = "")
   : _domain(domain), _value_fn(std::move(vfn)), _score(_domain, _value_fn), _name(name) { }
-
+  /// \brief Clear the feature cache
+  void clearCache() {
+    _exists.clear();
+  }
   /// \brief Return the next best basis function
   DiscreteFunction<Reward> nextBest() {
     // Note: sort by size?
@@ -314,7 +318,7 @@ namespace {
 
 // helper function for algorithm::pair
 template<class It, class Ins>
-inline void pair_helper(It it1b, It it1e, const Conjunction* cf2, const Size (&h2_arr)[1], const Ins& ins) {
+inline void pair_helper(It it1b, It it1e, const Conjunction* cf2, const Size (&h2_arr)[1], Ins& ins) {
   if(cf2)
       std::set_union(it1b, it1e, std::begin(cf2->getBaseFeatures()), std::end(cf2->getBaseFeatures()), ins);
   else
@@ -336,7 +340,7 @@ Conjunction pair_basis(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, co
   Size h1_arr[] = { h1_id };
   Size h2_arr[] = { h2_id };
   // do std::set_union in canonical form for all instances instead of using, e.g., boost::any_range
-  auto ins = std::inserter(joint_base._base_fns, joint_base._base_fns.begin());
+  auto ins = std::back_inserter(joint_base._base_fns);
   if(cf1) {
       pair_helper(std::begin(cf1->getBaseFeatures()), std::end(cf1->getBaseFeatures()), cf2, h2_arr, ins);
   }
