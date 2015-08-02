@@ -178,7 +178,7 @@ public:
 };
 
 /**
- * \brief Computing (max BE(f) - min BE(f)) over the region where the feature f is active
+ * \brief Computing 1/2*(max BE(f) - min BE(f)) over the region where the feature f is active
  */
 class EpsilonScore : public BasisScore {
 public:
@@ -190,6 +190,22 @@ public:
   double score(const _DiscreteFunction<Reward>* basis) const;
   std::string getName() const {
     return "EpsilonScore";
+  }
+};
+
+/**
+ * \brief Computing 1/2*(max BE(f) + min BE(f)) over the region where the feature f is active
+ */
+class AbsoluteReductionScore : public BasisScore {
+public:
+  /// \brief ctor
+  /// \param vfn The (solved) factored value function that will be used for scoring
+  AbsoluteReductionScore(const Domain& domain, const FactoredValueFunction& vfn)
+  : BasisScore(domain, vfn) { }
+  /// \brief score implementation
+  double score(const _DiscreteFunction<Reward>* basis) const;
+  std::string getName() const {
+    return "AbsoluteReductionScore";
   }
 };
 
