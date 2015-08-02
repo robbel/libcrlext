@@ -227,7 +227,7 @@ protected:
   /// \brief Unique name of this basis generator
   std::string _name;
   /// \brief Hash-Set to keep track of existing features
-  std::unordered_set<Conjunction,std::hash<std::size_t>> _exists;
+  std::unordered_multiset<Conjunction,std::hash<std::size_t>> _exists;
 public:
   BinaryBasisGenerator(const Domain& domain, FactoredValueFunction vfn, std::string name = "")
   : _domain(domain), _value_fn(std::move(vfn)), _score(_domain, _value_fn), _name(name) { }
@@ -242,22 +242,28 @@ public:
 
     DiscreteFunction<Reward> bestf;
     double bestVal = -std::numeric_limits<double>::infinity();
+    Size count = 0, valid = 0;
     while(biter.hasNext()) {
         const auto& tpl = biter.next();
+        count++;
         Size h1_id = std::get<0>(tpl);
         Size h2_id = std::get<1>(tpl);
         Conjunction joint_base = algorithm::pair_basis(h1_id, h2_id, basisVec[h1_id], basisVec[h2_id]);
 
         // test whether this conjunctive feature was already checked
-        auto cit = _exists.find(joint_base);
-        if(cit != _exists.end()) {
-            LOG_DEBUG("Skipping " << joint_base << ": already checked.");
-            continue;
+        auto range = _exists.equal_range(joint_base);
+        if(range.first != range.second) {
+            // test for exact equality versus hash collision
+            auto equalFn = [&joint_base](const Conjunction& c2) { return joint_base.getBaseFeatures() == c2.getBaseFeatures(); };
+            auto cit = std::find_if(range.first, range.second, equalFn);
+            if(cit != range.second) {
+              LOG_DEBUG("Skipping " << joint_base << ": already checked this one: " << *cit
+                        << " which has hash: " << cit->getHash());
+              continue;
+            }
         }
-        else { // update checked hashes
-            auto retVal = _exists.insert(joint_base);
-            assert(retVal.second); // assert no hash collisions
-        }
+        // update checked hashes
+        _exists.insert(joint_base);
 
         // perform a logical `AND' to obtain new joint indicator
         DiscreteFunction<Reward> candf = algorithm::binpair(joint_base, basisVec[h1_id], basisVec[h2_id]);
@@ -271,11 +277,13 @@ public:
           bestf = std::move(candf);
           bestVal = s;
         }
+        valid++;
     }
 
     if(bestf) {
       const Conjunction* bestc = dynamic_cast<const Conjunction*>(bestf.get());
       LOG_INFO("Best next function (score: " << bestVal << "): " << *bestf << " which is: " << *bestc);
+      LOG_INFO("Evaluated " << valid << " valid conjunctive features out of " << count << ".");
     }
     return bestf;
   }
