@@ -75,7 +75,15 @@ public:
   /// \brief Adds a gamma-discounted backprojection of a basis function to this value function
   /// \note Will be modified inside this function (multiplied by weight vector during discount())
   void addBackprojection(DiscreteFunction<Reward> bp) {
+      assert(_backprojection.size() < _basis.size());
       _backprojection.push_back(std::move(bp));
+      _bp_discounted = false;
+  }
+  /// \brief Remove all backprojections
+  void clearBackprojections() {
+    // TODO: swap from stored location instead of recomputation
+    _backprojection.clear();
+    _bp_discounted = false;
   }
   /// \brief Set the reward function vector
   void setLRFs(const std::vector<DiscreteFunction<Reward>>& lrfs) {
@@ -185,11 +193,9 @@ protected:
   std::vector<DiscreteFunction<Reward>> _C_set;
   /// \brief Discount factor
   float _gamma;
-  /// \brief Whether all basis functions have been cached
-  bool _cached;
 public:
   _ALPPlanner(const FactoredMDP& fmdp, float gamma)
-  : _domain(fmdp->getDomain()), _fmdp(fmdp), _gamma(gamma), _cached(false) { }
+  : _domain(fmdp->getDomain()), _fmdp(fmdp), _gamma(gamma) { }
 
   /// \brief Get best joint \a Action from joint \a State js
   virtual Action getAction(const State& js) override {
