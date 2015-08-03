@@ -138,8 +138,10 @@ namespace algorithm {
   //
   /// \brief Collect basis and max-Q functionals and return modified copies (e.g., after multiplication with weight vector)
   /// \note Helper function for factored Bellman error and residual computations
-  /// \param adjust True iff all terms should be adjusted according to their coverage of the state space (useful for marginal computations)
-  FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, const FactoredValueFunction& fval, bool adjust = false);
+  FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, const FactoredValueFunction& fval);
+  /// \brief Compute coefficient \f$\lambda_k\f$ for factor \f$\phi_k\f$ in Bellman marginal function
+  /// \param delVars The variables from the domain that are being summed out
+  double computeMarginalLambda(const Domain& domain, const DiscreteFunction<Reward>& phi, const SizeVec& delVars);
 
   //
   // Main algorithms

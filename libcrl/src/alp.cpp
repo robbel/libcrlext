@@ -174,10 +174,8 @@ void _FactoredValueFunction::discount() {
 
 namespace algorithm {
 
-FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, const FactoredValueFunction& fval, bool adjust) {
+FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, const FactoredValueFunction& fval) {
   assert(fval->getWeight().size() == fval->getBasis().size());
-  assert(!(adjust && domain->isBig()));
-  const Size num_states = domain->getNumStates();
 
   // run variable elimination for max_a
   FunctionSet<Reward> q_set = fval->getMaxQ();
@@ -195,16 +193,14 @@ FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, const Facto
           FDiscreteFunction<Reward> wh = boost::make_shared<_FDiscreteFunction<Reward>>(domain);
           wh->join(pI->getStateFactors(), pI->getActionFactors(), pI->getLiftedFactors());
           wh->pack();
-          wh->values()[pI->getStateIndex()] = weight[j++] *
-              (adjust ? num_states/wh->getSubdomain()->getNumStates() : 1.);
+          wh->values()[pI->getStateIndex()] = weight[j++];
           modbasis.push_back(std::move(wh));
       }
       else {
           const _FDiscreteFunction<Reward>* pf = dynamic_cast<const _FDiscreteFunction<Reward>*>(h.get());
           assert(pf);
           FDiscreteFunction<Reward> wh = boost::make_shared<_FDiscreteFunction<Reward>>(*pf);
-          (*wh) *= weight[j++] *
-              (adjust ? num_states/wh->getSubdomain()->getNumStates() : 1.);
+          (*wh) *= weight[j++];
           modbasis.push_back(std::move(wh));
       }
   }
@@ -215,8 +211,7 @@ FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, const Facto
       const _FDiscreteFunction<Reward>* pqf = dynamic_cast<const _FDiscreteFunction<Reward>*>(qf.get());
       assert(pqf);
       FDiscreteFunction<Reward> nqf = boost::make_shared<_FDiscreteFunction<Reward>>(*pqf);
-      (*nqf) *= (-1.) *
-          (adjust ? num_states/nqf->getSubdomain()->getNumStates() : 1.);
+      (*nqf) *= (-1.);
       modqfns.push_back(std::move(nqf));
   }
 
@@ -231,6 +226,17 @@ FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, const Facto
   }
 
   return F;
+}
+
+double computeMarginalLambda(const Domain& domain, const DiscreteFunction<Reward>& phi, const SizeVec& delVars) {
+  assert(!domain->isBig());
+  SizeVec freeVars = get_state_vars(delVars, phi->getStateFactors());
+  const RangeVec& stateRanges = domain->getStateRanges();
+  double lambda = 1.;
+  for(auto var : freeVars) {
+      lambda *= stateRanges[var].getSpan()+1;
+  }
+  return lambda;
 }
 
 double factoredBellmanError(const Domain& domain, const FactoredValueFunction& fval, const SizeVec& elimination_order) {
@@ -253,7 +259,7 @@ FactoredFunction<Reward> factoredBellmanMarginal(const Domain& domain, const Siz
   SizeVec delVars = get_state_vars(domain, cvars);
 
   // obtain Bellman functionals adjusted for their coverage of the state space
-  std::vector<DiscreteFunction<Reward>> funVec = factoredBellmanFunctionals(domain, fval, true).getFunctions();
+  std::vector<DiscreteFunction<Reward>> funVec = factoredBellmanFunctionals(domain, fval).getFunctions();
   // storage for functions with variable dependencies and empty scope
   std::vector<DiscreteFunction<Reward>> var_fns;
   std::vector<DiscreteFunction<Reward>> empty_fns;
@@ -261,6 +267,12 @@ FactoredFunction<Reward> factoredBellmanMarginal(const Domain& domain, const Siz
   // marginalize all functions partially over `Dom \ {vars}'
   for(const auto& fn : funVec) {
       DiscreteFunction<Reward> margFn = algorithm::marginalize(fn.get(), delVars, false);
+      // obtain lambda coefficient for factor `fn' in Bellman marginal function
+      double lambda = computeMarginalLambda(domain, fn, delVars);
+      _FDiscreteFunction<Reward>* of = dynamic_cast<_FDiscreteFunction<Reward>*>(margFn.get());
+      assert(of); // marginals are currently guaranteed to be flat tabular functions
+      (*of) *= lambda;
+
       if(margFn->getSubdomain()->getNumStateFactors() == 0 && margFn->getSubdomain()->getNumActionFactors() == 0) {
           empty_fns.push_back(std::move(margFn));
       }
