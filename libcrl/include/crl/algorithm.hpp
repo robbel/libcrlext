@@ -31,16 +31,21 @@ const _FDiscreteFunction<T>* is_flat(const _DiscreteFunction<T>* pf, bool known_
     return(known_flat ? static_cast<const _FDiscreteFunction<T>*>(pf) : dynamic_cast<const _FDiscreteFunction<T>*>(pf));
 }
 
-/// \brief Obtain all state factors from the \a Domain that are not in cvars
+/// \brief Returns all state factors in (sorted) \a allVars that are not in cvars
 /// \note Helper function for state factor selection
-inline SizeVec get_state_vars(const Domain& domain, const SizeVec& cvars) {
-    SizeVec allVars = cpputil::ordered_vec<Size>(domain->getNumStateFactors());
+inline SizeVec get_state_vars(const SizeVec& allVars, const SizeVec& cvars) {
     SizeVec keepVars(cvars);
     std::sort(keepVars.begin(), keepVars.end());
     SizeVec delVars;
     std::set_difference(allVars.begin(), allVars.end(), keepVars.begin(), keepVars.end(), std::back_inserter(delVars));
-
     return delVars;
+}
+
+/// \brief Obtain all state factors from the \a Domain that are not in cvars
+/// \note Helper function for state factor selection
+inline SizeVec get_state_vars(const Domain& domain, const SizeVec& cvars) {
+    SizeVec allVars = cpputil::ordered_vec<Size>(domain->getNumStateFactors());
+    return get_state_vars(allVars, cvars);
 }
 
 //
@@ -142,6 +147,7 @@ std::vector<T> slice(const _DiscreteFunction<T>* pf, Size i, const State&s, cons
 }
 
 /// \brief Actual implementation for marginalization, minimization, and maximization functions
+/// \tparam BinRefOp A type [](T& v1, T& v2) -> void
 template<class T, class BinRefOp>
 DiscreteFunction<T> genericOp(const _DiscreteFunction<T>* pf, SizeVec vars, bool known_flat, T init, BinRefOp binOp) {
   const _FDiscreteFunction<T>* of = is_flat(pf, known_flat);

@@ -41,7 +41,7 @@ template<class T, class BinOp = decltype(std::plus<T>())>
 DiscreteFunction<T> pair(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2, BinOp binOp);
 template<class T> Conjunction pair_basis(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
 template<class T> DiscreteFunction<T> binpair(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
-template<class T, class BinOp> T evalOpOverBasis(const _DiscreteFunction<T>* basis, const FactoredFunction<T>& facfn, bool known_flat, T init, BinOp binOp);
+template<class T, class BinRefOp> T evalOpOverBasis(const _DiscreteFunction<T>* basis, const FactoredFunction<T>& facfn, bool known_flat, T init, BinRefOp binOp);
 
 }
 
@@ -454,9 +454,10 @@ DiscreteFunction<T> binpair(Size h1_id, Size h2_id, const DiscreteFunction<T>& h
 }
 
 /// \brief Perform a given operation (e.g., max, min, sum) on the \a FactoredFunction for all values where the basis is `active'
+/// \tparam BinRefOp A type [](T& v1, T& v2) -> void
 /// \note Assumes that the FactoredFunction is defined over the same domain as `basis'
-template<class T, class BinOp>
-T evalOpOverBasis(const _DiscreteFunction<T>* basis, const FactoredFunction<T>& facfn, bool known_flat, T init, BinOp binOp) {
+template<class T, class BinRefOp>
+T evalOpOverBasis(const _DiscreteFunction<T>* basis, const FactoredFunction<T>& facfn, bool known_flat, T init, BinRefOp binOp) {
   assert(basis->getActionFactors().empty());
   // optimization path for basis functions with tabular storage
   const _FDiscreteFunction<T>* of = is_flat(basis, known_flat);
@@ -466,24 +467,24 @@ T evalOpOverBasis(const _DiscreteFunction<T>* basis, const FactoredFunction<T>& 
       pvals = &of->values();
   }
 
-  // obtain value of facfn empty functionals
-  T val = T(0);
+  // obtain value of facfn empty functionals (shared for all states in basis' subdomain)
+  T common_val = T(0);
   for(const auto& empty_fn : std::get<1>(facfn)) {
-      val += empty_fn->eval(State(),Action());
+      common_val += empty_fn->eval(State(),Action());
   }
 
   // manually loop over basis function domain and apply binOp
   // Note: for variable elimination cases (min, max), I could continue to run that instead!
   const subdom_map s_map(basis->getStateFactors());
-  T manVal = init;
+  T val = init;
   const _Indicator<T>* pI = dynamic_cast<const _Indicator<T>*>(basis);
   if(pI) {
       // basis is active in exactly one state
       const State s(basis->getSubdomain(), pI->getStateIndex());
-      manVal = T(0);
+      val = common_val;
       for(const auto& f : std::get<0>(facfn)) {
           State ms = f->mapState(s,s_map);
-          manVal += f->eval(ms,Action());
+          val += f->eval(ms,Action());
       }
   }
   else {
@@ -492,16 +493,15 @@ T evalOpOverBasis(const _DiscreteFunction<T>* basis, const FactoredFunction<T>& 
           const State& s = sitr.next();
           T basisVal = of ? (*pvals)[j++] : (*basis)(s,Action());
           if(basisVal != T(0)) { // basis is active in `s'
-              T v = T(0); // candidate value
+              T v = common_val; // candidate value
               for(const auto& f : std::get<0>(facfn)) {
                   State ms = f->mapState(s,s_map);
                   v += f->eval(ms,Action());
               }
-              binOp(manVal, v);
+              binOp(val, v);
           }
       }
   }
-  val += manVal;
   return val;
 }
 

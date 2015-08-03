@@ -49,7 +49,7 @@ template<class T> std::vector<T> slice(const _DiscreteFunction<T>* pf, Size i, c
 template<class T, class BinOp = decltype(std::plus<T>())>
 DiscreteFunction<T> join(cpputil::Iterator<DiscreteFunction<T>>& funcs, BinOp binOp = std::plus<T>());
 template<class T> std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F, const SizeVec& elimination_order);
-template<class T, class BinOp> DiscreteFunction<T> genericOp(const _DiscreteFunction<T>* pf, SizeVec vars, bool known_flat, T init, BinOp binOp);
+template<class T, class BinRefOp> DiscreteFunction<T> genericOp(const _DiscreteFunction<T>* pf, SizeVec vars, bool known_flat, T init, BinRefOp binOp);
 template<class T> DiscreteFunction<T> binpair(const Conjunction& joint_base, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
 template<class T> Size basisCoverage(const Domain& domain, const _DiscreteFunction<T>* basis);
 
@@ -80,8 +80,8 @@ class _DiscreteFunction {
   // C++ does not allow partial specialization of template friends; hence specified for types U, BinOp
   template<class U, class BinOp>
   friend DiscreteFunction<U> algorithm::join(cpputil::Iterator<DiscreteFunction<U>>& funcs, BinOp binOp);
-  template<class U, class BinOp>
-  friend DiscreteFunction<U> algorithm::genericOp(const _DiscreteFunction<U>* pf, SizeVec vars, bool known_flat, U init, BinOp binOp);
+  template<class U, class BinRefOp>
+  friend DiscreteFunction<U> algorithm::genericOp(const _DiscreteFunction<U>* pf, SizeVec vars, bool known_flat, U init, BinRefOp binOp);
   // operator overloads
   friend std::ostream& operator<< <>(std::ostream& os, const _DiscreteFunction<T>& f);
 protected:
