@@ -224,7 +224,14 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
           fval->addBasisFunction(std::move(I), 0.);
       }
   }
-
+#if 0
+  Size h1_id = 22;
+  Size h2_id = 44;
+  DiscreteFunction<Reward> candf = algorithm::binpair(h1_id,h2_id,fval->getBasis()[h1_id],fval->getBasis()[h2_id]);
+  assert(candf);
+  fval->addBasisFunction(std::move(candf), 0.);
+#endif
+#if 0
   for(Size fa = 0; fa < ranges.size(); fa+=2) { // assumption: DBN covers all domain variables
       auto I_o = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa,fa+1}), State(domain,0));
       _StateIncrementIterator sitr(I_o->getSubdomain());
@@ -241,7 +248,7 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
       auto I = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({1,2}), sitr.next());
       fval->addBasisFunction(std::move(I), 0.);
   }
-
+#endif
 #if 0
   // add some links between agents
   for(Size fa = 1; fa < ranges.size(); fa+=2) { // assumption: DBN covers all domain variables
@@ -302,8 +309,8 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
     js.setFactor(0,2);
     js.setFactor(1,2);
     // eliminate only action variables, in order
-    const SizeVec elim_order = cpputil::ordered_vec<Size>(domain->getNumActionFactors(), domain->getNumStateFactors());
-    tuple<Action,Reward> res = fval->getBestAction(js, elim_order);
+    const SizeVec elim_order_a = cpputil::ordered_vec<Size>(domain->getNumActionFactors(), domain->getNumStateFactors());
+    tuple<Action,Reward> res = fval->getBestAction(js, elim_order_a);
     LOG_INFO("Maximum value in " << js << " after variable elimination: " << std::get<1>(res));
     EXPECT_DOUBLE_EQ(std::get<1>(res), fval->getQ(js,std::get<0>(res)));
     EXPECT_TRUE(fval->getV(js) >= fval->getQ(js,std::get<0>(res))); // in all approximations, V should be an upper bound on Q*
@@ -317,7 +324,7 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
     //
     // Debug print max-Q function factorization
     //
-//  FunctionSet<Reward> f_set = fval->getMaxQ(elim_order);
+//  FunctionSet<Reward> f_set = fval->getMaxQ(elim_order_a);
     FunctionSet<Reward> f_set = fval->getMaxQ();
     auto qfns = f_set.getFunctions();
     LOG_INFO("MaxQ-Function has " << qfns.size() << " local terms: ");
@@ -330,15 +337,15 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
     //
 
     // First method
-    const SizeVec elim_order_be = cpputil::ordered_vec<Size>(domain->getNumStateFactors());
+    const SizeVec elim_order_s = cpputil::ordered_vec<Size>(domain->getNumStateFactors());
     LOG_DEBUG("Running factoredBellmanError");
-    double beval = algorithm::factoredBellmanError(domain, fval, elim_order_be);
+    double beval = algorithm::factoredBellmanError(domain, fval, elim_order_s);
     LOG_INFO("Bellman error (1): " << beval);
 
     // Second method: retain variable `1' in domain and maximize manually
-    const SizeVec red_elim_order_be = get_state_vars(domain, {1});
+    const SizeVec red_elim_order_s = get_state_vars(domain, {1});
     FunctionSet<Reward> F = algorithm::factoredBellmanFunctionals(domain, fval);
-    auto tplBe = algorithm::variableElimination(F, red_elim_order_be, algorithm::maximize);
+    auto tplBe = algorithm::variableElimination(F, red_elim_order_s, algorithm::maximize);
     double beval2 = 0.;
     // loop over empty functions
     for(const auto& ef : std::get<1>(tplBe)) {
@@ -368,7 +375,7 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
     basis.pack(1); // set everywhere to enabled
     std::get<0>(tplBe) = std::move(F.getFunctions()); // make tplBe a valid `FactoredFunction'
     beval2 = algorithm::evalOpOverBasis(&basis, tplBe, true, -std::numeric_limits<double>::infinity(),
-                                    [](Reward& v1, Reward& v2) { if(v2 > v1) { v1 = v2; } });
+                                        [](Reward& v1, Reward& v2) { if(v2 > v1) { v1 = v2; } });
     EXPECT_NEAR(beval, beval2, 1e-14);
 
     // now for three separate indicator basis functions
@@ -379,7 +386,7 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
         const State dummy_s(domain,fa);
         I.setState(dummy_s);
         double v = algorithm::evalOpOverBasis(&I, tplBe, false, -std::numeric_limits<double>::infinity(),
-                                          [](Reward& v1, Reward& v2) { if(v2 > v1) { v1 = v2; } });
+                                              [](Reward& v1, Reward& v2) { if(v2 > v1) { v1 = v2; } });
         LOG_DEBUG("Indicator on `Factor_1 == " << fa << " covers max BE of " << v);
         if(v > maxVal) {
             LOG_DEBUG("Indicator on `Factor_1 == " << fa << " (currently) holds max BE.");
@@ -407,7 +414,7 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
     //
     // Compute minimal Bellman residual
     //
-    auto retFns = algorithm::factoredBellmanResidual(domain, fval, elim_order_be, algorithm::minimize);
+    auto retFns = algorithm::factoredBellmanResidual(domain, fval, elim_order_s, algorithm::minimize);
     double minVal = 0.;
     for(const auto& empty_fn : std::get<1>(retFns)) {
         minVal += empty_fn->eval(State(),Action());
@@ -429,19 +436,24 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
     LOG_INFO("Bellman residual integral: " << intr1);
 
     // Second method: retain variable `1' in domain and sum manually
-    auto partMarg = algorithm::factoredBellmanMarginal(domain,{1},fval);
+    const SizeVec margOver = { 1 };
+    _Indicator<> dummy_f(domain, margOver, State(domain,0)); // only used for domain computations
+    auto partMarg = algorithm::factoredBellmanMarginal(domain,dummy_f.getStateFactors(),fval);
     EXPECT_FALSE(std::get<0>(partMarg).empty());
-    double intr2 = 0.;
+    double empty_intr = 0., intr2 = 0.;
     // loop over empty functions
     for(const auto& ef : std::get<1>(partMarg)) {
-        intr2 += ef->eval(State(),Action());
+        empty_intr += ef->eval(State(),Action());
     }
     // loop over partially instantiated ones (dependence on `1')
-    for(const auto& f : std::get<0>(partMarg)) {
-        _StateIncrementIterator sitr(f->getSubdomain());
-        while(sitr.hasNext()) {
-          const State& s = sitr.next();
-          intr2 += f->eval(s,Action());
+    const subdom_map s_dom(dummy_f.getStateFactors());
+    _StateIncrementIterator sitr(dummy_f.getSubdomain());
+    while(sitr.hasNext()) {
+        const State& s = sitr.next();
+        intr2 += empty_intr;
+        for(const auto& f : std::get<0>(partMarg)) {
+            State ms = f->mapState(s,s_dom);
+            intr2 += f->eval(ms,Action());
         }
     }
     EXPECT_NEAR(intr1, intr2, 1e-5);
@@ -449,9 +461,9 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
     //
     // Compare value function and max-Q function
     //
-    _StateIncrementIterator sitr(domain);
-    while(sitr.hasNext()) {
-      const State& s = sitr.next();
+    _StateIncrementIterator sitr2(domain);
+    while(sitr2.hasNext()) {
+      const State& s = sitr2.next();
       double ret = 0.;
       for(auto& qf : qfns) {
           State ms = qf->mapState(s);
@@ -461,6 +473,39 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
       LOG_INFO("V_alp=(" << s << ")=" << v << " -- maxQ=" << ret << " -- delta=" << v-ret);
       // small padding to counter numeric issues
       EXPECT_TRUE(v + 1e-10 >= ret);
+    }
+
+    //
+    // Insert and resolve with next best functions twice (BEBFScore criterion)
+    //
+
+    for(int k = 0; k < 2; k++) {
+        BinaryBasisGenerator<NChooseTwoIterator<Size,SizeVec>,BEBFScore> basisGen(domain, fval, "bebf-test");
+        DiscreteFunction<Reward> nextBasis = basisGen.nextBest();
+
+        fval->clearBackprojections();
+        fval->addBasisFunction(std::move(nextBasis), 0.);
+
+        // run second iteration of planning
+        long start_time = time_in_milli();
+        // TODO: can init with old weights + 0 for valid solution..
+        // TODO: don't have to deallocate lp every iteration
+        int res2 = planner.plan();
+        long end_time = time_in_milli();
+        LOG_INFO("2nd: FALP planner returned after " << end_time - start_time << "ms");
+
+        EXPECT_EQ(res2, 0) << "ALP " << (res2 == 1 ? "generateLP()" : "solve()") << " failed"; // else: lp successfully generated
+
+        if(!res2) { // success
+            LOG_INFO("2nd: Results:");
+            for(auto w : fval->getWeight()) {
+                LOG_INFO(" W: " << w);
+              }
+
+            LOG_DEBUG("2nd: Running factoredBellmanError");
+            double beval = algorithm::factoredBellmanError(domain, fval, elim_order_s);
+            LOG_INFO("2nd: Bellman error (1): " << beval);
+        }
     }
   }
 }
