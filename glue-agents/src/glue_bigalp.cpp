@@ -181,18 +181,18 @@ int main(int argc, char** argv) {
       }
       else {
           // run the ALP planner
-          LOG_INFO("ALP planner planning for graphprop_" << argv[1] << "_" << argv[2] << "..");
+          LOG_INFO("BIGALP planner planning for graphprop_" << argv[1] << "_" << argv[2] << "..");
           long start_time = time_in_milli();
           int res = _alpp->plan();
           long end_time = time_in_milli();
-          LOG_INFO("ALP planner returned after " << end_time - start_time << "ms");
+          LOG_INFO("BIGALP planner returned after " << end_time - start_time << "ms");
 
           if(res) {
-              LOG_ERROR("ALP planner failure: " << (res == 1 ? "generateLP()" : "solve()") << " failed"); // else: lp successfully generated
+              LOG_ERROR("BIGALP planner failure: " << (res == 1 ? "generateLP()" : "solve()") << " failed"); // else: lp successfully generated
               return EXIT_FAILURE;
           }
 
-          LOG_INFO("ALP planner successfully initialized.");
+          LOG_INFO("BIGALP planner successfully initialized.");
 //#if !NDEBUG
 //        for(auto v : fval->getWeight()) {
 //          LOG_DEBUG(" W: " << std::fixed << v);
@@ -205,52 +205,6 @@ int main(int argc, char** argv) {
 //            LOG_DEBUG(s << ": " << std::get<0>(tpl) << " w/:" << std::get<1>(tpl));
 //        }
 //#endif
-
-#if 0
-          // compute some metrics given the optimal policy
-          if(argc == 4) {
-            _SpuddPolicy optpolicy(_domain, argv[3]);
-            _StateIncrementIterator sitr(_domain);
-            double Vmax = 0.;
-            double linf = 0.;
-            double l1   = 0.; // note that we are using uniform alphas
-            while(sitr.hasNext()) {
-                const State& s = sitr.next();
-                tuple<Action,double> res = optpolicy.getActionValue(s);
-                double optval = std::get<1>(res);
-                LOG_DEBUG("Policy: " << s << " (opt): " << std::get<0>(res) << " val: " << optval << " (alp): " << fval->getV(s));
-                double valdiff = std::abs(optval - fval->getV(s));
-                l1 += valdiff;
-                if(valdiff > linf) {
-                  linf = valdiff;
-                }
-                if(optval > Vmax) {
-                    Vmax = optval;
-                }
-            }
-            LOG_INFO("[spudd] L_inf = " << linf << " L_inf^rel = " << linf/Vmax << " L_1 = " << l1);
-#if 0
-            // compute same stats for value iteration
-            crl::MDP mdp = convertToMDP(fmdp);
-            VIPlanner planner(new _FlatVIPlanner(_domain, mdp, .0001, 0.9));
-            planner->plan();
-            QTable qtable = planner->getQTable();
-
-            sitr.reset();
-            linf = 0.;
-            l1 = 0.;
-            while(sitr.hasNext()) {
-                const State& s = sitr.next();
-                double valdiff = std::abs(qtable->getV(s) - fval->getV(s));
-                l1 += valdiff;
-                if(valdiff > linf) {
-                  linf = valdiff;
-                }
-            }
-            LOG_INFO("[vi] L_inf = " << linf << " L_1 = " << l1);
-#endif
-          }
-#endif
       }
 
     } catch(const cpputil::Exception& e) {

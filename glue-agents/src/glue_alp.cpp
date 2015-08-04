@@ -113,12 +113,23 @@ int main(int argc, char** argv) {
         }
 #endif
 
-        // pair basis
+        // pair basis (inserted first for counting pair_size below)
         for(Size fa = 0; fa < ranges.size(); fa+=2) { // assumption: DBN covers all domain variables
             auto I_o = boost::make_shared<_Indicator<Reward>>(_domain, SizeVec({fa,fa+1}), State(_domain,0));
             _StateIncrementIterator sitr(I_o->getSubdomain());
             while(sitr.hasNext()) {
                 auto I = boost::make_shared<_Indicator<Reward>>(_domain, SizeVec({fa,fa+1}), sitr.next());
+                fval->addBasisFunction(std::move(I), 0.);
+            }
+        }
+        auto pair_size = fval->getBasis().size();
+
+        // individual basis
+        for(Size fa = 0; fa < ranges.size(); fa++) { // assumption: DBN covers all domain variables
+            auto I_o = boost::make_shared<_Indicator<Reward>>(_domain, SizeVec({fa}), State(_domain,0));
+            _StateIncrementIterator sitr(I_o->getSubdomain());
+            while(sitr.hasNext()) {
+                auto I = boost::make_shared<_Indicator<Reward>>(_domain, SizeVec({fa}), sitr.next());
                 fval->addBasisFunction(std::move(I), 0.);
             }
         }
@@ -153,11 +164,27 @@ int main(int argc, char** argv) {
         }
 
         LOG_INFO("ALP planner successfully initialized.");
-//#if !NDEBUG
-//        for(auto v : fval->getWeight()) {
-//          LOG_DEBUG(" W: " << std::fixed << v);
-//        }
 
+        // L_0, L_1 norm of solution vector
+        double l1w = 0., l0w = 0;
+        int counter = 0, l0pair = 0, l0single = 0;
+        for(auto v : fval->getWeight()) {
+            LOG_INFO(" W: " << std::fixed << v);
+            l1w += std::abs(v);
+            if(!cpputil::approxEq(v, 0.)) {
+                l0w++;
+                if(counter < pair_size) {
+                    l0pair++;
+                }
+                else {
+                    l0single++;
+                }
+            }
+            counter++;
+        }
+        LOG_INFO("[w norms] L_1 = " << l1w << " L_0 = " << l0w << " (pair: " << l0pair << ", single: " << l0single << ")");
+
+//#if !NDEBUG
 //        _StateIncrementIterator sitr(_domain);
 //        while(sitr.hasNext()) {
 //            const State& s = sitr.next();
