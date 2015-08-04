@@ -10,6 +10,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <fstream>
 
 #include "crl/alp.hpp"
 #include "crl/basis_gen.hpp"
@@ -279,6 +280,15 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
     for(auto w : fval->getWeight()) {
         LOG_INFO(" W: " << w);
     }
+#if !NDEBUG
+    LOG_DEBUG("Writing basis function weights to text file");
+    {
+      ofstream file("weights0.txt");
+      for(double w : fval->getWeight()) {
+        file << std::fixed << std::setprecision(std::numeric_limits<double>::digits10+2) << w << '\n';
+      }
+    }
+#endif
 
     //
     // Compare against value iteration solution if we have an exact LP solution (exhaustive basis function set)
@@ -500,8 +510,16 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
             LOG_INFO("2nd: Results:");
             for(auto w : fval->getWeight()) {
                 LOG_INFO(" W: " << w);
-              }
-
+            }
+#if !NDEBUG
+            LOG_DEBUG("Writing basis function weights to text file");
+            {
+                ofstream file("weights" + to_string(k+1) + ".txt");
+                for(double w : fval->getWeight()) {
+                    file << std::fixed << std::setprecision(std::numeric_limits<double>::digits10+2) << w << '\n';
+                }
+            }
+#endif
             LOG_DEBUG("2nd: Running factoredBellmanError");
             double beval = algorithm::factoredBellmanError(domain, fval, elim_order_s);
             LOG_INFO("2nd: Bellman error (1): " << beval);
