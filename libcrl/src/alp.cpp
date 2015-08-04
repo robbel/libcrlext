@@ -61,6 +61,9 @@ std::tuple<Action,Reward> _FactoredValueFunction::getBestAction(const State& js,
     // functions are instantiated in state `js'
     FunctionSet<Reward> F(_domain);
     for(auto& bp : _backprojection) {
+        if(bp == nullptr) {
+            continue;
+        }
         State ms = bp->mapState(js);
         DiscreteFunction<Reward> f = algorithm::instantiate(bp.get(), ms, false);
         if(f->getSubdomain()->getNumStateFactors() == 0 && f->getSubdomain()->getNumActionFactors() == 0) {
@@ -105,6 +108,9 @@ FunctionSet<Reward> _FactoredValueFunction::getMaxQ(const SizeVec& elimination_o
   // run variableElimination over joint action space
   FunctionSet<Reward> F(_domain);
   for(auto& bp : _backprojection) {
+      if(bp == nullptr) {
+          continue;
+      }
       assert(bp->getSubdomain()->getNumStateFactors() != 0);
       F.insert(bp);
   }
@@ -135,6 +141,9 @@ Reward _FactoredValueFunction::getQ(const State& js, const Action& ja) {
     double ret = 0.;
     Action ma(ja);
     for(auto& bp : _backprojection) {
+        if(bp == nullptr) {
+            continue;
+        }
         State ms = bp->mapState(js);
         if(ja) { // backprojections may have empty action scope
           ma = bp->mapAction(ja);
@@ -156,6 +165,12 @@ void _FactoredValueFunction::discount() {
     // Discount stored backprojections once to form part of local Q functions
     std::vector<double>::size_type i = 0;
     for(auto& bp : _backprojection) {
+        // discard backprojections that are associated with 0 weight in solution vector
+        if(cpputil::approxEq(_weight[i],0.)) {
+            bp = nullptr;
+            i++;
+            continue;
+        }
         _ConstantFn<Reward>* cfn = dynamic_cast<_ConstantFn<Reward>*>(bp.get());
         if(cfn) {
             (*cfn) *= _weight[i++];
