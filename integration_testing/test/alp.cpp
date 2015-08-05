@@ -493,7 +493,7 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
         BinaryBasisGenerator<NChooseTwoIterator<Size,SizeVec>,BEBFScore> basisGen(domain, fval, "bebf-test");
         DiscreteFunction<Reward> nextBasis = basisGen.nextBest();
 
-        fval->clearBackprojections();
+        fval->clearBackprojections(); // TODO: implement SWAP so that recomputation of previous ones avoided
         fval->addBasisFunction(std::move(nextBasis), 0.);
 
         // run second iteration of planning
@@ -517,6 +517,20 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
                 ofstream file("weights" + to_string(k+1) + ".txt");
                 for(double w : fval->getWeight()) {
                     file << std::fixed << std::setprecision(std::numeric_limits<double>::digits10+2) << w << '\n';
+                }
+            }
+            LOG_DEBUG("Writing conjunctive basis to text file");
+            {
+                ofstream file("conj" + to_string(k+1) + ".txt");
+                for(const auto& fn : fval->getBasis()) {
+                    const Conjunction* pc = dynamic_cast<const Conjunction*>(fn.get());
+                    if(pc) {
+                        const auto& baseFeatures = pc->getBaseFeatures();
+                        for(int i = 0; i < baseFeatures.size(); i++) {
+                            file << baseFeatures[i] << (i < baseFeatures.size()-1 ? "," : "");
+                        }
+                        file << '\n';
+                    }
                 }
             }
 #endif

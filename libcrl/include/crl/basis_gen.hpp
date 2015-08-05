@@ -41,6 +41,7 @@ template<class T, class BinOp = decltype(std::plus<T>())>
 DiscreteFunction<T> pair(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2, BinOp binOp);
 template<class T> Conjunction pair_basis(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
 template<class T> DiscreteFunction<T> binpair(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
+template<class T> DiscreteFunction<T> binconj(const SizeVec& ids, const FactoredValueFunction& vfn);
 template<class T, class BinRefOp> T evalOpOverBasis(const _DiscreteFunction<T>* basis, const FactoredFunction<T>& facfn, bool known_flat, T init, BinRefOp binOp);
 
 }
@@ -49,8 +50,8 @@ template<class T, class BinRefOp> T evalOpOverBasis(const _DiscreteFunction<T>* 
  * \brief Stores the (flat) conjunction of original basis functions that make up a conjunctive feature
  */
 class Conjunction {
-  template<class T>
-  friend Conjunction algorithm::pair_basis(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
+  template<class T> friend Conjunction algorithm::pair_basis(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
+  template<class T> friend DiscreteFunction<T> algorithm::binconj(const SizeVec& ids, const FactoredValueFunction& vfn);
 protected:
   /// \brief The (sorted) index set of basis functions that make up this conjunction
   SizeVec _base_fns;
@@ -451,6 +452,31 @@ DiscreteFunction<T> binpair(Size h1_id, Size h2_id, const DiscreteFunction<T>& h
   // compute basis features that are active in conjunction
   Conjunction joint_base = pair_basis(h1_id, h2_id, h1, h2);
   return binpair(joint_base, h1, h2);
+}
+
+/// \brief Compute the binary conjunction (`AND') of the given binary features
+/// \param ids The unique Ids of the indicator functions (e.g., positions in basis vector)
+/// \return A \a _BinConjunctiveFeature wrapped as a DiscreteFunction. Nullptr if no joint indicator exists.
+/// \note Inefficient implementation that merges all basis functions pairwise
+/// \see crl::_Indicator, algorithm::binpair
+template<class T>
+DiscreteFunction<T> binconj(const SizeVec& ids, const FactoredValueFunction& vfn) {
+  if(ids.size() < 2) {
+      return nullptr;
+  }
+  // compute basis features that are active in conjunction
+  Conjunction joint_base;
+  joint_base._base_fns = ids;
+  joint_base._hash = boost::hash_range(joint_base._base_fns.begin(), joint_base._base_fns.end());
+  // merge all basis functions pairwise
+  DiscreteFunction<T> conj = binpair(joint_base, vfn->getBasis()[ids[0]], vfn->getBasis()[ids[1]]);
+  for(int i = 2; i < ids.size(); i++) {
+      conj = binpair(joint_base, conj, vfn->getBasis()[i]);
+      if(!conj) {
+        break;
+      }
+  }
+  return conj;
 }
 
 /// \brief Perform a given operation (e.g., max, min, sum) on the \a FactoredFunction for all values where the basis is `active'

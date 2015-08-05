@@ -17,6 +17,7 @@
 #include <rlgnmagent.h>
 #include "crl/crl.hpp"
 #include "crl/alp.hpp"
+#include "crl/basis_gen.hpp"
 #include "crl/env_sysadmin.hpp"
 #include "crl/glue_agent.hpp"
 #include "crl/conversions.hpp"
@@ -82,8 +83,8 @@ const char* agent_message(const char* inMessage) {
 int main(int argc, char** argv) {
     LOG_INFO("This is the (experimental) ALP agent for currently the sysadmin environment only.");
 
-    if (argc < 3 || argc > 6) {
-        LOG_ERROR("Usage: " << argv[0] << " <\"star\"|\"ring\"> <computer_number> [SPUDD-OPTDual.ADD file] [-w Basis-weight-vector file]");
+    if (argc < 3 || argc > 9) {
+        LOG_ERROR("Usage: " << argv[0] << " <\"star\"|\"ring\"> <computer_number> [-s SPUDD-OPTDual.ADD file] [-w Basis-weight-vector file] [-b Basis-conjunction file]");
         return EXIT_FAILURE;
     }
 
@@ -94,20 +95,22 @@ int main(int argc, char** argv) {
             LOG_ERROR("Instantiation of Multi-agent Sysadmin problem failed.");
             return EXIT_FAILURE;
         }
-
         // parse remaining arguments
         string weightsFile = "";
         string spuddFile = "";
+        string basisFile = "";
         vector<string> remParams(argv+3, argv+argc);
         auto wIt = std::find(remParams.begin(), remParams.end(), "-w");
-        if(wIt != remParams.end() && (wIt+1) != remParams.end()) {
-            weightsFile = *(wIt+1);
+        if(wIt != remParams.end() && (++wIt) != remParams.end()) {
+            weightsFile = *wIt;
         }
-        if(wIt != remParams.begin()) {
-            spuddFile = remParams.front();
+        auto sIt = std::find(remParams.begin(), remParams.end(), "-s");
+        if(sIt != remParams.end() && (++sIt) != remParams.end()) {
+            spuddFile = *sIt;
         }
-        else if(!weightsFile.empty() && (wIt+2) != remParams.end()) {
-            spuddFile = *(wIt+2);
+        auto bIt = std::find(remParams.begin(), remParams.end(), "-b");
+        if(bIt != remParams.end() && (++bIt) != remParams.end()) {
+            basisFile = *bIt;
         }
 
         // create planner
@@ -128,7 +131,7 @@ int main(int argc, char** argv) {
             fval->addBasisFunction(std::move(I), 0.);
         }
 #endif
-
+#if 0
         // pair basis (inserted first for counting pair_size below)
         for(Size fa = 0; fa < ranges.size(); fa+=2) { // assumption: DBN covers all domain variables
             auto I_o = boost::make_shared<_Indicator<Reward>>(_domain, SizeVec({fa,fa+1}), State(_domain,0));
@@ -139,6 +142,7 @@ int main(int argc, char** argv) {
             }
         }
         auto pair_size = fval->getBasis().size();
+#endif
 
         // individual basis
         for(Size fa = 0; fa < ranges.size(); fa++) { // assumption: DBN covers all domain variables
@@ -164,6 +168,37 @@ int main(int argc, char** argv) {
           fval->addBasisFunction(std::move(I), 0.);
         }
 #endif
+        // add additional conjunctive features if supplied
+        if(!basisFile.empty()) {
+            LOG_INFO("Conjunctive basis file supplied: " << basisFile);
+            ifstream file(basisFile);
+            if (!file) {
+                throw cpputil::InvalidException("File not found.");
+            }
+            const auto& basisVec = fval->getBasis();
+            std::string line;
+            while (std::getline(file, line)) {
+                std::stringstream stream(line);
+                string tok;
+                SizeVec joint_base;
+                while(std::getline(stream, tok, ',')) {
+                    Size basisId = std::stoull(tok);
+                    if(in_pos_interval(basisId, basisVec.size()-1)) {
+                        joint_base.push_back(basisId);
+                    } else {
+                        throw InvalidException("Invalid basis in conjunction string.");
+                    }
+                }
+                // obtain conjunctive basis
+                DiscreteFunction<Reward> candf = algorithm::binconj<Reward>(joint_base, fval);
+                if(!candf) { // no consistent indicator exists for h1 ^ h2
+                    continue;
+                }
+                LOG_INFO("Inserting conjunctive basis " << (*candf));
+                fval->addBasisFunction(std::move(candf), 0.);
+            }
+        }
+
         // initialize the ALP planner
         _alpp = boost::make_shared<_ALPPlanner>(fmdp, 0.9);
         _alpp->setFactoredValueFunction(fval); // this will be computed
@@ -171,7 +206,7 @@ int main(int argc, char** argv) {
         if(!weightsFile.empty()) {
             LOG_INFO("Basis function weight vector supplied: " << weightsFile);
             // test if file exists
-            ifstream file(argv[3]);
+            ifstream file(weightsFile);
             if (!file) {
                 throw cpputil::InvalidException("File not found.");
             }
@@ -208,7 +243,7 @@ int main(int argc, char** argv) {
 
             LOG_INFO("ALP planner successfully initialized.");
         }
-
+#if 0
         // L_0, L_1 norm of solution vector
         double l1w = 0., l0w = 0;
         int counter = 0, l0pair = 0, l0single = 0;
@@ -227,7 +262,7 @@ int main(int argc, char** argv) {
             counter++;
         }
         LOG_INFO("[w norms] L_1 = " << l1w << " L_0 = " << l0w << " (pair: " << l0pair << ", single: " << l0single << ")");
-
+#endif
 //#if !NDEBUG
 //        _StateIncrementIterator sitr(_domain);
 //        while(sitr.hasNext()) {
@@ -241,7 +276,7 @@ int main(int argc, char** argv) {
         // compute some metrics given the optimal policy
         if(!spuddFile.empty()) {
             LOG_INFO("SPUDD optimum policy file provided: " << spuddFile);
-            _SpuddPolicy optpolicy(_domain, argv[3]);
+            _SpuddPolicy optpolicy(_domain, spuddFile.c_str());
             _StateIncrementIterator sitr(_domain);
             double Vmax = 0.;
             double linf = 0.;
