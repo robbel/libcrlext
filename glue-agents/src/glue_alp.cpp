@@ -84,22 +84,28 @@ int main(int argc, char** argv) {
     LOG_INFO("This is the (experimental) ALP agent for currently the sysadmin environment only.");
 
     if (argc < 3 || argc > 9) {
-        LOG_ERROR("Usage: " << argv[0] << " <\"star\"|\"ring\"> <computer_number> [-s SPUDD-OPTDual.ADD file] [-w Basis-weight-vector file] [-b Basis-conjunction file]");
+        LOG_ERROR("Usage: " << argv[0] << " <\"star\"|\"ring\"> <computer_number> [-t \"simple\"] [-s SPUDD-OPTDual.ADD file] [-w Basis-weight-vector file] [-b Basis-conjunction file]");
         return EXIT_FAILURE;
     }
 
     try {
+        vector<string> remParams(argv+3, argv+argc);
+        bool simple = false;
+        auto tIt = std::find(remParams.begin(), remParams.end(), "-t");
+        if(tIt != remParams.end() && (++tIt) != remParams.end()) {
+            simple = *tIt == "simple";
+        }
         long long comp_no = std::atoll(argv[2]);
         sysadmin::Sysadmin thesys;
-        if(comp_no <= 0 || !(thesys = buildSysadmin(argv[1], static_cast<Size>(comp_no)))) {
-            LOG_ERROR("Instantiation of Multi-agent Sysadmin problem failed.");
+        if(comp_no <= 0 || !(thesys = !simple ? buildSysadmin(argv[1], static_cast<Size>(comp_no)) :
+                             buildSimpleSysadmin(argv[1], static_cast<Size>(comp_no)))) {
+            LOG_ERROR("Instantiation of " << (simple ? "simple " : "") << "Multi-agent Sysadmin problem failed.");
             return EXIT_FAILURE;
         }
         // parse remaining arguments
         string weightsFile = "";
         string spuddFile = "";
         string basisFile = "";
-        vector<string> remParams(argv+3, argv+argc);
         auto wIt = std::find(remParams.begin(), remParams.end(), "-w");
         if(wIt != remParams.end() && (++wIt) != remParams.end()) {
             weightsFile = *wIt;
@@ -112,6 +118,8 @@ int main(int argc, char** argv) {
         if(bIt != remParams.end() && (++bIt) != remParams.end()) {
             basisFile = *bIt;
         }
+        sprintf(params, (!simple ? "ma-sysadmin=%s,%s" : "sysadmin=%s,%s"), argv[1], argv[2]);
+        //params[0] = '\0'; // the empty string
 
         // create planner
         _domain = thesys->getDomain();
@@ -323,9 +331,6 @@ int main(int argc, char** argv) {
         LOG_ERROR(e);
         return EXIT_FAILURE;
     }
-
-    sprintf(params, "ma-sysadmin=%s,%s", argv[1], argv[2]);
-    //params[0] = '\0'; // the empty string
 
 //    char* host = 0;
 //    short port = 0;

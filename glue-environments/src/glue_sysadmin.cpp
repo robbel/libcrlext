@@ -61,15 +61,17 @@ const char* env_message(const char* inMessage) {
 
 // launch networked rl-glue environment through rlgnm library
 int main(int argc, char** argv) {
-    if (argc != 3 && argc != 4) {
-            LOG_ERROR("Usage: " << argv[0] << " <\"star\"|\"ring\"> <computer_number> [\"simple\"]");
+    if (argc != 3 && argc != 5) {
+            LOG_ERROR("Usage: " << argv[0] << " <\"star\"|\"ring\"> <computer_number> [-t \"simple\"]");
             return EXIT_FAILURE;
     }
 
     try {
+        vector<string> remParams(argv+3, argv+argc);
         bool simple = false;
-        if(argc == 4 && string(argv[3]) == "simple") {
-            simple = true;
+        auto tIt = std::find(remParams.begin(), remParams.end(), "-t");
+        if(tIt != remParams.end() && (++tIt) != remParams.end()) {
+            simple = *tIt == "simple";
         }
         long long comp_no = std::atoll(argv[2]);
         if(comp_no <= 0 || !(_sysadmin = !simple ? buildSysadmin(argv[1], static_cast<Size>(comp_no)) :
