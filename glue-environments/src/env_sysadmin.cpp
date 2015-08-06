@@ -21,19 +21,21 @@ using namespace cpputil;
 namespace crl {
 
 _Sysadmin::_Sysadmin(Domain domain, Topology network)
-    : _domain(std::move(domain)), _network(network),
-      _num_comps(_domain->getNumStateFactors()/2),
-      _num_agents(_domain->getNumActionFactors()) {
-  // some basic parameter checks
-  if(_num_comps == 0 || _num_comps != _num_agents) {
-    throw InvalidException("Sysadmin and computer number must match");
-  }
+: _Sysadmin(domain, network, domain->getNumStateFactors()/2, domain->getNumActionFactors()) {
   // build factored MDP
   buildFactoredMDP();
 }
 
+_Sysadmin::_Sysadmin(Domain domain, Topology network, Size num_comps, Size num_agents)
+: _domain(std::move(domain)), _network(std::move(network)), _num_comps(num_comps), _num_agents(num_agents) {
+  // some basic parameter checks
+  if(_num_comps == 0 || _num_comps != _num_agents) {
+    throw InvalidException("Sysadmin and computer number must match");
+  }
+}
+
 // Holds for both RING and STAR topologies
-void _Sysadmin::buildPlate(Size c, DBNFactor& fas, DBNFactor& fal, LRF& lrf) {
+void _Sysadmin::buildPlate(Size c, DBNFactor fas, DBNFactor fal, LRF lrf) {
     Domain fasdom = fas->getSubdomain();
     Domain faldom = fal->getSubdomain();
 
@@ -167,7 +169,7 @@ State _Sysadmin::begin() {
 // apply action, obtain resulting state n, update _current
 // TODO make this a generic getObservation() for a `FactoredMDPEnvironment' (\see _MDPEnvironment)
 Observation _Sysadmin::getObservation(const Action& ja) {
-    Reward r = getReward(_current); // reward function is defined over load at current state s
+    Reward r = getReward(_current, ja); // reward function is defined over load at current state s
     // prepare a new state
     State new_current = _current;
 
@@ -198,7 +200,7 @@ Observation _Sysadmin::getObservation(const Action& ja) {
     return o;
 }
 
-Reward _Sysadmin::getReward(const State& s) const {
+Reward _Sysadmin::getReward(const State& s, const Action& a) const {
   Reward r = 0.;
   // over all Load variables
   for(Size i = 1; i < s.size(); i+=2) {
@@ -236,6 +238,159 @@ Sysadmin buildSysadmin(string arch, Size num_comps) {
 
   // instantiate sysadmin problem
   Sysadmin sysadmin = boost::make_shared<_Sysadmin>(std::move(domain), t);
+  return sysadmin;
+}
+
+//
+// SimpleSysadmin
+//
+
+const double sysadmin::_SimpleSysadmin::REBOOT_PROB = 0.1;
+const double sysadmin::_SimpleSysadmin::REBOOT_PENALTY = 0.75;
+
+_SimpleSysadmin::_SimpleSysadmin(Domain domain, Topology network)
+: _Sysadmin(domain, network, domain->getNumStateFactors(), domain->getNumActionFactors()) {
+  // build factored MDP
+  buildFactoredMDP();
+}
+
+// Holds for both RING and STAR topologies
+void _SimpleSysadmin::buildPlate(Size c, DBNFactor fas, DBNFactor fal, LRF lrf) {
+  Domain fasdom = fas->getSubdomain();
+
+  // Define Status (note variable sorting in local scope!)
+  Size t = 1;  // index of this computer in subdomain
+  Size n = 0;  // index of neighbor in subdomain
+  if(c == 0) { // special case: first computer in network
+      if(_network == Topology::RING && _num_comps > 1) {
+          t = 0;
+          n = 1;
+      }
+      else {   // in the STAR case, computer 0 (the `server') does not have any neighbors
+          t = n = 0;
+      }
+  }
+  _StateActionIncrementIterator saitr(fasdom);
+  while(saitr.hasNext()) {
+      const std::tuple<State,Action>& sa = saitr.next();
+      const State s  = std::get<0>(sa);
+      const Action a = std::get<1>(sa);
+      if(a.getIndex() == (Size)Admin::REBOOT) {
+          fas->setT(s, a, (Factor)Status::GOOD, 1.); // deterministically set to GOOD
+      }
+      else { // Admin::NOTHING
+          const Factor cur = s.getFactor(t); // current status of this computer
+          Probability running = 0.45 + 0.5*(1+s.getFactor(n))/2;
+          switch(cur) {
+              case (Factor)Status::GOOD:
+                  fas->setT(s, a, (Factor)Status::GOOD, running);
+                  fas->setT(s, a, (Factor)Status::DEAD, 1-running);
+                  break;
+              case (Factor)Status::DEAD:
+                  fas->setT(s, a, (Factor)Status::GOOD, REBOOT_PROB);
+                  fas->setT(s, a, (Factor)Status::DEAD, 1-REBOOT_PROB);
+                  break;
+          }
+      }
+  }
+
+  // Define LRF
+  State dummy_s;
+  Action dummy_a;
+  dummy_s.setIndex(static_cast<Size>(Status::DEAD));
+  dummy_a.setIndex(static_cast<Size>(Admin::REBOOT));
+  lrf->define(State(), Action(), 1.);  // Status::GOOD, Admin::NOTHING
+  lrf->define(State(), dummy_a, 1-REBOOT_PENALTY);
+  lrf->define(dummy_s, dummy_a, 0-REBOOT_PENALTY);
+}
+
+void _SimpleSysadmin::buildFactoredMDP() {
+  _fmdp = boost::make_shared<_FactoredMDP>(_domain);
+
+  time_t start_time = time_in_milli();
+  for(Size i = 0; i < _num_comps; i++) {
+      // create dbn factors for computer `i'
+      DBNFactor fas = boost::make_shared<_DBNFactor>(_domain, i);   // status
+      LRF lrf = boost::make_shared<_LRF>(_domain); // those have equivalent scopes here
+      // Status variable
+      fas->addDelayedDependency(i);  // self
+      fas->addActionDependency(i);
+      if(_network == Topology::RING) { // neighbor
+          if(i>0) {
+              fas->addDelayedDependency(i-1);
+          }
+          else {
+              fas->addDelayedDependency(_num_comps-1); // close the ring
+          }
+      }
+      else { // STAR
+          fas->addDelayedDependency(0); // all depend on the first computer (the `server');
+      }
+      // LRF
+      lrf->addStateFactor(i);       // over load variable
+      lrf->addActionFactor(i);
+      // allocate tabular storage
+      fas->pack();
+      lrf->pack();
+
+      // Fill transition and reward function
+      buildPlate(i, fas, nullptr, lrf);
+      // add factors for computer `i' to DBN
+      _fmdp->addDBNFactor(std::move(fas));
+      _fmdp->addLRF(std::move(lrf));
+  }
+
+  time_t end_time = time_in_milli();
+  LOG_INFO("created factored MDP in " << end_time - start_time << "ms.");
+}
+
+State _SimpleSysadmin::begin() {
+  _current = State(_domain);
+  for(Size i = 0; i < _num_comps; i++) {
+      _current.setFactor(i,   (Factor) Status::GOOD);
+  }
+  return _current;
+}
+
+Reward _SimpleSysadmin::getReward(const State& s, const Action& a) const {
+  Reward r = 0.;
+  // over all Status variables
+  for(Size i = 0; i < s.size(); i++) {
+      // increment for every successful task
+      r += static_cast<Reward>(s.getFactor(i) == (Factor) Status::GOOD);
+  }
+  for(Size j = 0; j < a.size(); j++) {
+      r -= static_cast<Reward>(a.getFactor(j) == (Factor) Admin::REBOOT) * REBOOT_PENALTY;
+  }
+  return r;
+}
+
+Sysadmin buildSimpleSysadmin(string arch, Size num_comps) {
+  Domain domain = boost::make_shared<_Domain>();
+  // variables
+  const vector<Status> status {Status::GOOD,   Status::DEAD};          // 0,1
+  const vector<Admin>  action {Admin::NOTHING, Admin::REBOOT};         // 0,1
+
+  for(Size i = 0; i < num_comps; i++) {
+      domain->addStateFactor(0, status.size()-1, "status_"+to_string(i));
+      domain->addActionFactor(0, action.size()-1,"reboot"+to_string(i));
+  }
+  domain->setRewardRange(-num_comps*_SimpleSysadmin::REBOOT_PENALTY, num_comps);
+
+  Topology t;
+  std::transform(arch.begin(), arch.end(), arch.begin(), ::tolower);
+  if(arch == "star") {
+      t = Topology::STAR;
+  }
+  else if(arch == "ring") {
+      t = Topology::RING;
+  }
+  else {
+      throw InvalidException("Invalid network topology: " + arch);
+  }
+
+  // instantiate sysadmin problem
+  Sysadmin sysadmin = boost::make_shared<_SimpleSysadmin>(std::move(domain), t);
   return sysadmin;
 }
 

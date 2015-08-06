@@ -58,12 +58,16 @@ protected:
   /// \brief The number of computers in this ring
   const Size _num_comps;
   const Size _num_agents;
+
+  /// \brief Create a SysAdmin problem from the supplied domain and computer/agent numbers.
+  _Sysadmin(Domain domain, Topology network, Size num_comps, Size num_agents);
   /// \brief The reward function for the sysadmin problem
-  virtual Reward getReward(const State& s) const;
+  /// \note Agents do not incur action costs
+  virtual Reward getReward(const State& s, const Action& a) const;
   /// \brief Build the factored MDP associated with this SysAdmin problem
   virtual void buildFactoredMDP();
   /// \brief Fill in transition and reward function for a single plate (i.e., computer `c') in the network
-  virtual void buildPlate(Size c, DBNFactor& fas, DBNFactor& fal, LRF& lrf);
+  virtual void buildPlate(Size c, DBNFactor fas, DBNFactor fal, LRF lrf);
 public:
   /// \brief Create a SysAdmin problem from the supplied domain.
   _Sysadmin(Domain domain, Topology network);
@@ -91,12 +95,48 @@ public:
 };
 typedef boost::shared_ptr<_Sysadmin> Sysadmin;
 
+/**
+ * \brief The (simple, binary) SysAdmin environment with a variable number of computers arranged in a ring or star.
+ * Follows the factored MDP model used in the IPPC planning competitions.
+ * \see sysadmin_mdp.rddl
+ */
+class _SimpleSysadmin : public _Sysadmin {
+protected:
+  /// \brief The reward function for the simple sysadmin problem
+  /// \note Agents do incur action costs
+  virtual Reward getReward(const State& s, const Action& a) const override;
+  /// \brief Build the factored MDP associated with this SysAdmin problem
+  virtual void buildFactoredMDP() override;
+  /// \brief Fill in transition and reward function for a single plate (i.e., computer `c') in the network
+  virtual void buildPlate(Size c, DBNFactor fas, DBNFactor fal, LRF lrf) override;
+public:
+  /// \brief The probability of a currently not running machine rebooting automatically
+  static const double REBOOT_PROB;
+  /// \brief The action penalty for rebooting a single computer
+  static const double REBOOT_PENALTY;
+
+  /// \brief Create a SysAdmin problem from the supplied domain.
+  _SimpleSysadmin(Domain domain, Topology network);
+  virtual ~_SimpleSysadmin() { }
+
+  //
+  // Environment interface
+  //
+  /// \brief Return initial state
+  virtual State begin() override;
+};
+
 } // namespace sysadmin
 
 /// \brief Build a sysadmin problem with the specified number of computers in the topology
 /// \param arch The network topology, either "star" or "ring"
 /// \param num_comps The number of computers in the network
 sysadmin::Sysadmin buildSysadmin(std::string arch, Size num_comps);
+/// \brief Build a simple sysadmin problem with the specified number of computers in the topology
+/// A `simple' sysadmin corresponds to the binary version used in the IPPC competitions
+/// \param arch The network topology, either "star" or "ring"
+/// \param num_comps The number of computers in the network
+sysadmin::Sysadmin buildSimpleSysadmin(std::string arch, Size num_comps);
 
 } // namespace crl
 

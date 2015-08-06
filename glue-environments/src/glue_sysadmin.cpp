@@ -61,24 +61,30 @@ const char* env_message(const char* inMessage) {
 
 // launch networked rl-glue environment through rlgnm library
 int main(int argc, char** argv) {
-    if (argc != 3) {
-            LOG_ERROR("Usage: " << argv[0] << " <\"star\"|\"ring\"> <computer_number>");
+    if (argc != 3 && argc != 4) {
+            LOG_ERROR("Usage: " << argv[0] << " <\"star\"|\"ring\"> <computer_number> [\"simple\"]");
             return EXIT_FAILURE;
     }
 
     try {
+        bool simple = false;
+        if(argc == 4 && string(argv[3]) == "simple") {
+            simple = true;
+        }
         long long comp_no = std::atoll(argv[2]);
-        if(comp_no <= 0 || !(_sysadmin = buildSysadmin(argv[1], static_cast<Size>(comp_no)))) {
-            LOG_ERROR("Instantiation of Multi-agent Sysadmin problem failed.");
+        if(comp_no <= 0 || !(_sysadmin = !simple ? buildSysadmin(argv[1], static_cast<Size>(comp_no)) :
+                             buildSimpleSysadmin(argv[1], static_cast<Size>(comp_no)))) {
+            LOG_ERROR("Instantiation of " << (simple ? "simple " : "") << "Multi-agent Sysadmin problem failed.");
             return EXIT_FAILURE;
         }
+
+        sprintf(paramBuf, (!simple ? "ma-sysadmin=%s,%s" : "sysadmin=%s,%s"), argv[1], argv[2]);
+        //paramBuf[0] = '\0'; // the empty string
+
     } catch(const cpputil::Exception& e) {
         LOG_ERROR(e);
         return EXIT_FAILURE;
     }
-
-    sprintf(paramBuf, "ma-sysadmin=%s,%s", argv[1], argv[2]);
-    //paramBuf[0] = '\0'; // the empty string
 
     // run main glue environment loop
     glue_main_env(0, 0);
