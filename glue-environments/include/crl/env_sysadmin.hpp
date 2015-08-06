@@ -67,7 +67,7 @@ protected:
   /// \brief Build the factored MDP associated with this SysAdmin problem
   virtual void buildFactoredMDP();
   /// \brief Fill in transition and reward function for a single plate (i.e., computer `c') in the network
-  virtual void buildPlate(Size c, DBNFactor fas, DBNFactor fal, LRF lrf);
+  virtual void buildPlate(Size c, DBNFactor& fas, DBNFactor& fal, LRF& lrf);
 public:
   /// \brief Create a SysAdmin problem from the supplied domain.
   _Sysadmin(Domain domain, Topology network);
@@ -108,7 +108,7 @@ protected:
   /// \brief Build the factored MDP associated with this SysAdmin problem
   virtual void buildFactoredMDP() override;
   /// \brief Fill in transition and reward function for a single plate (i.e., computer `c') in the network
-  virtual void buildPlate(Size c, DBNFactor fas, DBNFactor fal, LRF lrf) override;
+  virtual void buildPlate(Size c, DBNFactor& fas, DBNFactor& fal, LRF& lrf) override;
 public:
   /// \brief The probability of a currently not running machine rebooting automatically
   static const double REBOOT_PROB;

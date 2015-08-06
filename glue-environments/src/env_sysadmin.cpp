@@ -35,7 +35,7 @@ _Sysadmin::_Sysadmin(Domain domain, Topology network, Size num_comps, Size num_a
 }
 
 // Holds for both RING and STAR topologies
-void _Sysadmin::buildPlate(Size c, DBNFactor fas, DBNFactor fal, LRF lrf) {
+void _Sysadmin::buildPlate(Size c, DBNFactor& fas, DBNFactor& fal, LRF& lrf) {
     Domain fasdom = fas->getSubdomain();
     Domain faldom = fal->getSubdomain();
 
@@ -245,7 +245,7 @@ Sysadmin buildSysadmin(string arch, Size num_comps) {
 // SimpleSysadmin
 //
 
-const double sysadmin::_SimpleSysadmin::REBOOT_PROB = 0.1;
+const double sysadmin::_SimpleSysadmin::REBOOT_PROB = 0.05;
 const double sysadmin::_SimpleSysadmin::REBOOT_PENALTY = 0.75;
 
 _SimpleSysadmin::_SimpleSysadmin(Domain domain, Topology network)
@@ -255,7 +255,7 @@ _SimpleSysadmin::_SimpleSysadmin(Domain domain, Topology network)
 }
 
 // Holds for both RING and STAR topologies
-void _SimpleSysadmin::buildPlate(Size c, DBNFactor fas, DBNFactor fal, LRF lrf) {
+void _SimpleSysadmin::buildPlate(Size c, DBNFactor& fas, DBNFactor& fal, LRF& lrf) {
   Domain fasdom = fas->getSubdomain();
 
   // Define Status (note variable sorting in local scope!)
@@ -280,15 +280,15 @@ void _SimpleSysadmin::buildPlate(Size c, DBNFactor fas, DBNFactor fal, LRF lrf) 
       }
       else { // Admin::NOTHING
           const Factor cur = s.getFactor(t); // current status of this computer
-          Probability running = 0.45 + 0.5*(1+s.getFactor(n))/2;
+          Probability running = 0.45 + 0.5*(2-s.getFactor(n))/2.;
           switch(cur) {
               case (Factor)Status::GOOD:
                   fas->setT(s, a, (Factor)Status::GOOD, running);
-                  fas->setT(s, a, (Factor)Status::DEAD, 1-running);
+                  fas->setT(s, a, (Factor)Status::FAULTY, 1-running);
                   break;
-              case (Factor)Status::DEAD:
+              case (Factor)Status::FAULTY:
                   fas->setT(s, a, (Factor)Status::GOOD, REBOOT_PROB);
-                  fas->setT(s, a, (Factor)Status::DEAD, 1-REBOOT_PROB);
+                  fas->setT(s, a, (Factor)Status::FAULTY, 1-REBOOT_PROB);
                   break;
           }
       }
@@ -297,11 +297,11 @@ void _SimpleSysadmin::buildPlate(Size c, DBNFactor fas, DBNFactor fal, LRF lrf) 
   // Define LRF
   State dummy_s;
   Action dummy_a;
-  dummy_s.setIndex(static_cast<Size>(Status::DEAD));
+  dummy_s.setIndex(static_cast<Size>(Status::FAULTY));
   dummy_a.setIndex(static_cast<Size>(Admin::REBOOT));
   lrf->define(State(), Action(), 1.);  // Status::GOOD, Admin::NOTHING
-  lrf->define(State(), dummy_a, 1-REBOOT_PENALTY);
-  lrf->define(dummy_s, dummy_a, 0-REBOOT_PENALTY);
+  lrf->define(State(), dummy_a, 1.-REBOOT_PENALTY);
+  lrf->define(dummy_s, dummy_a, 0.-REBOOT_PENALTY);
 }
 
 void _SimpleSysadmin::buildFactoredMDP() {
@@ -334,7 +334,7 @@ void _SimpleSysadmin::buildFactoredMDP() {
       lrf->pack();
 
       // Fill transition and reward function
-      buildPlate(i, fas, nullptr, lrf);
+      buildPlate(i, fas, fas, lrf);
       // add factors for computer `i' to DBN
       _fmdp->addDBNFactor(std::move(fas));
       _fmdp->addLRF(std::move(lrf));
@@ -347,7 +347,7 @@ void _SimpleSysadmin::buildFactoredMDP() {
 State _SimpleSysadmin::begin() {
   _current = State(_domain);
   for(Size i = 0; i < _num_comps; i++) {
-      _current.setFactor(i,   (Factor) Status::GOOD);
+      _current.setFactor(i, (Factor) Status::GOOD);
   }
   return _current;
 }
@@ -368,7 +368,7 @@ Reward _SimpleSysadmin::getReward(const State& s, const Action& a) const {
 Sysadmin buildSimpleSysadmin(string arch, Size num_comps) {
   Domain domain = boost::make_shared<_Domain>();
   // variables
-  const vector<Status> status {Status::GOOD,   Status::DEAD};          // 0,1
+  const vector<Status> status {Status::GOOD,   Status::FAULTY};        // 0,1
   const vector<Admin>  action {Admin::NOTHING, Admin::REBOOT};         // 0,1
 
   for(Size i = 0; i < num_comps; i++) {
