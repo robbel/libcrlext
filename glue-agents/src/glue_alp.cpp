@@ -35,6 +35,61 @@ using namespace cpputil;
 ALPPlanner _alpp;
 Domain _domain;
 
+namespace {
+
+/// \brief Initialize the given value function with the basis conjunctions in \a basisFile
+void loadConjunctiveBasis(FactoredValueFunction& fval, const string& basisFile) {
+  ifstream file(basisFile);
+  if (!file) {
+      throw cpputil::InvalidException("File not found.");
+  }
+  const auto& basisVec = fval->getBasis();
+  std::string line;
+  while (std::getline(file, line)) {
+      std::stringstream stream(line);
+      string tok;
+      SizeVec joint_base;
+      while(std::getline(stream, tok, ',')) {
+          Size basisId = std::stoull(tok);
+          if(in_pos_interval(basisId, basisVec.size()-1)) {
+              joint_base.push_back(basisId);
+          } else {
+              throw InvalidException("Invalid basis in conjunction string.");
+          }
+      }
+      // obtain conjunctive basis
+      DiscreteFunction<Reward> candf = algorithm::binconj<Reward>(joint_base, fval);
+      if(!candf) { // no consistent indicator exists for h1 ^ h2
+          continue;
+      }
+      LOG_INFO("Inserting conjunctive basis " << (*candf));
+      fval->addBasisFunction(std::move(candf), 0.);
+  }
+}
+
+/// \brief Initialize the given value function with the weight vector in \a weightsFile
+void loadWeights(FactoredValueFunction& fval, const string& weightsFile) {
+    ifstream file(weightsFile);
+    if (!file) {
+        throw cpputil::InvalidException("File not found.");
+    }
+    // assume simply that basis function layout matches provided file
+    vector<double> weights;
+    std::string line;
+    while (std::getline(file, line)) {
+        double w_i = strtod(line.c_str(), NULL); // read preserving precision
+        weights.push_back(w_i);
+    }
+    if(weights.size() != fval->getWeight().size()) {
+        throw cpputil::InvalidException("Basis function layout does not match that in weight vector file.");
+    }
+    // assign weights to value function
+    vector<double>& vfnweights = fval->getWeight();
+    std::copy(weights.begin(), weights.end(), vfnweights.begin());
+}
+
+} // anonymous ns
+
 namespace crl {
 
 //
@@ -83,8 +138,8 @@ const char* agent_message(const char* inMessage) {
 int main(int argc, char** argv) {
     LOG_INFO("This is the (experimental) ALP agent for currently the sysadmin environment only.");
 
-    if (argc < 3 || argc > 9) {
-        LOG_ERROR("Usage: " << argv[0] << " <\"star\"|\"ring\"> <computer_number> [-t \"simple\"] [-s SPUDD-OPTDual.ADD file] [-w Basis-weight-vector file] [-b Basis-conjunction file]");
+    if (argc < 3 || argc > 11) {
+        LOG_ERROR("Usage: " << argv[0] << " <\"star\"|\"ring\"> <computer_number> [-t \"simple\"] [-s SPUDD-OPTDual.ADD file] [-w Basis-weight-vector file] [-b Basis-conjunction file] [-wopt Optimal-basis-weight-vector file] [-bopt Optimal-basis-conjunction file]");
         return EXIT_FAILURE;
     }
 
@@ -106,17 +161,17 @@ int main(int argc, char** argv) {
         string weightsFile = "";
         string spuddFile = "";
         string basisFile = "";
-        auto wIt = std::find(remParams.begin(), remParams.end(), "-w");
-        if(wIt != remParams.end() && (++wIt) != remParams.end()) {
-            weightsFile = *wIt;
+        auto pIt = std::find(remParams.begin(), remParams.end(), "-w");
+        if(pIt != remParams.end() && (++pIt) != remParams.end()) {
+            weightsFile = *pIt;
         }
-        auto sIt = std::find(remParams.begin(), remParams.end(), "-s");
-        if(sIt != remParams.end() && (++sIt) != remParams.end()) {
-            spuddFile = *sIt;
+        pIt = std::find(remParams.begin(), remParams.end(), "-s");
+        if(pIt != remParams.end() && (++pIt) != remParams.end()) {
+            spuddFile = *pIt;
         }
-        auto bIt = std::find(remParams.begin(), remParams.end(), "-b");
-        if(bIt != remParams.end() && (++bIt) != remParams.end()) {
-            basisFile = *bIt;
+        pIt = std::find(remParams.begin(), remParams.end(), "-b");
+        if(pIt != remParams.end() && (++pIt) != remParams.end()) {
+            basisFile = *pIt;
         }
         sprintf(params, (!simple ? "ma-sysadmin=%s,%s" : "sysadmin=%s,%s"), argv[1], argv[2]);
         //params[0] = '\0'; // the empty string
@@ -179,32 +234,7 @@ int main(int argc, char** argv) {
         // add additional conjunctive features if supplied
         if(!basisFile.empty()) {
             LOG_INFO("Conjunctive basis file supplied: " << basisFile);
-            ifstream file(basisFile);
-            if (!file) {
-                throw cpputil::InvalidException("File not found.");
-            }
-            const auto& basisVec = fval->getBasis();
-            std::string line;
-            while (std::getline(file, line)) {
-                std::stringstream stream(line);
-                string tok;
-                SizeVec joint_base;
-                while(std::getline(stream, tok, ',')) {
-                    Size basisId = std::stoull(tok);
-                    if(in_pos_interval(basisId, basisVec.size()-1)) {
-                        joint_base.push_back(basisId);
-                    } else {
-                        throw InvalidException("Invalid basis in conjunction string.");
-                    }
-                }
-                // obtain conjunctive basis
-                DiscreteFunction<Reward> candf = algorithm::binconj<Reward>(joint_base, fval);
-                if(!candf) { // no consistent indicator exists for h1 ^ h2
-                    continue;
-                }
-                LOG_INFO("Inserting conjunctive basis " << (*candf));
-                fval->addBasisFunction(std::move(candf), 0.);
-            }
+            loadConjunctiveBasis(fval, basisFile);
         }
 
         // initialize the ALP planner
@@ -213,24 +243,7 @@ int main(int argc, char** argv) {
 
         if(!weightsFile.empty()) {
             LOG_INFO("Basis function weight vector supplied: " << weightsFile);
-            // test if file exists
-            ifstream file(weightsFile);
-            if (!file) {
-                throw cpputil::InvalidException("File not found.");
-            }
-            // assume simply that basis function layout matches provided file
-            vector<double> weights;
-            std::string line;
-            while (std::getline(file, line)) {
-                double w_i = strtod(line.c_str(), NULL); // read preserving precision
-                weights.push_back(w_i);
-            }
-            if(weights.size() != fval->getWeight().size()) {
-                throw cpputil::InvalidException("Basis function layout does not match that in weight vector file.");
-            }
-            // assign weights to value function
-            vector<double>& vfnweights = fval->getWeight();
-            std::copy(weights.begin(), weights.end(), vfnweights.begin());
+            loadWeights(fval, weightsFile);
             // compute backprojections
             _alpp->precompute();
 
@@ -326,7 +339,55 @@ int main(int argc, char** argv) {
 #endif
         }
 #endif
+        // compute some metrics given an optimal (factored) policy
+        string optWeightsFile = "";
+        string optBasisFile = "";
+        pIt = std::find(remParams.begin(), remParams.end(), "-wopt");
+        if(pIt != remParams.end() && (++pIt) != remParams.end()) {
+            optWeightsFile = *pIt;
+        }
+        pIt = std::find(remParams.begin(), remParams.end(), "-bopt");
+        if(pIt != remParams.end() && (++pIt) != remParams.end()) {
+            optBasisFile = *pIt;
+        }
+        if(!optWeightsFile.empty() && !optBasisFile.empty()) {
+          LOG_INFO("Computing maximum error between current and optimal policies");
 
+          // Initialize optimal value function
+          FactoredValueFunction optfval = boost::make_shared<_FactoredValueFunction>(_domain);
+          for(Size fa = 0; fa < ranges.size(); fa++) { // assumption: DBN covers all domain variables
+              auto I_o = boost::make_shared<_Indicator<Reward>>(_domain, SizeVec({fa}), State(_domain,0));
+              _StateIncrementIterator sitr(I_o->getSubdomain());
+              while(sitr.hasNext()) {
+                  auto I = boost::make_shared<_Indicator<Reward>>(_domain, SizeVec({fa}), sitr.next());
+                  optfval->addBasisFunction(std::move(I), 0.);
+              }
+          }
+          // load optimal value function configuration
+          loadConjunctiveBasis(optfval, optBasisFile);
+          loadWeights(optfval, optWeightsFile);
+
+          // TODO: this maxDiff computation can be replaced with two maximizations over a cost network
+          // Exhaustive doesn't work for larger S,A
+          _StateIncrementIterator sitr(_domain);
+          double Vmax = -std::numeric_limits<double>::infinity();
+          double linf = 0.;
+          while(sitr.hasNext()) {
+              const State& s = sitr.next();
+              double optval = optfval->getV(s);
+              double valdiff = std::abs(fval->getV(s) - optval);
+              if(valdiff > linf) {
+                linf = valdiff;
+              }
+              if(optval > Vmax) {
+                  Vmax = optval;
+              }
+          }
+          LOG_INFO("[Abs error to V*] L_inf = " << linf);
+          if(!cpputil::approxEq(Vmax, 0.)) {
+             LOG_INFO("Rel error to V*] L_inf^rel = " << linf/Vmax);
+          }
+       }
     } catch(const cpputil::Exception& e) {
         LOG_ERROR(e);
         return EXIT_FAILURE;
