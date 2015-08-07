@@ -138,7 +138,7 @@ const char* agent_message(const char* inMessage) {
 int main(int argc, char** argv) {
     LOG_INFO("This is the (experimental) ALP agent for currently the sysadmin environment only.");
 
-    if (argc < 3 || argc > 11) {
+    if (argc < 3 || argc > 13) {
         LOG_ERROR("Usage: " << argv[0] << " <\"star\"|\"ring\"> <computer_number> [-t \"simple\"] [-s SPUDD-OPTDual.ADD file] [-w Basis-weight-vector file] [-b Basis-conjunction file] [-wopt Optimal-basis-weight-vector file] [-bopt Optimal-basis-conjunction file]");
         return EXIT_FAILURE;
     }
