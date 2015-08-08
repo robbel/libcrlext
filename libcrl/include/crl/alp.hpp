@@ -200,6 +200,9 @@ namespace algorithm {
     FunctionSet<Reward> q_set = fval->getMaxQ<T>();
     auto qfns = q_set.getFunctions();
     LOG_INFO("MaxQ-Function has " << qfns.size() << " local terms.");
+    for(const auto& fn : qfns) {
+      LOG_INFO(fn->getStateFactors().size());
+    }
 
     // multiply basis with w vector
     std::vector<DiscreteFunction<Reward>> modbasis;

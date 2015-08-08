@@ -289,6 +289,11 @@ protected:
   std::unordered_multiset<Conjunction,std::hash<std::size_t>> _blacklist;
   /// \brief Hash-Set to keep track of features for which cost computation has been done
   std::unordered_multiset<Conjunction,std::hash<std::size_t>> _evaluated;
+  /// \brief Clear the feature cache
+  void resetCache() {
+    _evaluated.clear();
+    _evaluated.insert(_blacklist.begin(), _blacklist.end());
+  }
 public:
   /// \brief ctor
   BinaryBasisGenerator(const Domain& domain, FactoredValueFunction vfn, FactoredMDP fmdp, std::string name = "")
@@ -297,15 +302,11 @@ public:
   void addToBlacklist(const Conjunction& blf) {
      _blacklist.insert(blf);
   }
-  /// \brief Clear the feature cache
-  void resetCache() {
-    _evaluated.clear();
-    _evaluated.insert(_blacklist.begin(), _blacklist.end());
-  }
   /// \brief Compute the next best binary conjunctive basis function
   /// \return The next best basis function. Nullptr if none available (due to score, blacklist, conjunction not computable)
   DiscreteFunction<Reward> nextBest() {
-    // initialize the scoring function
+    // initialize cache and scoring function
+    resetCache();
     _score.initialize();
     // Note: sort by size?
     LOG_DEBUG("Basis size: " << _value_fn->getBasis().size());
