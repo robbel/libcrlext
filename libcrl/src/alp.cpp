@@ -268,19 +268,18 @@ double factoredBellmanError(const Domain& domain, const FactoredValueFunction& f
   return maxVal;
 }
 
-FactoredFunction<Reward> factoredBellmanMarginal(const Domain& domain, const SizeVec& cvars, const FactoredValueFunction& fval) {
+FactoredFunction<Reward> factoredBellmanMarginal(const Domain& domain, const SizeVec& cvars, const vector<DiscreteFunction<Reward>>& maxQ) {
   assert(!domain->isBig());
   // Obtain the variables to marginalize out
   SizeVec delVars = get_state_vars(domain, cvars);
 
   // obtain Bellman functionals adjusted for their coverage of the state space
-  std::vector<DiscreteFunction<Reward>> funVec = factoredBellmanFunctionals(domain, fval).getFunctions();
   // storage for functions with variable dependencies and empty scope
   std::vector<DiscreteFunction<Reward>> var_fns;
   std::vector<DiscreteFunction<Reward>> empty_fns;
 
   // marginalize all functions partially over `Dom \ {vars}'
-  for(const auto& fn : funVec) {
+  for(const auto& fn : maxQ) {
       DiscreteFunction<Reward> margFn = algorithm::marginalize(fn.get(), delVars, false);
       // obtain lambda coefficient for factor `fn' in Bellman marginal function
       double lambda = computeMarginalLambda(domain, fn, delVars);
@@ -297,6 +296,11 @@ FactoredFunction<Reward> factoredBellmanMarginal(const Domain& domain, const Siz
   }
 
   return std::make_tuple(std::move(var_fns),std::move(empty_fns));
+}
+
+FactoredFunction<Reward> factoredBellmanMarginal(const Domain& domain, const SizeVec& vars, const FactoredValueFunction& fval) {
+   FunctionSet<Reward> F = factoredBellmanFunctionals(domain, fval);
+   return factoredBellmanMarginal(domain, vars, F.getFunctions());
 }
 
 }

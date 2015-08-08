@@ -171,6 +171,11 @@ namespace algorithm {
   /// \param vars The variables spanning the domain of the returned marginal functions
   /// \return A tuple of (0) the generated functions that depend on \a vars, and (1) the generated functions with empty scope
   FactoredFunction<Reward> factoredBellmanMarginal(const Domain& domain, const SizeVec& vars, const FactoredValueFunction& fval);
+  /// \brief Compute Bellman marginal, i.e., sum out all variables from residual except those in \a vars
+  /// \param vars The variables spanning the domain of the returned marginal functions
+  /// \param maxQ The (factored) max-Q function associated with the value function
+  /// \return A tuple of (0) the generated functions that depend on \a vars, and (1) the generated functions with empty scope
+  FactoredFunction<Reward> factoredBellmanMarginal(const Domain& domain, const SizeVec& vars, const std::vector<DiscreteFunction<Reward>>& maxQ);
   /// \brief Computes the (factored) max. Bellman Error via variable elimination (given an \a elimination_order over all state factors)
   double factoredBellmanError(const Domain& domain, const FactoredValueFunction& fval, const SizeVec& elimination_order);
 }

@@ -172,6 +172,8 @@ public:
   /// \param vfn The (solved) factored value function that will be used for scoring
   BasisScore(const Domain& domain, const FactoredValueFunction& vfn)
   : _domain(domain), _value_fn(vfn) { }
+  /// \brief Called once before every (complete) scoring run over candidate basis functions
+  virtual void initialize() { }
   /// \brief The (abstract) scoring function for the given basis function
   virtual double score(const _DiscreteFunction<Reward>* basis) const = 0;
   /// \brief The name of this scoring function
@@ -214,15 +216,46 @@ public:
  * \brief Computing the BEBF score Sum_BE(f) / sqrt(|Coverage(f)|) over the region where feature f is active
  */
 class BEBFScore : public BasisScore {
+protected:
+  /// \brief Cached copy of the maxQ function
+  std::vector<DiscreteFunction<Reward>> _maxQ;
 public:
   /// \brief ctor
   /// \param vfn The (solved) factored value function that will be used for scoring
   BEBFScore(const Domain& domain, const FactoredValueFunction& vfn)
   : BasisScore(domain, vfn) { }
+  virtual void initialize();
   /// \brief score implementation
-  double score(const _DiscreteFunction<Reward>* basis) const;
-  std::string getName() const {
+  virtual double score(const _DiscreteFunction<Reward>* basis) const;
+  virtual std::string getName() const {
     return "BEBFScore";
+  }
+};
+
+/**
+ * \brief Computing the BEBF score Sum_BE(f) / sqrt(|Coverage(f)|) over the region where feature f is active
+ * Additionally enforcing sparsity in factor graph to allow (exact) BE computation
+ */
+class OptBEBFScore : public BEBFScore {
+protected:
+  static const Size DEFAULT_MAX_SCOPE;
+  /// \brief The maximum supported scope size in the `action connected' partition of the factor graph
+  Size _max_scope;
+public:
+  /// \brief ctor
+  /// \param vfn The (solved) factored value function that will be used for scoring
+  OptBEBFScore(const Domain& domain, const FactoredValueFunction& vfn)
+  : BEBFScore(domain, vfn), _max_scope(DEFAULT_MAX_SCOPE) { }
+  Size getMaxScope() const {
+    return _max_scope;
+  }
+  void setMaxScope(Size sc) {
+    _max_scope = sc;
+  }
+  /// \brief score implementation
+  virtual double score(const _DiscreteFunction<Reward>* basis) const;
+  virtual std::string getName() const {
+    return "OptBEBFScore(" + std::to_string(_max_scope) + ")";
   }
 };
 
@@ -256,6 +289,8 @@ public:
   }
   /// \brief Return the next best basis function
   DiscreteFunction<Reward> nextBest() {
+    // initialize the scoring function
+    _score.initialize();
     // Note: sort by size?
     LOG_DEBUG("Basis size: " << _value_fn->getBasis().size());
     const auto& basisVec = _value_fn->getBasis();

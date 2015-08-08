@@ -18,6 +18,7 @@ using namespace std;
 namespace crl {
 
 const std::size_t Conjunction::EMPTY_HASH = 0;
+const Size OptBEBFScore::DEFAULT_MAX_SCOPE = 10;
 
 std::ostream& operator<<(std::ostream &os, const Conjunction& conj) {
   os << "Conj({";
@@ -45,6 +46,8 @@ double EpsilonScore::score(const _DiscreteFunction<Reward>* basis) const {
 
   double range = 0.5*(maxVal - minVal);
   LOG_DEBUG("Epsilon (before normalization): " << range);
+
+  // may need additional `closeness' specifier (or sorting)
 
   // TODO: this is just temporary coverage metric
   Size cov = algorithm::basisCoverage(_domain, basis);
@@ -82,11 +85,16 @@ double AbsoluteReductionScore::score(const _DiscreteFunction<Reward>* basis) con
   return red / sqrt(static_cast<double>(cov));
 }
 
+void BEBFScore::initialize() {
+  // set once before the (complete) scoring run over basis functions
+  _maxQ = algorithm::factoredBellmanFunctionals(_domain, _value_fn).getFunctions();
+}
+
 double BEBFScore::score(const _DiscreteFunction<Reward> *basis) const {
   assert(basis->getActionFactors().empty());
 
   // evaluate marginal under basis
-  auto facfn = algorithm::factoredBellmanMarginal(_domain, basis->getStateFactors(), _value_fn);
+  auto facfn = algorithm::factoredBellmanMarginal(_domain, basis->getStateFactors(), _maxQ);
   double marVal = algorithm::evalOpOverBasis(basis, facfn, false, 0.,
                                              [](Reward& v1, Reward& v2) { v1 += v2; });
   LOG_DEBUG("Marginal under feature: " << marVal);
@@ -98,6 +106,16 @@ double BEBFScore::score(const _DiscreteFunction<Reward> *basis) const {
       return -std::numeric_limits<double>::infinity();
   }
   return marVal / sqrt(static_cast<double>(cov));
+}
+
+double OptBEBFScore::score(const _DiscreteFunction<Reward> *basis) const {
+  // compute scope size
+  //if(cand > _max_scope) {
+  //    return -std::numeric_limits<double>::infinity();
+  //}
+
+  //double cand = BEBFScore::score(basis);
+  return 0.;
 }
 
 } // namespace crl
