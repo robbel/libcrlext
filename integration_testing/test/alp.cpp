@@ -153,6 +153,166 @@ TEST(ALPIntegrationTest, TestSysadminExhaustiveBasis) {
 }
 
 ///
+/// \brief Tests conjunctive basis construction
+///
+TEST(ALPIntegrationTest, TestConjunctiveBasis) {
+  srand(time(NULL));
+
+  sysadmin::Sysadmin thesys = buildSimpleSysadmin("ring", 4);
+  Domain domain = thesys->getDomain();
+  FactoredMDP fmdp = thesys->getFactoredMDP();
+  const RangeVec& ranges = domain->getStateRanges();
+  LOG_INFO(fmdp->T());
+
+  // factored value function with single factor basis functions
+  FactoredValueFunction fval = boost::make_shared<_FactoredValueFunction>(domain);
+  for(Size fa = 0; fa < ranges.size(); fa++) { // assumption: DBN covers all domain variables
+      auto I_o = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa}), State(domain,0));
+      _StateIncrementIterator sitr(I_o->getSubdomain());
+      while(sitr.hasNext()) {
+          auto I = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa}), sitr.next());
+          fval->addBasisFunction(std::move(I), 0.);
+      }
+  }
+
+  // run the ALP planner
+  _ALPPlanner planner(fmdp, 0.9);
+  planner.setFactoredValueFunction(fval); // this will be computed
+  int res = planner.plan();
+  EXPECT_EQ(res, 0) << "ALP " << (res == 1 ? "generateLP()" : "solve()") << " failed";
+
+  // maxQ-function analysis (keep track of `action coverage')
+  auto maxQ = fval->getMaxQ<_FConjunctiveFeature<Reward>>().getFunctions();
+  EXPECT_EQ(maxQ.size(), 4); // corresponding to scopes of all backprojections
+
+  // maxQ-function eliminates all action factors (and returns _FConjunctiveFeature for modified terms)
+  Size count_fcj = 0, count_fd = 0;
+  for(const auto& fn : maxQ) {
+      const Conjunction* cf = dynamic_cast<const Conjunction*>(fn.get());
+      if(cf)
+          count_fcj++;
+      else
+          count_fd++;
+  }
+  EXPECT_EQ(count_fd, 0); // all basis pairs (with a reward function) share scope and are joined in maxQ-function
+  EXPECT_EQ(count_fcj, fval->getBasis().size()/2);
+
+  // Bellman residual should maintain that number of _FConjunctiveFeature and also include basis functions
+  auto bellres = algorithm::factoredBellmanFunctionals<_FConjunctiveFeature<Reward>>(domain, fval).getFunctions();
+  Size count_fcj2 = 0;
+  for(const auto& fn : bellres) {
+      const Conjunction* cf = dynamic_cast<const Conjunction*>(fn.get());
+      if(cf) {
+          count_fcj2++;
+          // test recorded `action-connectivity' (specific to sysadmin)
+          const SizeVec& fadom = cf->getBaseFeatures();
+          EXPECT_EQ(fadom.size(), 1);
+          const SizeVec& sf = fn->getStateFactors();
+          EXPECT_TRUE(cpputil::has_intersection(fadom.begin(), fadom.end(), sf.begin(), sf.end()));
+      }
+      else
+          count_fd++;
+  }
+  EXPECT_EQ(count_fd, fval->getBasis().size()); // all basis pairs (with a reward function) share scope and are joined in maxQ-function
+  EXPECT_EQ(count_fcj2, count_fcj);
+
+  LOG_INFO("Computing next best basis to insert...");
+  BinaryBasisGenerator<NChooseTwoIterator<Size,SizeVec>,OptBEBFScore> basisGen(domain, fval, fmdp, "bebf-test");
+  DiscreteFunction<Reward> nextBasis = basisGen.nextBest();
+  EXPECT_TRUE(nextBasis != nullptr) << "No next basis, nullptr returned.";
+  LOG_INFO("Next best: " << (*nextBasis));
+
+  // note: here the conjunction is over basis functions
+  const Conjunction* cf = dynamic_cast<const Conjunction*>(nextBasis.get());
+  EXPECT_TRUE(cf != nullptr);
+  EXPECT_EQ(cf->getBaseFeatures().size(), 2);
+  // problem specific test: basis connects start/end
+  EXPECT_EQ(cf->getBaseFeatures()[0], 0);
+  EXPECT_EQ(cf->getBaseFeatures()[1], 7);
+
+  // insert feature into basis
+  basisGen.addToBlacklist(*cf);
+  fval->addBasisFunction(std::move(nextBasis), 0.);
+  fval->clearBackprojections();
+
+  // loop over new basis and make sure exactly one conjunctive feature exists over <h0,h7>
+  Size count = 0;
+  for(const auto& fn : fval->getBasis()) {
+      const Conjunction* cf = dynamic_cast<const Conjunction*>(fn.get());
+      if(cf) {
+          count++;
+          EXPECT_EQ(cf->getBaseFeatures()[0], 0);
+          EXPECT_EQ(cf->getBaseFeatures()[1], 7);
+          LOG_DEBUG("New basis is over original base features: " << *cf);
+      }
+  }
+  EXPECT_EQ(count, 1);
+
+  // test: this should recompute the backprojections but since nextBasis is still associated with 0, not change maxQ
+  planner.precompute();
+  auto maxQ2 = fval->getMaxQ<_FConjunctiveFeature<Reward>>().getFunctions();
+  EXPECT_EQ(maxQ2.size(), maxQ.size());
+
+  // run another iteration of planning, maxQ should then be different
+  fval->clearBackprojections();
+  int res2 = planner.plan();
+  EXPECT_EQ(res2, 0) << "ALP " << (res2 == 1 ? "generateLP()" : "solve()") << " failed";
+  auto maxQ3 = fval->getMaxQ<_FConjunctiveFeature<Reward>>().getFunctions();
+  EXPECT_EQ(maxQ3.size(), maxQ2.size()-1);
+
+  // solution associates w value with new conjunctive basis function
+  EXPECT_NE(fval->getWeight()[fval->getBasis().size()-1], 0.);
+  // test `action-connectivity'
+  Size maxASc = 0;
+  Size SSc = 0;
+  for(const auto& fn : maxQ3) {
+      const Conjunction* cf = dynamic_cast<const Conjunction*>(fn.get());
+      ASSERT_TRUE(cf != nullptr); // problem specific since lrfs include action factors
+      SizeVec::size_type si = cf->getBaseFeatures().size();
+      if(si > maxASc) {
+          maxASc = si;
+          SSc = fn->getStateFactors().size();
+          LOG_DEBUG("maxQ factor: " << *fn << " couples actions: " << *cf);
+      }
+  }
+  EXPECT_EQ(maxASc, 2);
+  EXPECT_EQ(SSc, 3);
+
+  // insert another conjunctive basis function manually
+  Size h1_id = 4;
+  Size h2_id = 6;
+  DiscreteFunction<Reward> candf = algorithm::binpair(h1_id,h2_id,fval->getBasis()[h1_id],fval->getBasis()[h2_id]);
+  ASSERT_TRUE(candf != nullptr);
+  fval->addBasisFunction(std::move(candf), 0.);
+  // no blacklisting tested here
+  fval->clearBackprojections();
+  int res3 = planner.plan();
+  EXPECT_EQ(res3, 0) << "ALP " << (res2 == 1 ? "generateLP()" : "solve()") << " failed";
+  // solution associates w value with new conjunctive basis function
+  EXPECT_NE(fval->getWeight()[fval->getBasis().size()-1], 0.);
+  auto maxQ4 = fval->getMaxQ<_FConjunctiveFeature<Reward>>().getFunctions();
+
+  // solution associates w value with new conjunctive basis function
+  EXPECT_EQ(maxQ4.size(), maxQ3.size()-1);
+  // test `action-connectivity'
+  Size maxASc2 = 0;
+  Size SSc2 = 0;
+  for(const auto& fn : maxQ4) {
+      const Conjunction* cf = dynamic_cast<const Conjunction*>(fn.get());
+      ASSERT_TRUE(cf != nullptr); // problem specific since lrfs include action factors
+      SizeVec::size_type si = cf->getBaseFeatures().size();
+      if(si > maxASc2) {
+          maxASc2 = si;
+          SSc2 = fn->getStateFactors().size();
+          LOG_DEBUG("maxQ factor (manual insertion): " << *fn << " couples actions: " << *cf);
+      }
+  }
+  EXPECT_EQ(maxASc2, 3);
+  EXPECT_EQ(SSc2, 4);
+}
+
+
+///
 /// \brief More involved test that also does factored Bellman computations in larger SysAdmin
 ///
 TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
@@ -492,7 +652,16 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
     for(int k = 0; k < 2; k++) {
         BinaryBasisGenerator<NChooseTwoIterator<Size,SizeVec>,BEBFScore> basisGen(domain, fval, fmdp, "bebf-test");
         DiscreteFunction<Reward> nextBasis = basisGen.nextBest();
+        if(!nextBasis) {
+          LOG_INFO("No next best basis: cost deemed infinite by Scoring function.");
+          break;
+        }
 
+        // avoid double-insertion of same feature
+        const Conjunction* cf = dynamic_cast<const Conjunction*>(nextBasis.get());
+        assert(cf);
+        basisGen.addToBlacklist(*cf);
+        // insert feature into basis
         fval->clearBackprojections(); // TODO: implement SWAP so that recomputation of previous ones avoided
         fval->addBasisFunction(std::move(nextBasis), 0.);
 
