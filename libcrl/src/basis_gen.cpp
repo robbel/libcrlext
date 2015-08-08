@@ -85,14 +85,14 @@ double AbsoluteReductionScore::score(const DiscreteFunction<Reward>& basis) cons
 
 void BEBFScore::initialize() {
   // set once before the (complete) scoring run over basis functions
-  _maxQ = algorithm::factoredBellmanFunctionals(_domain, _value_fn).getFunctions();
+  _belRes = algorithm::factoredBellmanFunctionals(_domain, _value_fn).getFunctions();
 }
 
 double BEBFScore::score(const DiscreteFunction<Reward>& basis) const {
   assert(basis->getActionFactors().empty());
 
   // evaluate marginal under basis
-  auto facfn = algorithm::factoredBellmanMarginal(_domain, basis->getStateFactors(), _maxQ);
+  auto facfn = algorithm::factoredBellmanMarginal(_domain, basis->getStateFactors(), _belRes);
   double marVal = algorithm::evalOpOverBasis(basis.get(), facfn, false, 0.,
                                              [](Reward& v1, Reward& v2) { v1 += v2; });
   LOG_DEBUG("Marginal under feature: " << marVal);
@@ -108,8 +108,8 @@ double BEBFScore::score(const DiscreteFunction<Reward>& basis) const {
 
 void OptBEBFScore::initialize() {
   // set once before the (complete) scoring run over basis functions
-  // we additionally keep track of the `action-connectivity' property of the maxQ-function for efficient partition size computations
-  _maxQ = algorithm::factoredBellmanFunctionals<_FConjunctiveFeature<Reward>>(_domain, _value_fn).getFunctions();
+  // we additionally keep track of the `action-connectivity' property of the maxQ-function here for efficient partition size computations
+  _belRes = algorithm::factoredBellmanFunctionals<_FConjunctiveFeature<Reward>>(_domain, _value_fn).getFunctions();
 }
 
 double OptBEBFScore::score(const DiscreteFunction<Reward>& basis) const {
@@ -121,7 +121,7 @@ double OptBEBFScore::score(const DiscreteFunction<Reward>& basis) const {
   for(Size v : B.getStateFactors()) {
     active[v] = true;
   }
-  for(const auto& fn : _maxQ) {
+  for(const auto& fn : _belRes) {
       const Conjunction* cf = dynamic_cast<const Conjunction*>(fn.get());
       const SizeVec& fadom = cf ? cf->getBaseFeatures() : fn->getActionFactors();
       if(cpputil::has_intersection(adom.begin(), adom.end(), fadom.begin(), fadom.end())) {
@@ -132,6 +132,7 @@ double OptBEBFScore::score(const DiscreteFunction<Reward>& basis) const {
   }
   Size maxpt = std::count(active.begin(), active.end(), true);
 #if !NDEBUG
+  // candidate basis is always a conjunction
   const Conjunction* cpt = dynamic_cast<Conjunction*>(basis.get());
   LOG_DEBUG("Candidate fn " << *cpt << ": " << *basis << " (bp: " << B << ") `action-connects' " << maxpt << " state factors.");
 #endif

@@ -196,14 +196,6 @@ namespace algorithm {
   FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, const FactoredValueFunction& fval) {
     assert(fval->getWeight().size() == fval->getBasis().size());
 
-    // run variable elimination for max_a
-    FunctionSet<Reward> q_set = fval->getMaxQ<T>();
-    auto qfns = q_set.getFunctions();
-    LOG_INFO("MaxQ-Function has " << qfns.size() << " local terms.");
-    for(const auto& fn : qfns) {
-      LOG_INFO(fn->getStateFactors().size());
-    }
-
     // multiply basis with w vector
     std::vector<DiscreteFunction<Reward>> modbasis;
     const auto& weight = fval->getWeight();
@@ -226,11 +218,20 @@ namespace algorithm {
             modbasis.push_back(std::move(wh));
         }
     }
-    // negate maxQ
+
+    // run variable elimination over all action factors
+    FunctionSet<Reward> q_set = fval->getMaxQ<T>();
+    auto qfns = q_set.getFunctions();
+    LOG_INFO("MaxQ-Function has " << qfns.size() << " local terms.");
+    for(const auto& fn : qfns) {
+      LOG_INFO(fn->getStateFactors().size());
+    }
+    // negate maxQ; maintain function type T for terms generated during variable elimination
+    // this is to efficiently support `action-connected' partitioning of the maxQ-function
     std::vector<DiscreteFunction<Reward>> modqfns;
     for(const auto& qf : qfns) {
         FDiscreteFunction<Reward> nqf;
-        const T* pqf = dynamic_cast<const T*>(qf.get());
+        const T* pqf = dynamic_cast<const T*>(qf.get()); // if custom type was returned
         if(pqf) {
             nqf = boost::make_shared<T>(*pqf);
         }

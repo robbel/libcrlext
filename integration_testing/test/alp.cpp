@@ -649,8 +649,8 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
     // Insert and resolve with next best functions twice (BEBFScore criterion)
     //
 
+    BinaryBasisGenerator<NChooseTwoIterator<Size,SizeVec>,BEBFScore> basisGen(domain, fval, fmdp, "bebf-test");
     for(int k = 0; k < 2; k++) {
-        BinaryBasisGenerator<NChooseTwoIterator<Size,SizeVec>,BEBFScore> basisGen(domain, fval, fmdp, "bebf-test");
         DiscreteFunction<Reward> nextBasis = basisGen.nextBest();
         if(!nextBasis) {
           LOG_INFO("No next best basis: cost deemed infinite by Scoring function.");

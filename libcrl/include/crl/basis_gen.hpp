@@ -222,8 +222,8 @@ public:
  */
 class BEBFScore : public BasisScore {
 protected:
-  /// \brief Cached copy of the maxQ function
-  std::vector<DiscreteFunction<Reward>> _maxQ;
+  /// \brief Cached copy of the (factored) Bellman residual
+  std::vector<DiscreteFunction<Reward>> _belRes;
 public:
   /// \brief ctor
   /// \param vfn The (solved) factored value function that will be used for scoring
@@ -370,6 +370,7 @@ public:
 namespace {
 
 // helper function for algorithm::pair
+// TODO: replace with efficient vec<bool>, see OptBEBFScore::score
 template<class It, class Ins>
 inline void pair_helper(It it1b, It it1e, const Conjunction* cf2, const Size (&h2_arr)[1], Ins& ins) {
   if(cf2)
