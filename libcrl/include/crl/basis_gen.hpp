@@ -244,7 +244,7 @@ public:
 class OptBEBFScore : public BEBFScore {
 protected:
   static const Size DEFAULT_MAX_SCOPE;
-  /// \brief The maximum supported scope size in the `action connected' partition of the factor graph
+  /// \brief The enforced maximum scope size in the `action connected' partition of the factor graph
   Size _max_scope;
   /// \brief The \a DBN used for backprojections
   const _DBN& _dbn;
@@ -285,17 +285,25 @@ protected:
   Sc _score;
   /// \brief Unique name of this basis generator
   std::string _name;
-  /// \brief Hash-Set to keep track of existing features
-  std::unordered_multiset<Conjunction,std::hash<std::size_t>> _exists;
+  /// \brief Hash-Set to keep track of blacklisted features (e.g., already inserted into ALP)
+  std::unordered_multiset<Conjunction,std::hash<std::size_t>> _blacklist;
+  /// \brief Hash-Set to keep track of features for which cost computation has been done
+  std::unordered_multiset<Conjunction,std::hash<std::size_t>> _evaluated;
 public:
   /// \brief ctor
   BinaryBasisGenerator(const Domain& domain, FactoredValueFunction vfn, FactoredMDP fmdp, std::string name = "")
   : _domain(domain), _value_fn(std::move(vfn)), _score(_domain, _value_fn, std::move(fmdp)), _name(name) { }
-  /// \brief Clear the feature cache
-  void clearCache() {
-    _exists.clear();
+  /// \brief Add to blacklisted features (e.g., those already inserted into the ALP)
+  void addToBlacklist(const Conjunction& blf) {
+     _blacklist.insert(blf);
   }
-  /// \brief Return the next best basis function
+  /// \brief Clear the feature cache
+  void resetCache() {
+    _evaluated.clear();
+    _evaluated.insert(_blacklist.begin(), _blacklist.end());
+  }
+  /// \brief Compute the next best binary conjunctive basis function
+  /// \return The next best basis function. Nullptr if none available (due to score, blacklist, conjunction not computable)
   DiscreteFunction<Reward> nextBest() {
     // initialize the scoring function
     _score.initialize();
@@ -316,7 +324,7 @@ public:
         Conjunction joint_base = algorithm::pair_basis(h1_id, h2_id, basisVec[h1_id], basisVec[h2_id]);
 
         // test whether this conjunctive feature was already checked
-        auto range = _exists.equal_range(joint_base);
+        auto range = _evaluated.equal_range(joint_base);
         if(range.first != range.second) {
             // test for exact equality versus hash collision
             auto equalFn = [&joint_base](const Conjunction& c2) { return joint_base.getBaseFeatures() == c2.getBaseFeatures(); };
@@ -328,7 +336,7 @@ public:
             }
         }
         // update checked hashes
-        _exists.insert(joint_base);
+        _evaluated.insert(joint_base);
 
         // perform a logical `AND' to obtain new joint indicator
         DiscreteFunction<Reward> candf = algorithm::binpair(joint_base, basisVec[h1_id], basisVec[h2_id]);

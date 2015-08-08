@@ -18,7 +18,7 @@ using namespace std;
 namespace crl {
 
 const std::size_t Conjunction::EMPTY_HASH = 0;
-const Size OptBEBFScore::DEFAULT_MAX_SCOPE = 10;
+const Size OptBEBFScore::DEFAULT_MAX_SCOPE = 12;
 
 std::ostream& operator<<(std::ostream &os, const Conjunction& conj) {
   os << "Conj({";
@@ -107,7 +107,8 @@ double BEBFScore::score(const DiscreteFunction<Reward>& basis) const {
 }
 
 void OptBEBFScore::initialize() {
-  // we additionally keep track of the `action-connectivity' property with a Conjunction
+  // set once before the (complete) scoring run over basis functions
+  // we additionally keep track of the `action-connectivity' property of the maxQ-function for efficient partition size computations
   _maxQ = algorithm::factoredBellmanFunctionals<_FConjunctiveFeature<Reward>>(_domain, _value_fn).getFunctions();
 }
 
@@ -120,7 +121,6 @@ double OptBEBFScore::score(const DiscreteFunction<Reward>& basis) const {
   for(Size v : B.getStateFactors()) {
     active[v] = true;
   }
-  // TODO: this currently does not consider the reward functions for scope assessment
   for(const auto& fn : _maxQ) {
       const Conjunction* cf = dynamic_cast<const Conjunction*>(fn.get());
       const SizeVec& fadom = cf ? cf->getBaseFeatures() : fn->getActionFactors();
@@ -131,14 +131,15 @@ double OptBEBFScore::score(const DiscreteFunction<Reward>& basis) const {
       }
   }
   Size maxpt = std::count(active.begin(), active.end(), true);
-
+#if !NDEBUG
   const Conjunction* cpt = dynamic_cast<Conjunction*>(basis.get());
-  LOG_INFO("Candidate fn " << *cpt << ": " << *basis << " (bp: " << B << ") `action-connects' " << maxpt << " state factors.");
-#if 0
+  LOG_DEBUG("Candidate fn " << *cpt << ": " << *basis << " (bp: " << B << ") `action-connects' " << maxpt << " state factors.");
+#endif
+
   if(maxpt > _max_scope) {
     return -std::numeric_limits<double>::infinity();
   }
-#endif
+
   return BEBFScore::score(std::move(basis));
 }
 
