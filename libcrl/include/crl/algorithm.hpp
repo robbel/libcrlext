@@ -147,13 +147,16 @@ std::vector<T> slice(const _DiscreteFunction<T>* pf, Size i, const State&s, cons
 }
 
 /// \brief Actual implementation for marginalization, minimization, and maximization functions
+/// \tparam F The type of function returned by this operator
 /// \tparam BinRefOp A type [](T& v1, T& v2) -> void
-template<class T, class BinRefOp>
-DiscreteFunction<T> genericOp(const _DiscreteFunction<T>* pf, SizeVec vars, bool known_flat, T init, BinRefOp binOp) {
+/// \see basis_gen.hpp for a template specialization for _FConjunctiveFeature
+/// \see genericOp
+template<class F, class T, class BinRefOp>
+DiscreteFunction<T> genericOp_Shared(const _DiscreteFunction<T>* pf, SizeVec vars, bool known_flat, T init, BinRefOp binOp) {
   const _FDiscreteFunction<T>* of = is_flat(pf, known_flat);
 
   // TODO: optimization paths for Indicator and ConstantFn
-  FDiscreteFunction<T> f = boost::make_shared<_FDiscreteFunction<T>>(pf->_domain);
+  FDiscreteFunction<T> f = boost::make_shared<F>(pf->_domain);
   f->_state_dom = pf->getStateFactors();
   f->_action_dom = pf->getActionFactors();
   for(Size var : vars) {
@@ -189,106 +192,179 @@ DiscreteFunction<T> genericOp(const _DiscreteFunction<T>* pf, SizeVec vars, bool
   return f;
 }
 
+/// \brief Helper class to mimic Template Function Partial Specialization of \a genericOp
+/// \see http://artofsoftware.org/2012/12/20/c-template-function-partial-specialization/
+/// \see basis_gen.hpp for a template specialization for _FConjunctiveFeature
+/// \see genericOp
+template<class F, class T, class BinRefOp>
+struct genericOp_Impl {
+  DiscreteFunction<T> operator()(const _DiscreteFunction<T>* pf, SizeVec vars, bool known_flat, T init, BinRefOp binOp) {
+    return genericOp_Shared<F>(pf, vars, known_flat, init, binOp);
+  }
+};
+/// \brief Actual implementation for marginalization, minimization, and maximization functions
+/// \tparam F The type of function returned by this operator
+/// \tparam BinRefOp A type [](T& v1, T& v2) -> void
+/// \see basis_gen.hpp for a template specialization for _FConjunctiveFeature
+template<class F, class T, class BinRefOp>
+DiscreteFunction<T> genericOp(const _DiscreteFunction<T>* pf, SizeVec vars, bool known_flat, T init, BinRefOp binOp) {
+  genericOp_Impl<F,T,BinRefOp> impl;
+  return impl(pf, vars, known_flat, init, binOp);
+}
+
 /// \brief Maximize the given function over a particular state or action variable `i' (max marginalization)
+/// \tparam F Template parameter passed to \a genericOp, e.g., to support different function return types
 /// \param known_flat True iff function `pf' is known to be a \a _FDiscreteFunction (optimization)
 /// \return A new function that is maximized over (and does not depend on) `i'
 /// \note If `i' is greater than the number of state factors, it is assumed to be an action factor
-template<class T>
+template<class F, class T>
 DiscreteFunction<T> maximize(const _DiscreteFunction<T>* pf, Size i, bool known_flat) {
   // implement maximization
-  return algorithm::genericOp(pf, {i}, known_flat, -std::numeric_limits<T>::infinity(),
-                              [](T& v1, T& v2) { if(v2 > v1) { v1 = v2; } });
+  return algorithm::genericOp<F>(pf, {i}, known_flat, -std::numeric_limits<T>::infinity(),
+                                 [](T& v1, T& v2) { if(v2 > v1) { v1 = v2; } });
+}
+template<class T>
+DiscreteFunction<T> maximize(const _DiscreteFunction<T>* pf, Size i, bool known_flat) {
+  return maximize<_FDiscreteFunction<T>>(pf, i, known_flat);
 }
 
 /// \brief Minimize the given function over a particular state or action variable `i' (min marginalization)
+/// \tparam F Template parameter passed to \a genericOp, e.g., to support different function return types
 /// \param known_flat True iff function `pf' is known to be a \a _FDiscreteFunction (optimization)
 /// \return A new function that is minimized over (and does not depend on) `i'
 /// \note If `i' is greater than the number of state factors, it is assumed to be an action factor
-template<class T>
+template<class F, class T>
 DiscreteFunction<T> minimize(const _DiscreteFunction<T>* pf, Size i, bool known_flat) {
   // implement minimization
-  return algorithm::genericOp(pf, {i}, known_flat, std::numeric_limits<T>::infinity(),
-                              [](T& v1, T& v2) { if(v2 < v1) { v1 = v2; } });
+  return algorithm::genericOp<F>(pf, {i}, known_flat, std::numeric_limits<T>::infinity(),
+                                 [](T& v1, T& v2) { if(v2 < v1) { v1 = v2; } });
+}
+template<class T>
+DiscreteFunction<T> minimize(const _DiscreteFunction<T>* pf, Size i, bool known_flat) {
+  return minimize<_FDiscreteFunction<T>>(pf, i, known_flat);
 }
 
 /// \brief Marginalize the given function over particular state or action variable `i' (i.e., `sum out' i)
+/// \tparam F Template parameter passed to \a genericOp, e.g., to support different function return types
 /// \param known_flat True iff function `pf' is known to be a \a _FDiscreteFunction (optimization)
 /// \return A new function that is marginalized over (and does not depend on) `i'
 /// \note If `i' is greater than the number of state factors, it is assumed to be an action factor
-template<class T>
+template<class F, class T>
 DiscreteFunction<T> marginalize(const _DiscreteFunction<T>* pf, Size i, bool known_flat) {
   return marginalize(pf, {i}, known_flat);
 }
+template<class T>
+DiscreteFunction<T> marginalize(const _DiscreteFunction<T>* pf, Size i, bool known_flat) {
+  return marginalize<_FDiscreteFunction<T>>(pf, i, known_flat);
+}
 
 /// \brief Marginalize the given function over particular state or action variables `vars' (i.e., `sum out' those variables)
+/// \tparam F Template parameter passed to \a genericOp, e.g., to support different function return types
 /// \param known_flat True iff function `pf' is known to be a \a _FDiscreteFunction (optimization)
 /// \return A new function that is marginalized over (and does not depend on) `vars'
 /// \note If any entry in `vars' is greater than the number of state factors, it is assumed to be an action factor
-template<class T>
+template<class F, class T>
 DiscreteFunction<T> marginalize(const _DiscreteFunction<T>* pf, SizeVec vars, bool known_flat) {
   // implement marginalization
-  return algorithm::genericOp(pf, vars, known_flat, 0.,
-                              [](T& v1, T& v2) { v1 += v2; });
+  return algorithm::genericOp<F>(pf, vars, known_flat, 0.,
+                                 [](T& v1, T& v2) { v1 += v2; });
+}
+template<class T>
+DiscreteFunction<T> marginalize(const _DiscreteFunction<T>* pf, SizeVec vars, bool known_flat) {
+  return marginalize<_FDiscreteFunction<T>>(pf, vars, known_flat);
 }
 
-/// \brief Joins the given set of functions into a larger one
+/// \brief Actual implementation of \a join to combine the given set of functions into a larger one
+/// \tparam F The type of function returned by this operator
 /// \param binOp The operation to perform (default: sum)
 /// \return A new function defined over the union of all function domains represented in `funcs'
-template<class T, class BinOp>
-DiscreteFunction<T> join(cpputil::Iterator<DiscreteFunction<T>>& funcs, BinOp binOp) {
-    assert(funcs.hasNext());
-    const Domain& domain = funcs.next()->_domain; // same domain
-    FDiscreteFunction<T> jf = boost::make_shared<_FDiscreteFunction<T>>(domain);
-    // join function scopes
-    funcs.reset();
-    while(funcs.hasNext()) {
-        jf->join(*funcs.next());
-    }
-    // allocate memory
-    jf->pack();
-    // create joint tabular values
-    _StateActionIncrementIterator saitr(jf->getSubdomain());
-    const subdom_map s_dom(jf->getStateFactors());
-    const subdom_map a_dom(jf->getActionFactors());
-    auto& vals = jf->values();
-    typename std::vector<T>::size_type i = 0;
-    while(saitr.hasNext()) {
-        const std::tuple<State,Action>& sa = saitr.next();
-        const State& s = std::get<0>(sa);
-        const Action& a = std::get<1>(sa);
-        T v = 0;
-        funcs.reset();
-        while(funcs.hasNext()) {
-            const auto& f = funcs.next();
-            State ms = f->mapState(s,s_dom);
-            Action ma = f->mapAction(a,a_dom);
-            v = binOp(v, f->eval(ms,ma));
-        }
-        vals[i++] = v;
-    }
+/// \see basis_gen.hpp for a template specialization for _FConjunctiveFeature
+/// \see join
+template<class F, class T, class BinOp>
+DiscreteFunction<T> join_Shared(cpputil::Iterator<DiscreteFunction<T>>& funcs, BinOp binOp) {
+  assert(funcs.hasNext());
+  const Domain& domain = funcs.next()->_domain; // same domain
+  FDiscreteFunction<T> jf = boost::make_shared<F>(domain);
+  // join function scopes
+  funcs.reset();
+  while(funcs.hasNext()) {
+      jf->join(*funcs.next());
+  }
+  // allocate memory
+  jf->pack();
+  // create joint tabular values
+  _StateActionIncrementIterator saitr(jf->getSubdomain());
+  const subdom_map s_dom(jf->getStateFactors());
+  const subdom_map a_dom(jf->getActionFactors());
+  auto& vals = jf->values();
+  typename std::vector<T>::size_type i = 0;
+  while(saitr.hasNext()) {
+      const std::tuple<State,Action>& sa = saitr.next();
+      const State& s = std::get<0>(sa);
+      const Action& a = std::get<1>(sa);
+      T v = 0;
+      funcs.reset();
+      while(funcs.hasNext()) {
+          const auto& f = funcs.next();
+          State ms = f->mapState(s,s_dom);
+          Action ma = f->mapAction(a,a_dom);
+          v = binOp(v, f->eval(ms,ma));
+      }
+      vals[i++] = v;
+  }
 
-    return jf;
+  return jf;
 }
 
+/// \brief Helper class to mimic Template Function Partial Specialization of \a join
+/// \see http://artofsoftware.org/2012/12/20/c-template-function-partial-specialization/
+/// \see basis_gen.hpp for a template specialization for _FConjunctiveFeature
+/// \see join
+template<class F, class T, class BinOp>
+struct join_Impl {
+  DiscreteFunction<T> operator()(cpputil::Iterator<DiscreteFunction<T>>& funcs, BinOp binOp) {
+    return join_Shared<F>(funcs, binOp);
+  }
+};
+/// \brief Joins the given set of functions into a larger one
+/// \tparam F The type of function returned by this operator
+/// \param binOp The operation to perform (default: sum)
+/// \return A new function defined over the union of all function domains represented in `funcs'
+template<class F, class T, class BinOp>
+DiscreteFunction<T> join(cpputil::Iterator<DiscreteFunction<T>>& funcs, BinOp binOp) {
+  join_Impl<F,T,BinOp> impl;
+  return impl(funcs, binOp);
+}
+template<class T, class BinOp>
+DiscreteFunction<T> join(cpputil::Iterator<DiscreteFunction<T>>& funcs, BinOp binOp) {
+    return join<_FDiscreteFunction<T>>(funcs, binOp);
+}
 /// \brief Convenience function
+/// \tparam F The type of function returned by this operator
+template<class F, class T, class BinOp = decltype(std::plus<T>())>
+DiscreteFunction<T> join(std::initializer_list<DiscreteFunction<T>> funcs, BinOp binOp = std::plus<T>()) {
+    cpputil::ContainerIterator<DiscreteFunction<double>,std::initializer_list<DiscreteFunction<double>>> fiter(std::move(funcs));
+    return join<F>(fiter, binOp);
+}
 template<class T, class BinOp = decltype(std::plus<T>())>
 DiscreteFunction<T> join(std::initializer_list<DiscreteFunction<T>> funcs, BinOp binOp = std::plus<T>()) {
     cpputil::ContainerIterator<DiscreteFunction<double>,std::initializer_list<DiscreteFunction<double>>> fiter(std::move(funcs));
-    return join(fiter, binOp);
+    return join<_FDiscreteFunction<T>>(fiter, binOp);
 }
 
 //
-// Variable elimination with argmax
+// Variable elimination
 //
 
 /// \brief Runs variable elimination on the provided \a FunctionSet (the forward pass).
 /// The function set itself is modified in the process.
+/// \tparam F Template parameter passed to the operator \a op, e.g., to support different function return types
 /// \param op A function pointer denoting whether to perform max (MAP) or sum (marginalization)
 /// \return A tuple of (0) the generated intermediate functions, and (1) the generated functions with empty scope
-template<class T, class Op = DiscreteFunction<T> (*)(const _DiscreteFunction<T>*, Size, bool)>
+template<class F, class T, class Op = DiscreteFunction<T> (*)(const _DiscreteFunction<T>*, Size, bool)>
 std::tuple<std::vector<DiscreteFunction<T>>, std::vector<DiscreteFunction<T>>>
-variableElimination(FunctionSet<T>& F, const crl::SizeVec& elimination_order, Op op = algorithm::maximize) {
-  LOG_DEBUG("Number of variables to eliminate: " << elimination_order.size() << " out of " << F.getNumFactors());
+variableElimination(FunctionSet<T>& fset, const crl::SizeVec& elimination_order, Op op = algorithm::maximize<F>) {
+  LOG_DEBUG("Number of variables to eliminate: " << elimination_order.size() << " out of " << fset.getNumFactors());
 
   std::vector<DiscreteFunction<T>> elim_cache;
   // store for functions that have reached empty scope
@@ -296,26 +372,35 @@ variableElimination(FunctionSet<T>& F, const crl::SizeVec& elimination_order, Op
   using range = typename FunctionSet<T>::range;
   for(Size v : elimination_order) {
       LOG_DEBUG("Eliminating variable " << v);
-      range r = F.getFactor(v);
+      range r = fset.getFactor(v);
       if(!r.hasNext()) {
           LOG_INFO("Variable " << v << " not eliminated. It does not exist in FunctionSet.");
           continue;
       }
 
-      DiscreteFunction<T> esum = algorithm::join(r);
+      DiscreteFunction<T> esum = algorithm::join<F>(r);
       DiscreteFunction<T> emax = op(esum.get(), v, false);
       elim_cache.push_back(std::move(esum));
-      F.eraseFactor(v);
+      fset.eraseFactor(v);
       if(emax->getSubdomain()->getNumStateFactors() == 0 && emax->getSubdomain()->getNumActionFactors() == 0) {
         LOG_DEBUG("Function reduced to empty scope");
         empty_fns.push_back(std::move(emax));
       }
       else {
-        F.insert(std::move(emax)); // continue elimination
+        fset.insert(std::move(emax)); // continue elimination
       }
   }
 
   return std::make_tuple(std::move(elim_cache),std::move(empty_fns));
+}
+/// \brief Runs variable elimination on the provided \a FunctionSet (the forward pass).
+/// The function set itself is modified in the process.
+/// \param op A function pointer denoting whether to perform max (MAP) or sum (marginalization)
+/// \return A tuple of (0) the generated intermediate functions, and (1) the generated functions with empty scope
+template<class T, class Op = DiscreteFunction<T> (*)(const _DiscreteFunction<T>*, Size, bool)>
+std::tuple<std::vector<DiscreteFunction<T>>, std::vector<DiscreteFunction<T>>>
+variableElimination(FunctionSet<T>& fset, const crl::SizeVec& elimination_order, Op op = algorithm::maximize<_FDiscreteFunction<T>>) {
+  return variableElimination<_FDiscreteFunction<T>>(fset, elimination_order, op);
 }
 
 /// \brief Runs variable elimination on the provided \a FunctionSet and computes the argmax (in a backward pass)

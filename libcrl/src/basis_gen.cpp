@@ -29,28 +29,26 @@ std::ostream& operator<<(std::ostream &os, const Conjunction& conj) {
   return os;
 }
 
-double EpsilonScore::score(const _DiscreteFunction<Reward>* basis) const {
+double EpsilonScore::score(const DiscreteFunction<Reward>& basis) const {
   assert(basis->getActionFactors().empty());
   // remove variables to reach basis' domain
   const SizeVec elim_order = get_state_vars(_domain, basis->getStateFactors());
 
   // evaluate max over basis function
   auto facfn = algorithm::factoredBellmanResidual(_domain, _value_fn, elim_order, algorithm::maximize);
-  double maxVal = algorithm::evalOpOverBasis(basis, facfn, false, -std::numeric_limits<double>::infinity(),
+  double maxVal = algorithm::evalOpOverBasis(basis.get(), facfn, false, -std::numeric_limits<double>::infinity(),
                                              [](Reward& v1, Reward& v2) { if(v2 > v1) { v1 = v2; } });
   // evaluate min over basis function
   facfn = algorithm::factoredBellmanResidual(_domain, _value_fn, elim_order, algorithm::minimize);
-  double minVal = algorithm::evalOpOverBasis(basis, facfn, false, std::numeric_limits<double>::infinity(),
+  double minVal = algorithm::evalOpOverBasis(basis.get(), facfn, false, std::numeric_limits<double>::infinity(),
                                              [](Reward& v1, Reward& v2) { if(v2 < v1) { v1 = v2; } });
   minVal = minVal < 0. ? 0. : minVal;
 
   double range = 0.5*(maxVal - minVal);
   LOG_DEBUG("Epsilon (before normalization): " << range);
 
-  // may need additional `closeness' specifier (or sorting)
-
   // TODO: this is just temporary coverage metric
-  Size cov = algorithm::basisCoverage(_domain, basis);
+  Size cov = algorithm::basisCoverage(_domain, basis.get());
   if(cov == 0) {
       return -std::numeric_limits<double>::infinity();
   }
@@ -58,18 +56,18 @@ double EpsilonScore::score(const _DiscreteFunction<Reward>* basis) const {
   return range / sqrt(static_cast<double>(cov));
 }
 
-double AbsoluteReductionScore::score(const _DiscreteFunction<Reward>* basis) const {
+double AbsoluteReductionScore::score(const DiscreteFunction<Reward>& basis) const {
   assert(basis->getActionFactors().empty());
   // remove variables to reach basis' domain
   const SizeVec elim_order = get_state_vars(_domain, basis->getStateFactors());
 
   // evaluate max over basis function
   auto facfn = algorithm::factoredBellmanResidual(_domain, _value_fn, elim_order, algorithm::maximize);
-  double maxVal = algorithm::evalOpOverBasis(basis, facfn, false, -std::numeric_limits<double>::infinity(),
+  double maxVal = algorithm::evalOpOverBasis(basis.get(), facfn, false, -std::numeric_limits<double>::infinity(),
                                              [](Reward& v1, Reward& v2) { if(v2 > v1) { v1 = v2; } });
   // evaluate min over basis function
   facfn = algorithm::factoredBellmanResidual(_domain, _value_fn, elim_order, algorithm::minimize);
-  double minVal = algorithm::evalOpOverBasis(basis, facfn, false, std::numeric_limits<double>::infinity(),
+  double minVal = algorithm::evalOpOverBasis(basis.get(), facfn, false, std::numeric_limits<double>::infinity(),
                                              [](Reward& v1, Reward& v2) { if(v2 < v1) { v1 = v2; } });
   minVal = minVal < 0. ? 0. : minVal;
 
@@ -77,7 +75,7 @@ double AbsoluteReductionScore::score(const _DiscreteFunction<Reward>* basis) con
   LOG_DEBUG("Absolute reduction (before normalization): " << red);
 
   // TODO: this is just temporary coverage metric
-  Size cov = algorithm::basisCoverage(_domain, basis);
+  Size cov = algorithm::basisCoverage(_domain, basis.get());
   if(cov == 0) {
       return -std::numeric_limits<double>::infinity();
   }
@@ -90,32 +88,58 @@ void BEBFScore::initialize() {
   _maxQ = algorithm::factoredBellmanFunctionals(_domain, _value_fn).getFunctions();
 }
 
-double BEBFScore::score(const _DiscreteFunction<Reward> *basis) const {
+double BEBFScore::score(const DiscreteFunction<Reward>& basis) const {
   assert(basis->getActionFactors().empty());
 
   // evaluate marginal under basis
   auto facfn = algorithm::factoredBellmanMarginal(_domain, basis->getStateFactors(), _maxQ);
-  double marVal = algorithm::evalOpOverBasis(basis, facfn, false, 0.,
+  double marVal = algorithm::evalOpOverBasis(basis.get(), facfn, false, 0.,
                                              [](Reward& v1, Reward& v2) { v1 += v2; });
   LOG_DEBUG("Marginal under feature: " << marVal);
 
   // TODO: assert no overflow
 
-  Size cov = algorithm::basisCoverage(_domain, basis);
+  Size cov = algorithm::basisCoverage(_domain, basis.get());
   if(cov == 0) {
       return -std::numeric_limits<double>::infinity();
   }
   return marVal / sqrt(static_cast<double>(cov));
 }
 
-double OptBEBFScore::score(const _DiscreteFunction<Reward> *basis) const {
-  // compute scope size
-  //if(cand > _max_scope) {
-  //    return -std::numeric_limits<double>::infinity();
-  //}
+void OptBEBFScore::initialize() {
+  // we additionally keep track of the `action-connectivity' property with a Conjunction
+  _maxQ = algorithm::factoredBellmanFunctionals<_FConjunctiveFeature<Reward>>(_domain, _value_fn).getFunctions();
+}
 
-  //double cand = BEBFScore::score(basis);
-  return 0.;
+double OptBEBFScore::score(const DiscreteFunction<Reward>& basis) const {
+  _Backprojection<Reward> B(_domain, _dbn, basis);
+  const SizeVec& adom = B.getActionFactors();
+
+  // find the size of the `action-connected' partition
+  vector<bool> active(_domain->getNumStateFactors(), false);
+  for(Size v : B.getStateFactors()) {
+    active[v] = true;
+  }
+  // TODO: this currently does not consider the reward functions for scope assessment
+  for(const auto& fn : _maxQ) {
+      const Conjunction* cf = dynamic_cast<const Conjunction*>(fn.get());
+      const SizeVec& fadom = cf ? cf->getBaseFeatures() : fn->getActionFactors();
+      if(cpputil::has_intersection(adom.begin(), adom.end(), fadom.begin(), fadom.end())) {
+          for(Size v : fn->getStateFactors()) {
+            active[v] = true;
+          }
+      }
+  }
+  Size maxpt = std::count(active.begin(), active.end(), true);
+
+  const Conjunction* cpt = dynamic_cast<Conjunction*>(basis.get());
+  LOG_INFO("Candidate fn " << *cpt << ": " << *basis << " (bp: " << B << ") `action-connects' " << maxpt << " state factors.");
+#if 0
+  if(maxpt > _max_scope) {
+    return -std::numeric_limits<double>::infinity();
+  }
+#endif
+  return BEBFScore::score(std::move(basis));
 }
 
 } // namespace crl

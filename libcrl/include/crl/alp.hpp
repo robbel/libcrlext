@@ -120,13 +120,58 @@ public:
 
   /// \brief Returns the Q-function maximized over all actions
   /// Runs variable elimination (given an \a elimination order for actions)
+  /// This templated version allows the specification of the type of functions returned during variable elimination
   /// \note used during (factored) Bellman Error computations
-  FunctionSet<Reward> getMaxQ(const SizeVec& elimination_order);
+  template<class T>
+  FunctionSet<Reward> getMaxQ(const SizeVec& elimination_order) {
+    assert(_backprojection.size() == _basis.size());
+    assert(!_lrfs.empty());
+
+    // Discount stored backprojections once to form local Q functions
+    if(!isDiscounted()) {
+        discount();
+    }
+
+    // run variableElimination over joint action space
+    FunctionSet<Reward> F(_domain);
+    for(auto& bp : _backprojection) {
+        if(bp == nullptr) {
+            continue;
+        }
+        assert(bp->getSubdomain()->getNumStateFactors() != 0);
+        F.insert(bp);
+    }
+    for(auto& b : _lrfs) {
+        assert(b->getSubdomain()->getNumStateFactors() != 0);
+        F.insert(b);
+    }
+
+    auto retFns = algorithm::variableElimination<T>(F, elimination_order);
+  #if !NDEBUG
+    const std::vector<DiscreteFunction<Reward>>& empty_fns = std::get<1>(retFns);
+    // every term should still be a function of x
+    assert(empty_fns.empty());
+  #endif
+    return F;
+  }
+  /// \brief Returns the Q-function maximized over all actions
+  /// Runs variable elimination (given an \a elimination order for actions)
+  /// \note used during (factored) Bellman Error computations
+  FunctionSet<Reward> getMaxQ(const SizeVec& elimination_order) {
+    return getMaxQ<_FDiscreteFunction<Reward>>(elimination_order);
+  }
+  /// \brief Returns the Q-function maximized over all actions
+  /// Runs variable elimination (default action ordering)
+  /// This templated version allows the specification of the type of functions returned during variable elimination
+  template<class T>
+  FunctionSet<Reward> getMaxQ() {
+    const SizeVec elim_order = cpputil::ordered_vec<Size>(_domain->getNumActionFactors(), _domain->getNumStateFactors());
+    return getMaxQ<T>(elim_order);
+  }
   /// \brief Returns the Q-function maximized over all actions
   /// Runs variable elimination (default action ordering)
   FunctionSet<Reward> getMaxQ() {
-    const SizeVec elim_order = cpputil::ordered_vec<Size>(_domain->getNumActionFactors(), _domain->getNumStateFactors());
-    return getMaxQ(elim_order);
+    return getMaxQ<_FDiscreteFunction<Reward>>();
   }
 };
 typedef boost::shared_ptr<_FactoredValueFunction> FactoredValueFunction;
@@ -144,6 +189,69 @@ namespace algorithm {
   //
   // Helper functions
   //
+  /// \brief Collect basis and max-Q functionals and return modified copies (e.g., after multiplication with weight vector)
+  /// This templated version supports templated versions of getMaxQ that may return other function types than _FDiscreteFunction
+  /// \note Helper function for factored Bellman error and residual computations
+  template<class T>
+  FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, const FactoredValueFunction& fval) {
+    assert(fval->getWeight().size() == fval->getBasis().size());
+
+    // run variable elimination for max_a
+    FunctionSet<Reward> q_set = fval->getMaxQ<T>();
+    auto qfns = q_set.getFunctions();
+    LOG_INFO("MaxQ-Function has " << qfns.size() << " local terms.");
+
+    // multiply basis with w vector
+    std::vector<DiscreteFunction<Reward>> modbasis;
+    const auto& weight = fval->getWeight();
+    std::vector<double>::size_type j = 0;
+    for(const auto& h : fval->getBasis()) {
+        // supports Indicator and FDiscreteFunction basis for now
+        const _Indicator<>* pI = dynamic_cast<const _Indicator<>*>(h.get());
+        if(pI) {
+            FDiscreteFunction<Reward> wh = boost::make_shared<_FDiscreteFunction<Reward>>(domain);
+            wh->join(pI->getStateFactors(), pI->getActionFactors(), pI->getLiftedFactors());
+            wh->pack();
+            wh->values()[pI->getStateIndex()] = weight[j++];
+            modbasis.push_back(std::move(wh));
+        }
+        else {
+            const _FDiscreteFunction<Reward>* pf = dynamic_cast<const _FDiscreteFunction<Reward>*>(h.get());
+            assert(pf);
+            FDiscreteFunction<Reward> wh = boost::make_shared<T>(*pf);
+            (*wh) *= weight[j++];
+            modbasis.push_back(std::move(wh));
+        }
+    }
+    // negate maxQ
+    std::vector<DiscreteFunction<Reward>> modqfns;
+    for(const auto& qf : qfns) {
+        FDiscreteFunction<Reward> nqf;
+        const T* pqf = dynamic_cast<const T*>(qf.get());
+        if(pqf) {
+            nqf = boost::make_shared<T>(*pqf);
+        }
+        else {
+            const _FDiscreteFunction<Reward>* pqf = dynamic_cast<const _FDiscreteFunction<Reward>*>(qf.get());
+            assert(pqf);
+            nqf = boost::make_shared<_FDiscreteFunction<Reward>>(*pqf);
+        }
+        (*nqf) *= (-1.);
+        modqfns.push_back(std::move(nqf));
+    }
+
+    FunctionSet<Reward> F(domain);
+    for(auto& bp : modqfns) {
+        assert(bp->getSubdomain()->getNumStateFactors() != 0);
+        F.insert(std::move(bp));
+    }
+    for(auto& b : modbasis) {
+        assert(b->getSubdomain()->getNumStateFactors() != 0);
+        F.insert(std::move(b));
+    }
+
+    return F;
+  }
   /// \brief Collect basis and max-Q functionals and return modified copies (e.g., after multiplication with weight vector)
   /// \note Helper function for factored Bellman error and residual computations
   FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, const FactoredValueFunction& fval);

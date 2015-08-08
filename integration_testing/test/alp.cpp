@@ -490,7 +490,7 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
     //
 
     for(int k = 0; k < 2; k++) {
-        BinaryBasisGenerator<NChooseTwoIterator<Size,SizeVec>,BEBFScore> basisGen(domain, fval, "bebf-test");
+        BinaryBasisGenerator<NChooseTwoIterator<Size,SizeVec>,BEBFScore> basisGen(domain, fval, fmdp, "bebf-test");
         DiscreteFunction<Reward> nextBasis = basisGen.nextBest();
 
         fval->clearBackprojections(); // TODO: implement SWAP so that recomputation of previous ones avoided

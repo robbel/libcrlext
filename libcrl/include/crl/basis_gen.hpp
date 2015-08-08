@@ -52,6 +52,8 @@ template<class T, class BinRefOp> T evalOpOverBasis(const _DiscreteFunction<T>* 
 class Conjunction {
   template<class T> friend Conjunction algorithm::pair_basis(Size h1_id, Size h2_id, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
   template<class T> friend DiscreteFunction<T> algorithm::binconj(const SizeVec& ids, const FactoredValueFunction& vfn);
+  template<class F, class T, class BinOp> friend struct algorithm::join_Impl;
+  template<class F, class T, class BinRefOp> friend struct algorithm::genericOp_Impl;
 protected:
   /// \brief The (sorted) index set of basis functions that make up this conjunction
   SizeVec _base_fns;
@@ -111,6 +113,9 @@ public:
   /// \brief move ctor from base _FDiscreteFunction
   _FConjunctiveFeature(_FDiscreteFunction<T>&& rhs)
   : _FDiscreteFunction<T>(std::move(rhs)) { }
+  /// \brief copy ctor from base _FDiscreteFunction
+  _FConjunctiveFeature(const _FDiscreteFunction<T>& rhs)
+  : _FDiscreteFunction<T>(rhs) { }
   /// \brief assignment ops
   _FConjunctiveFeature& operator=(const _FConjunctiveFeature& rhs) = default;
   _FConjunctiveFeature& operator=(_FConjunctiveFeature&&) = default;
@@ -170,12 +175,12 @@ protected:
 public:
   /// \brief ctor
   /// \param vfn The (solved) factored value function that will be used for scoring
-  BasisScore(const Domain& domain, const FactoredValueFunction& vfn)
+  BasisScore(const Domain& domain, const FactoredValueFunction& vfn, const FactoredMDP& fmdp)
   : _domain(domain), _value_fn(vfn) { }
   /// \brief Called once before every (complete) scoring run over candidate basis functions
   virtual void initialize() { }
   /// \brief The (abstract) scoring function for the given basis function
-  virtual double score(const _DiscreteFunction<Reward>* basis) const = 0;
+  virtual double score(const DiscreteFunction<Reward>& basis) const = 0;
   /// \brief The name of this scoring function
   virtual std::string getName() const = 0;
 };
@@ -187,10 +192,10 @@ class EpsilonScore : public BasisScore {
 public:
   /// \brief ctor
   /// \param vfn The (solved) factored value function that will be used for scoring
-  EpsilonScore(const Domain& domain, const FactoredValueFunction& vfn)
-  : BasisScore(domain, vfn) { }
+  EpsilonScore(const Domain& domain, const FactoredValueFunction& vfn, const FactoredMDP& fmdp)
+  : BasisScore(domain, vfn, fmdp) { }
   /// \brief score implementation
-  double score(const _DiscreteFunction<Reward>* basis) const;
+  double score(const DiscreteFunction<Reward>& basis) const;
   std::string getName() const {
     return "EpsilonScore";
   }
@@ -203,10 +208,10 @@ class AbsoluteReductionScore : public BasisScore {
 public:
   /// \brief ctor
   /// \param vfn The (solved) factored value function that will be used for scoring
-  AbsoluteReductionScore(const Domain& domain, const FactoredValueFunction& vfn)
-  : BasisScore(domain, vfn) { }
+  AbsoluteReductionScore(const Domain& domain, const FactoredValueFunction& vfn, const FactoredMDP& fmdp)
+  : BasisScore(domain, vfn, fmdp) { }
   /// \brief score implementation
-  double score(const _DiscreteFunction<Reward>* basis) const;
+  double score(const DiscreteFunction<Reward>& basis) const;
   std::string getName() const {
     return "AbsoluteReductionScore";
   }
@@ -222,11 +227,11 @@ protected:
 public:
   /// \brief ctor
   /// \param vfn The (solved) factored value function that will be used for scoring
-  BEBFScore(const Domain& domain, const FactoredValueFunction& vfn)
-  : BasisScore(domain, vfn) { }
+  BEBFScore(const Domain& domain, const FactoredValueFunction& vfn, const FactoredMDP& fmdp)
+  : BasisScore(domain, vfn, fmdp) { }
   virtual void initialize();
   /// \brief score implementation
-  virtual double score(const _DiscreteFunction<Reward>* basis) const;
+  virtual double score(const DiscreteFunction<Reward>& basis) const;
   virtual std::string getName() const {
     return "BEBFScore";
   }
@@ -241,11 +246,14 @@ protected:
   static const Size DEFAULT_MAX_SCOPE;
   /// \brief The maximum supported scope size in the `action connected' partition of the factor graph
   Size _max_scope;
+  /// \brief The \a DBN used for backprojections
+  const _DBN& _dbn;
 public:
   /// \brief ctor
   /// \param vfn The (solved) factored value function that will be used for scoring
-  OptBEBFScore(const Domain& domain, const FactoredValueFunction& vfn)
-  : BEBFScore(domain, vfn), _max_scope(DEFAULT_MAX_SCOPE) { }
+  OptBEBFScore(const Domain& domain, const FactoredValueFunction& vfn, const FactoredMDP& fmdp)
+  : BEBFScore(domain, vfn, fmdp), _max_scope(DEFAULT_MAX_SCOPE), _dbn(fmdp->T()) { }
+  virtual void initialize();
   Size getMaxScope() const {
     return _max_scope;
   }
@@ -253,7 +261,7 @@ public:
     _max_scope = sc;
   }
   /// \brief score implementation
-  virtual double score(const _DiscreteFunction<Reward>* basis) const;
+  virtual double score(const DiscreteFunction<Reward>& basis) const;
   virtual std::string getName() const {
     return "OptBEBFScore(" + std::to_string(_max_scope) + ")";
   }
@@ -281,8 +289,8 @@ protected:
   std::unordered_multiset<Conjunction,std::hash<std::size_t>> _exists;
 public:
   /// \brief ctor
-  BinaryBasisGenerator(const Domain& domain, FactoredValueFunction vfn, std::string name = "")
-  : _domain(domain), _value_fn(std::move(vfn)), _score(_domain, _value_fn), _name(name) { }
+  BinaryBasisGenerator(const Domain& domain, FactoredValueFunction vfn, FactoredMDP fmdp, std::string name = "")
+  : _domain(domain), _value_fn(std::move(vfn)), _score(_domain, _value_fn, std::move(fmdp)), _name(name) { }
   /// \brief Clear the feature cache
   void clearCache() {
     _exists.clear();
@@ -328,7 +336,7 @@ public:
             continue;
         }
         // score candidate function
-        double s = _score.score(candf.get());
+        double s = _score.score(candf);
         LOG_DEBUG("<" << h1_id << "," << h2_id << ">: " << s);
         if(s > bestVal) {
           bestf = std::move(candf);
@@ -397,13 +405,12 @@ template<class T, class BinOp>
 DiscreteFunction<T> pair(const Conjunction& joint_base, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2, BinOp binOp) {
   assert(h1 && h2 && h1->getActionFactors().empty() && h2->getActionFactors().empty());
   // TODO: add optimization path when h1, h2 subdomains are identical/subsets, see _FDiscreteFunction::transform
-  FDiscreteFunction<T> jf = boost::static_pointer_cast<_FDiscreteFunction<T>>(algorithm::join({h1,h2}, binOp));
-  FConjunctiveFeature<T> cof = boost::make_shared<_FConjunctiveFeature<T>>(std::move(*jf));
-
+  DiscreteFunction<T> jf = algorithm::join<_FConjunctiveFeature<T>>({h1,h2}, binOp);
+  _FConjunctiveFeature<T>* pcf = static_cast<_FConjunctiveFeature<T>*>(jf.get());
   // update basis features that are active in conjunction
-  cof->_base_fns = joint_base.getBaseFeatures();
-  cof->_hash = joint_base.getHash();
-  return cof;
+  pcf->_base_fns = joint_base.getBaseFeatures();
+  pcf->_hash = joint_base.getHash();
+  return jf;
 }
 
 /// \brief Compute the binary conjunction (`AND') of two binary features defined over state factors
@@ -596,6 +603,59 @@ Size basisCoverage(const Domain& domain, const _DiscreteFunction<T>* basis) {
   }
   return active_dom * mul;
 }
+
+/// \brief Template specialization of genericOp for \a _FConjunctiveFeature
+/// Additionally keeps track in a \a Conjunction of the underlying variables that are being operated on (e.g., summed out)
+template<class T, class BinRefOp>
+struct genericOp_Impl<_FConjunctiveFeature<T>, T, BinRefOp> {
+  DiscreteFunction<T> operator()(const _DiscreteFunction<T>* pf, SizeVec vars, bool known_flat, T init, BinRefOp binOp) {
+    // apply genericOp function
+    DiscreteFunction<T> opf = algorithm::genericOp_Shared<_FConjunctiveFeature<T>>(pf, vars, known_flat, init, binOp);
+
+    // update list of action variables that are being removed from this function
+    _FConjunctiveFeature<T>* popf = static_cast<_FConjunctiveFeature<T>*>(opf.get());
+    const _FConjunctiveFeature<T>* pinp = static_cast<const _FConjunctiveFeature<T>*>(pf);
+    popf->_base_fns = pinp->getBaseFeatures();
+    // hashing not used here
+    //popf->_hash = boost::hash_range(popf->_base_fns.begin(), popf->_base_fns.end());
+    return opf;
+  }
+};
+
+/// \brief Template specialization of join for \a _FConjunctiveFeature
+/// Additionally keeps track in a \a Conjunction of the underlying variables that are being operated on (e.g., summed out)
+template<class T, class BinOp>
+struct join_Impl<_FConjunctiveFeature<T>, T, BinOp> {
+  /// \brief Join together the action scopes of the given functions into a \a Conjunction
+  Conjunction pair_scope(cpputil::Iterator<DiscreteFunction<T>>& funcs) {
+    // compute actions that are active in conjunction
+    Conjunction joint_scope;
+    auto& scope_vec = joint_scope._base_fns;
+    while(funcs.hasNext()) {
+        const auto& curFn = funcs.next();
+        const Conjunction* cf = dynamic_cast<const Conjunction*>(curFn.get());
+        const SizeVec& a_scope = cf ? cf->getBaseFeatures() : curFn->getActionFactors();
+        scope_vec.insert(scope_vec.end(), a_scope.begin(), a_scope.end());
+    }
+    std::sort(scope_vec.begin(),scope_vec.end());
+    scope_vec.erase(std::unique(scope_vec.begin(), scope_vec.end()), scope_vec.end());
+    // hashing not used here
+    //joint_scope._hash = boost::hash_range(joint_scope._base_fns.begin(), joint_scope._base_fns.end());
+    return joint_scope;
+  }
+
+  DiscreteFunction<T> operator()(cpputil::Iterator<DiscreteFunction<T>>& funcs, BinOp binOp) {
+    // apply join function
+    DiscreteFunction<T> opf = join_Shared<_FConjunctiveFeature<T>>(funcs, binOp);
+
+    // update list of action variables that are being joined by this function
+    _FConjunctiveFeature<T>* popf = static_cast<_FConjunctiveFeature<T>*>(opf.get());
+    funcs.reset();
+    popf->_base_fns = pair_scope(funcs)._base_fns;
+    // hashing not used here
+    return opf;
+  }
+};
 
 } // namespace algorithm
 

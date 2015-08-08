@@ -96,38 +96,6 @@ std::tuple<Action,Reward> _FactoredValueFunction::getBestAction(const State& js,
     return tpl;
 }
 
-FunctionSet<Reward> _FactoredValueFunction::getMaxQ(const SizeVec& elimination_order) {
-  assert(_backprojection.size() == _basis.size());
-  assert(!_lrfs.empty());
-
-  // Discount stored backprojections once to form local Q functions
-  if(!isDiscounted()) {
-      discount();
-  }
-
-  // run variableElimination over joint action space
-  FunctionSet<Reward> F(_domain);
-  for(auto& bp : _backprojection) {
-      if(bp == nullptr) {
-          continue;
-      }
-      assert(bp->getSubdomain()->getNumStateFactors() != 0);
-      F.insert(bp);
-  }
-  for(auto& b : _lrfs) {
-      assert(b->getSubdomain()->getNumStateFactors() != 0);
-      F.insert(b);
-  }
-
-  auto retFns = algorithm::variableElimination(F, elimination_order);
-#if !NDEBUG
-  const std::vector<DiscreteFunction<Reward>>& empty_fns = std::get<1>(retFns);
-  // every term should still be a function of x
-  assert(empty_fns.empty());
-#endif
-  return F;
-}
-
 Reward _FactoredValueFunction::getQ(const State& js, const Action& ja) {
     assert(_backprojection.size() == _basis.size());
     assert(!_lrfs.empty());
@@ -190,57 +158,7 @@ void _FactoredValueFunction::discount() {
 namespace algorithm {
 
 FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, const FactoredValueFunction& fval) {
-  assert(fval->getWeight().size() == fval->getBasis().size());
-
-  // run variable elimination for max_a
-  FunctionSet<Reward> q_set = fval->getMaxQ();
-  auto qfns = q_set.getFunctions();
-  LOG_DEBUG("MaxQ-Function has " << qfns.size() << " local terms.");
-
-  // multiply basis with w vector
-  std::vector<DiscreteFunction<Reward>> modbasis;
-  const auto& weight = fval->getWeight();
-  std::vector<double>::size_type j = 0;
-  for(const auto& h : fval->getBasis()) {
-      // supports Indicator and FDiscreteFunction basis for now
-      const _Indicator<>* pI = dynamic_cast<const _Indicator<>*>(h.get());
-      if(pI) {
-          FDiscreteFunction<Reward> wh = boost::make_shared<_FDiscreteFunction<Reward>>(domain);
-          wh->join(pI->getStateFactors(), pI->getActionFactors(), pI->getLiftedFactors());
-          wh->pack();
-          wh->values()[pI->getStateIndex()] = weight[j++];
-          modbasis.push_back(std::move(wh));
-      }
-      else {
-          const _FDiscreteFunction<Reward>* pf = dynamic_cast<const _FDiscreteFunction<Reward>*>(h.get());
-          assert(pf);
-          FDiscreteFunction<Reward> wh = boost::make_shared<_FDiscreteFunction<Reward>>(*pf);
-          (*wh) *= weight[j++];
-          modbasis.push_back(std::move(wh));
-      }
-  }
-  // negate maxQ
-  std::vector<DiscreteFunction<Reward>> modqfns;
-  for(const auto& qf : qfns) {
-      // supports only FDiscreteFunction for now
-      const _FDiscreteFunction<Reward>* pqf = dynamic_cast<const _FDiscreteFunction<Reward>*>(qf.get());
-      assert(pqf);
-      FDiscreteFunction<Reward> nqf = boost::make_shared<_FDiscreteFunction<Reward>>(*pqf);
-      (*nqf) *= (-1.);
-      modqfns.push_back(std::move(nqf));
-  }
-
-  FunctionSet<Reward> F(domain);
-  for(auto& bp : modqfns) {
-      assert(bp->getSubdomain()->getNumStateFactors() != 0);
-      F.insert(std::move(bp));
-  }
-  for(auto& b : modbasis) {
-      assert(b->getSubdomain()->getNumStateFactors() != 0);
-      F.insert(std::move(b));
-  }
-
-  return F;
+  return factoredBellmanFunctionals<_FDiscreteFunction<Reward>>(domain, fval);
 }
 
 double computeMarginalLambda(const Domain& domain, const DiscreteFunction<Reward>& phi, const SizeVec& delVars) {
