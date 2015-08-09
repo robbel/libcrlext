@@ -17,6 +17,7 @@
 #include <rlgnmagent.h>
 #include "crl/crl.hpp"
 #include "crl/alp.hpp"
+#include "crl/basis_gen.hpp"
 #include "crl/env_graphprop.hpp"
 #include "crl/glue_agent.hpp"
 #include "crl/conversions.hpp"
@@ -33,6 +34,61 @@ using namespace cpputil;
 // globals
 ALPPlanner _alpp;
 Domain _domain;
+
+namespace {
+
+/// \brief Initialize the given value function with the basis conjunctions in \a basisFile
+void loadConjunctiveBasis(FactoredValueFunction& fval, const string& basisFile) {
+  ifstream file(basisFile);
+  if (!file) {
+      throw cpputil::InvalidException("File not found.");
+  }
+  const auto& basisVec = fval->getBasis();
+  std::string line;
+  while (std::getline(file, line)) {
+      std::stringstream stream(line);
+      string tok;
+      SizeVec joint_base;
+      while(std::getline(stream, tok, ',')) {
+          Size basisId = std::stoull(tok);
+          if(in_pos_interval(basisId, basisVec.size()-1)) {
+              joint_base.push_back(basisId);
+          } else {
+              throw InvalidException("Invalid basis in conjunction string.");
+          }
+      }
+      // obtain conjunctive basis
+      DiscreteFunction<Reward> candf = algorithm::binconj<Reward>(joint_base, fval);
+      if(!candf) { // no consistent indicator exists for h1 ^ h2
+          continue;
+      }
+      LOG_INFO("Inserting conjunctive basis " << (*candf));
+      fval->addBasisFunction(std::move(candf), 0.);
+  }
+}
+
+/// \brief Initialize the given value function with the weight vector in \a weightsFile
+void loadWeights(FactoredValueFunction& fval, const string& weightsFile) {
+    ifstream file(weightsFile);
+    if (!file) {
+        throw cpputil::InvalidException("File not found.");
+    }
+    // assume simply that basis function layout matches provided file
+    vector<double> weights;
+    std::string line;
+    while (std::getline(file, line)) {
+        double w_i = strtod(line.c_str(), NULL); // read preserving precision
+        weights.push_back(w_i);
+    }
+    if(weights.size() != fval->getWeight().size()) {
+        throw cpputil::InvalidException("Basis function layout does not match that in weight vector file.");
+    }
+    // assign weights to value function
+    vector<double>& vfnweights = fval->getWeight();
+    std::copy(weights.begin(), weights.end(), vfnweights.begin());
+}
+
+} // anonymous ns
 
 namespace crl {
 
@@ -82,8 +138,8 @@ const char* agent_message(const char* inMessage) {
 int main(int argc, char** argv) {
     LOG_INFO("This is the (experimental) ALP agent for currently the (big) GraphProp environment only.");
 
-    if (argc != 3 && argc != 4) {
-        LOG_ERROR("Usage: " << argv[0] << " <config.xml> <graph.dat> [Basis-weight-vector file]");
+    if (argc < 3 || argc > 7) {
+        LOG_ERROR("Usage: " << argv[0] << " <config.xml> <graph.dat> [-w Basis-weight-vector file] [-b Basis-conjunction file]");
         return EXIT_FAILURE;
     }
 
@@ -94,6 +150,18 @@ int main(int argc, char** argv) {
       if(!(thegrp = readGraphProp(iscfg, isdat, false))) {
         LOG_ERROR("Instantiation of Multi-agent GraphProp problem failed: error while reading from " << argv[1] << " or " << argv[2]);
         return EXIT_FAILURE;
+      }
+      // parse remaining arguments
+      vector<string> remParams(argv+3, argv+argc);
+      string weightsFile = "";
+      string basisFile = "";
+      auto pIt = std::find(remParams.begin(), remParams.end(), "-w");
+      if(pIt != remParams.end() && (++pIt) != remParams.end()) {
+          weightsFile = *pIt;
+      }
+      pIt = std::find(remParams.begin(), remParams.end(), "-b");
+      if(pIt != remParams.end() && (++pIt) != remParams.end()) {
+          basisFile = *pIt;
       }
 
       // create planner
@@ -150,30 +218,19 @@ int main(int argc, char** argv) {
 //          }
 //      }
 
+      // add additional conjunctive features if supplied
+      if(!basisFile.empty()) {
+          LOG_INFO("Conjunctive basis file supplied: " << basisFile);
+          loadConjunctiveBasis(fval, basisFile);
+      }
+
       // initialize the ALP planner
       _alpp = boost::make_shared<_ALPPlanner>(fmdp, 0.9);
       _alpp->setFactoredValueFunction(fval); // this will be computed
 
-      if(argc == 4) {
+      if(!weightsFile.empty()) {
           LOG_INFO("Basis function weight vector supplied.");
-          // test if file exists
-          ifstream file(argv[3]);
-          if (!file) {
-              throw cpputil::InvalidException("File not found.");
-          }
-          // assume simply that basis function layout matches provided file
-          vector<double> weights;
-          std::string line;
-          while (std::getline(file, line)) {
-              double w_i = strtod(line.c_str(), NULL); // read preserving precision
-              weights.push_back(w_i);
-          }
-          if(weights.size() != fval->getWeight().size()) {
-              throw cpputil::InvalidException("Basis function layout does not match that in weight vector file.");
-          }
-          // assign weights to value function
-          vector<double>& vfnweights = fval->getWeight();
-          std::copy(weights.begin(), weights.end(), vfnweights.begin());
+          loadWeights(fval, weightsFile);
           // compute backprojections
           _alpp->precompute();
 
