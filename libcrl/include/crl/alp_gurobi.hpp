@@ -62,7 +62,10 @@ private:
   /// \brief Implements a heuristic for the next variable to delete
   /// Greedy selection of the variable that minimizes the next joint scope
   /// \return Iterator to the next best variable in \a candidates to eliminate
-  std::list<Size>::iterator elimHeuristic(std::list<Size>& candidates);
+  std::list<Size>::iterator elimHeuristic(std::list<Size>& candidates) {
+    return algorithm::elimHeuristic(_F, candidates.begin(), candidates.end());
+  }
+
 public:
   /// \brief ctor
   _LP(const crl::Domain& domain)

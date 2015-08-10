@@ -356,6 +356,37 @@ DiscreteFunction<T> join(std::initializer_list<DiscreteFunction<T>> funcs, BinOp
 // Variable elimination
 //
 
+/// \brief Implements a heuristic for the next variable to delete
+/// Greedy selection of the variable that minimizes the next joint scope
+/// \return Iterator to the next best variable in the candidates ranging from \a first to \a last to eliminate
+template<class InputIterator, class T>
+InputIterator elimHeuristic(FunctionSet<T>& fset, InputIterator first, InputIterator last) {
+  //using range = decltype(fset)::range;
+  using range = typename FunctionSet<T>::range;
+  auto bestIt = last;
+  Size bestVal = std::numeric_limits<Size>::max();
+  for(auto it = first; it != last; ++it) {
+      range r = fset.getFactor(*it);
+      if(!r.hasNext()) {
+          continue;
+      }
+      _EmptyFunction<Reward> testFn(r);
+//    testFn.compress();
+// TODO: store best EmptyFn alongside
+      Size testSc = testFn.getStateFactors().size() + testFn.getActionFactors().size() + testFn.getLiftedFactors().size();
+//    Size testSc = (testFn.getStateFactors().size() + testFn.getActionFactors().size())*
+//        testFn.getStateFactors().size() + testFn.getActionFactors().size();
+//    for(const auto& lf : testFn.getLiftedFactors()) {
+//        testSc *= lf->getStateFactors().size();
+//    }
+      if(testSc < bestVal) {
+        bestVal = testSc;
+        bestIt = it;
+      }
+  }
+  return bestIt;
+}
+
 /// \brief Runs variable elimination on the provided \a FunctionSet (the forward pass).
 /// The function set itself is modified in the process.
 /// \tparam F Template parameter passed to the operator \a op, e.g., to support different function return types

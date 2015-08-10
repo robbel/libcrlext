@@ -73,32 +73,6 @@ void _LP::generateObjective(std::string name, const std::vector<double>& alpha) 
   LOG_INFO("Objective: " << _lp->getObjective());
 }
 
-std::list<Size>::iterator _LP::elimHeuristic(std::list<Size>& candidates) {
-  using range = decltype(_F)::range;
-  auto bestIt = candidates.end();
-  Size bestVal = std::numeric_limits<Size>::max();
-  for(auto it = candidates.begin(); it != candidates.end(); ++it) {
-      range r = _F.getFactor(*it);
-      if(!r.hasNext()) {
-          continue;
-      }
-      _EmptyFunction<Reward> testFn(r);
-//  testFn.compress();
-// TODO: store best EmptyFn alongside
-    Size testSc = testFn.getStateFactors().size() + testFn.getActionFactors().size() + testFn.getLiftedFactors().size();
-//      Size testSc = (testFn.getStateFactors().size() + testFn.getActionFactors().size())*
-//          testFn.getStateFactors().size() + testFn.getActionFactors().size();
-//      for(const auto& lf : testFn.getLiftedFactors()) {
-//          testSc *= lf->getStateFactors().size();
-//      }
-      if(testSc < bestVal) {
-        bestVal = testSc;
-        bestIt = it;
-      }
-  }
-  return bestIt;
-}
-
 std::tuple<std::unordered_map<const _DiscreteFunction<Reward>*, int>, std::vector<DiscreteFunction<Reward>>>
 _LP::generateObjective(std::string name, const crl::RFunctionVec& C, const crl::RFunctionVec& b, const std::vector<double>& alpha) {
   //assert(C.size() == alpha.size());
