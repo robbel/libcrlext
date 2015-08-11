@@ -10,6 +10,7 @@
  */
 
 #include <iostream>
+#include <fstream>
 #include "crl/env_sysadmin.hpp"
 #include "logger.hpp"
 
@@ -327,7 +328,7 @@ void _SimpleSysadmin::buildFactoredMDP() {
           fas->addDelayedDependency(0); // all depend on the first computer (the `server');
       }
       // LRF
-      lrf->addStateFactor(i);       // over load variable
+      lrf->addStateFactor(i);       // over status variable
       lrf->addActionFactor(i);
       // allocate tabular storage
       fas->pack();
@@ -391,6 +392,170 @@ Sysadmin buildSimpleSysadmin(string arch, Size num_comps) {
 
   // instantiate sysadmin problem
   Sysadmin sysadmin = boost::make_shared<_SimpleSysadmin>(std::move(domain), t);
+  return sysadmin;
+}
+
+//
+// RddlSysadmin
+//
+
+_RddlSysadmin::_RddlSysadmin(Domain domain, const std::multimap<Size,Size>& connectivity, double reboot_prob)
+  : _SimpleSysadmin(std::move(domain), Topology::CUSTOM), _connectivity(connectivity), _reboot_prob(reboot_prob) {
+  // build factored MDP
+  buildFactoredMDP();
+}
+
+void _RddlSysadmin::buildPlate(Size c, DBNFactor& fas, DBNFactor& fal, LRF& lrf) {
+  using It = decltype(_connectivity)::iterator;
+  Domain fasdom = fas->getSubdomain();
+
+  // determine incoming connections
+  SizeVec sc;
+  pair<It,It> range = _connectivity.equal_range(c);
+  std::transform(range.first, range.second, std::back_inserter(sc),
+                 [](const pair<Size,Size>& item) { return item.second; });
+  std::sort(sc.begin(), sc.end());
+  // incoming connections do not include self
+  assert(fasdom->getNumStateFactors()-1 == sc.size());
+
+  auto lb = std::lower_bound(sc.begin(), sc.end(), c);
+  Size t = lb - sc.begin(); // index of this computer in subdomain
+
+  _StateActionIncrementIterator saitr(fasdom);
+  while(saitr.hasNext()) {
+      const std::tuple<State,Action>& sa = saitr.next();
+      const State s  = std::get<0>(sa);
+      const Action a = std::get<1>(sa);
+      if(a.getIndex() == (Size)Admin::REBOOT) {
+          fas->setT(s, a, (Factor)Status::GOOD, 1.); // deterministically set to GOOD
+      }
+      else { // Admin::NOTHING
+          const Factor cur = s.getFactor(t); // current status of this computer
+          Size n_faulty = 0; // faulty neighbors
+          for(int n = 0; n < fasdom->getNumStateFactors(); n++) {
+              if(n != t) {
+                  n_faulty += s.getFactor(n);
+              }
+          }
+          Size n_running = sc.size() - n_faulty;
+          Probability running = 0.45 + 0.5*(1.+n_running)/(1.+sc.size());
+          switch(cur) {
+              case (Factor)Status::GOOD:
+                  fas->setT(s, a, (Factor)Status::GOOD, running);
+                  fas->setT(s, a, (Factor)Status::FAULTY, 1-running);
+                  break;
+              case (Factor)Status::FAULTY:
+                  fas->setT(s, a, (Factor)Status::GOOD, _reboot_prob);
+                  fas->setT(s, a, (Factor)Status::FAULTY, 1-_reboot_prob);
+                  break;
+          }
+      }
+  }
+
+  // Define LRF
+  State dummy_s;
+  Action dummy_a;
+  dummy_s.setIndex(static_cast<Size>(Status::FAULTY));
+  dummy_a.setIndex(static_cast<Size>(Admin::REBOOT));
+  double payoff = 1.;
+  lrf->define(State(), Action(), payoff);  // Status::GOOD, Admin::NOTHING
+  lrf->define(State(), dummy_a, payoff-REBOOT_PENALTY);
+  lrf->define(dummy_s, dummy_a, 0.-REBOOT_PENALTY);
+}
+
+void _RddlSysadmin::buildFactoredMDP() {
+  using It = decltype(_connectivity)::iterator;
+  _fmdp = boost::make_shared<_FactoredMDP>(_domain);
+
+  time_t start_time = time_in_milli();
+  for(Size i = 0; i < _num_comps; i++) {
+      // create dbn factors for computer `i'
+      DBNFactor fas = boost::make_shared<_DBNFactor>(_domain, i);   // status
+      LRF lrf = boost::make_shared<_LRF>(_domain); // those have equivalent scopes here
+      // Status variable
+      fas->addDelayedDependency(i);  // self
+      fas->addActionDependency(i);
+
+      // determine incoming connections
+      pair<It,It> range = _connectivity.equal_range(i);
+      for(auto it = range.first; it != range.second; ++it) {
+          fas->addDelayedDependency(it->second);
+      }
+
+      // LRF
+      lrf->addStateFactor(i);       // over status variable
+      lrf->addActionFactor(i);
+      // allocate tabular storage
+      fas->pack();
+      lrf->pack();
+
+      // Fill transition and reward function
+      buildPlate(i, fas, fas, lrf);
+      // add factors for computer `i' to DBN
+      _fmdp->addDBNFactor(std::move(fas));
+      _fmdp->addLRF(std::move(lrf));
+  }
+
+  time_t end_time = time_in_milli();
+  LOG_INFO("created factored MDP in " << end_time - start_time << "ms.");
+
+}
+
+Sysadmin buildRddlSysadmin(string rddl_file) {
+  static const string RDDL_REBOOT = "REBOOT-PROB=";
+  static const string RDDL_CONNECT = "CONNECTED(";
+  static const Size UPPER_BOUND = 1024; // upper bound on computer number
+  Domain domain = boost::make_shared<_Domain>();
+
+  // variables
+  const vector<Status> status {Status::GOOD,   Status::FAULTY};        // 0,1
+  const vector<Admin>  action {Admin::NOTHING, Admin::REBOOT};         // 0,1
+
+  ifstream file(rddl_file);
+  if (!file) {
+      throw cpputil::InvalidException("File not found.");
+  }
+
+  // basis RDDL parser for connectivity and reboot-prob extraction
+  multimap<Size,Size> connectivity;
+  vector<bool> comp_list(UPPER_BOUND, false);
+  double reboot_prob = _SimpleSysadmin::REBOOT_PROB;
+  std::string line;
+  while (std::getline(file, line)) {
+     line.erase(remove_if(line.begin(), line.end(), ::isspace), line.end());
+     std::size_t found = line.find(RDDL_REBOOT);
+     if(found != string::npos) {
+         reboot_prob = std::stod(line.substr(found+RDDL_REBOOT.size()));
+         LOG_DEBUG("REBOOT_PROB: " << reboot_prob);
+         continue;
+     }
+     // parse connectivity string
+     found = line.find(RDDL_CONNECT);
+     std::string::size_type offset = 0;
+     if(found != string::npos) {
+         // silly parsing for now: assumes that computers have two character names x# and are offset from `1'
+         Size parent = std::stoul(line.substr(found+RDDL_CONNECT.size()+1), &offset) - 1;
+         Size child = std::stoi(line.substr(found+RDDL_CONNECT.size()+offset+3)) - 1;
+         assert(parent < UPPER_BOUND && child < UPPER_BOUND);
+         connectivity.insert(std::make_pair(child, parent));
+         comp_list[parent] = true;
+         comp_list[child] = true;
+         LOG_DEBUG("Connecting: " << parent << " and " << child);
+     }
+  }
+
+  // count unique computers
+  Size num_comps = std::count(comp_list.begin(), comp_list.end(), true);
+  LOG_DEBUG("num_comps: " << num_comps);
+
+  for(Size i = 0; i < num_comps; i++) {
+      domain->addStateFactor(0, status.size()-1, "status_"+to_string(i));
+      domain->addActionFactor(0, action.size()-1,"reboot"+to_string(i));
+  }
+  domain->setRewardRange(-num_comps*_SimpleSysadmin::REBOOT_PENALTY, num_comps);
+
+  // instantiate sysadmin problem
+  Sysadmin sysadmin = boost::make_shared<_RddlSysadmin>(std::move(domain), connectivity, reboot_prob);
   return sysadmin;
 }
 

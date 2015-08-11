@@ -9,6 +9,7 @@ src/env_littman.cpp
 src/env_poupart.cpp
 src/env_sysadmin.cpp
 src/glue_ffg.cpp
+src/glue_rddl.cpp
 src/glue_sysadmin.cpp
 README
 SConstruct

@@ -32,6 +32,7 @@ headers          = [inc.File('crl/env_ffg.hpp'), inc.File('crl/env_sysadmin.hpp'
 # glue wrappers
 glue_ffg_sources = [build.File('glue_ffg.cpp')]
 glue_sys_sources = [build.File('glue_sysadmin.cpp')]
+glue_rddl_sources = [build.File('glue_rddl.cpp')]
 
 
 env = Environment(tools = ["default", "tools"], toolpath = '.',
@@ -94,6 +95,14 @@ if has_crl and has_glue:
 else:
 	print "Cannot build glue_sysadmin"
 
+if has_crl and has_glue:
+	glue_rddl = env.Program(bin.Entry('glue_rddl'), glue_rddl_sources,
+                                LIBS=['env', 'crl', 'rlgnmenv', 'rlcrlenv', 
+                                      'rlutils', 'rlgluenetdev'])
+	bin_targets += [glue_rddl]
+else:
+	print "Cannot build glue_rddl"
+
 if prefix != Dir('.'):
 	for header in headers:
 		env.Alias('install', env.InstallPerm(prefix_inc.Dir('crl'), inc.Entry(header), 0644))
@@ -115,5 +124,6 @@ dist_files += [src.Entry(s) for s in env_poupart]
 dist_files += [src.Entry(s) for s in env_littman]
 dist_files += [src.Entry(s) for s in glue_ffg]
 dist_files += [src.Entry(s) for s in glue_sysadmin]
+dist_files += [src.Entry(s) for s in glue_rddl]
 
 env.Alias('dist', env.DistTar('glue-environments.tar.gz', dist_files))

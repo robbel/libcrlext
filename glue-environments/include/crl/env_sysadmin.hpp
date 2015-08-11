@@ -40,7 +40,8 @@ enum class Admin : Factor {
 /// \brief The type of architecture
 enum class Topology {
     RING,
-    STAR
+    STAR,
+    CUSTOM
 };
 
 /**
@@ -126,6 +127,29 @@ public:
   virtual State begin() override;
 };
 
+/**
+ * \brief The (simple, binary) SysAdmin that reads the connectivity relations from an RDDL file.
+ * Follows the factored MDP model used in the IPPC planning competitions.
+ * \see sysadmin_mdp.rddl
+ */
+class _RddlSysadmin : public _SimpleSysadmin {
+protected:
+  /// \brief The connectivity relations read from the RDDL file
+  /// First entry is `to-node' (i.e., the child), second the `from-node' (i.e., the parent)
+  /// \note Does not include the connection from self -> self from t-1 to t
+  std::multimap<Size,Size> _connectivity;
+  /// \brief The reboot probability read from the RDDL file (may be different from _SimpleSysadmin::REBOOT_PROB)
+  const double _reboot_prob;
+  /// \brief Build the factored MDP associated with this SysAdmin problem
+  virtual void buildFactoredMDP() override;
+  /// \brief Fill in transition and reward function for a single plate (i.e., computer `c') in the network
+  virtual void buildPlate(Size c, DBNFactor& fas, DBNFactor& fal, LRF& lrf) override;
+public:
+  /// \brief Create an SysAdmin problem from the supplied domain.
+  _RddlSysadmin(Domain domain, const std::multimap<Size,Size>& connectivity, double reboot_prob);
+  virtual ~_RddlSysadmin() { }
+};
+
 } // namespace sysadmin
 
 /// \brief Build a sysadmin problem with the specified number of computers in the topology
@@ -137,6 +161,9 @@ sysadmin::Sysadmin buildSysadmin(std::string arch, Size num_comps);
 /// \param arch The network topology, either "star" or "ring"
 /// \param num_comps The number of computers in the network
 sysadmin::Sysadmin buildSimpleSysadmin(std::string arch, Size num_comps);
+/// \brief Build a simple sysadmin problem based on the connectivity and reboot probability extracted from an RDDL file
+/// A `simple' sysadmin corresponds to the binary version used in the IPPC competitions
+sysadmin::Sysadmin buildRddlSysadmin(std::string rddl_file);
 
 } // namespace crl
 
