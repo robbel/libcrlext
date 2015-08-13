@@ -585,14 +585,13 @@ T evalOpOverBasis(const _DiscreteFunction<T>* basis, const FactoredFunction<T>& 
 
 /// \brief Compute a feature f's |Coverage(f)| with respect to the global state space.
 /// \note The coverage of a feature can be zero if it is nowhere active!
-// TODO: Size return ok?
 template<class T>
 Size basisCoverage(const Domain& domain, const _DiscreteFunction<T>* basis) {
   assert(!domain->isBig() && basis->getActionFactors().empty());
   const Size active_dom = domain->getNumStates()/basis->getSubdomain()->getNumStates();
-  Size mul = 1;
 
   // an indicator is active in exactly one state
+  Size mul = 1;
   const _Indicator<T>* pI = dynamic_cast<const _Indicator<T>*>(basis);
   if(!pI) {
       const _FDiscreteFunction<T>* ff = is_flat(basis, false);
@@ -612,6 +611,44 @@ Size basisCoverage(const Domain& domain, const _DiscreteFunction<T>* basis) {
       }
   }
   return active_dom * mul;
+}
+
+/// \brief Compute a feature f's (relative) |Coverage(f)| with respect to the global state space.
+/// A relative coverage is normalized w.r.t. all states in the Domain and works for `big' Domains as well
+/// \note The coverage of a feature can be zero if it is nowhere active!
+/// \see _Domain::isBig()
+template<class T>
+double relativeBasisCoverage(const Domain& domain, const _DiscreteFunction<T>* basis) {
+  assert(basis->getActionFactors().empty());
+  // compute relative domain size
+  const RangeVec& stateRanges = domain->getStateRanges();
+  double rel_dom_size = 1.;
+  for(auto var : basis->getStateFactors()) {
+    rel_dom_size *= stateRanges[var].getSpan()+1;
+  }
+  rel_dom_size = 1/rel_dom_size;
+
+  // an indicator is active in exactly one state
+  Size mul = 1;
+  const _Indicator<T>* pI = dynamic_cast<const _Indicator<T>*>(basis);
+  if(!pI) {
+      const _FDiscreteFunction<T>* ff = is_flat(basis, false);
+      if(ff) {
+          mul = std::count_if(ff->_sa_table->values().begin(), ff->_sa_table->values().end(),
+                              [](T i) { return i != T(0); });
+      } else {
+          mul = 0;
+          _StateIncrementIterator sitr(basis->getSubdomain());
+          while(sitr.hasNext()) {
+              const State& s = sitr.next();
+              T basisVal = (*basis)(s,Action());
+              if(basisVal != T(0)) { // basis is active in `s'
+                  mul++;
+              }
+          }
+      }
+  }
+  return rel_dom_size * mul;
 }
 
 /// \brief Template specialization of genericOp for \a _FConjunctiveFeature

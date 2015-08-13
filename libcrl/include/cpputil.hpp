@@ -552,6 +552,13 @@ public:
 	/// \todo XXX figure out if acrobat_agent uses this correctly
 	///
 	T getSpan() const {return max-min;}
+	/// \brief operators
+	bool operator==(const Range<T>& other) const {
+	  return min == other.min && max == other.max;
+	}
+	bool operator!=(const Range<T>& other) const {
+	  return !(*this == other);
+	}
 };
 
 template <class T>

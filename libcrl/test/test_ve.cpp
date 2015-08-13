@@ -164,7 +164,7 @@ FunctionSet<Reward> VETest::getActionFunctionals() const {
 TEST_F(VETest, BasicVETest) {
   // compute factored bellman functionals (1)
   FunctionSet<Reward> F = algorithm::factoredBellmanFunctionals(_domain, _fval);
-  const SizeVec elim_order_s = get_state_vars(_domain, {});
+  const SizeVec elim_order_s = cpputil::ordered_vec<Size>(_domain->getNumStateFactors());
   auto tplBe = algorithm::variableElimination(F, elim_order_s);
   double maxVal = 0.;
   EXPECT_TRUE(F.empty());

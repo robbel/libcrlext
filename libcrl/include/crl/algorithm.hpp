@@ -31,21 +31,38 @@ const _FDiscreteFunction<T>* is_flat(const _DiscreteFunction<T>* pf, bool known_
     return(known_flat ? static_cast<const _FDiscreteFunction<T>*>(pf) : dynamic_cast<const _FDiscreteFunction<T>*>(pf));
 }
 
-/// \brief Returns all state factors in (sorted) \a allVars that are not in cvars
+/// \brief Returns all elements in (sorted) \a allVars that are not in (unsorted) cvars
 /// \note Helper function for state factor selection
-inline SizeVec get_state_vars(const SizeVec& allVars, const SizeVec& cvars) {
-    SizeVec keepVars(cvars);
-    std::sort(keepVars.begin(), keepVars.end());
-    SizeVec delVars;
-    std::set_difference(allVars.begin(), allVars.end(), keepVars.begin(), keepVars.end(), std::back_inserter(delVars));
-    return delVars;
+/// \see std::set_difference
+inline SizeVec get_difference(const SizeVec& allVars, const SizeVec& cvars, bool sorted = false) {
+    SizeVec sort_cvars(cvars);
+    if(!sorted) {
+      std::sort(sort_cvars.begin(), sort_cvars.end());
+    }
+    SizeVec resVars;
+    std::set_difference(allVars.begin(), allVars.end(), sort_cvars.begin(), sort_cvars.end(), std::back_inserter(resVars));
+    return resVars;
 }
 
-/// \brief Obtain all state factors from the \a Domain that are not in cvars
+/// \brief Obtain all state factors from the \a Domain that are not in (unsorted) cvars
 /// \note Helper function for state factor selection
-inline SizeVec get_state_vars(const Domain& domain, const SizeVec& cvars) {
+/// \see std::set_difference
+inline SizeVec get_difference(const Domain& domain, const SizeVec& cvars) {
     SizeVec allVars = cpputil::ordered_vec<Size>(domain->getNumStateFactors());
-    return get_state_vars(allVars, cvars);
+    return get_difference(allVars, cvars, true);
+}
+
+/// \brief Returns all elements in (sorted) \a allVars that are also in (unsorted) cvars
+/// \note Helper function for state factor selection
+/// \see std::set_intersection
+inline SizeVec get_intersection(const SizeVec& allVars, const SizeVec& cvars, bool sorted = false) {
+  SizeVec sort_cvars(cvars);
+  if(!sorted) {
+    std::sort(sort_cvars.begin(), sort_cvars.end());
+  }
+  SizeVec resVars;
+  std::set_intersection(allVars.begin(), allVars.end(), sort_cvars.begin(), sort_cvars.end(), std::back_inserter(resVars));
+  return resVars;
 }
 
 //

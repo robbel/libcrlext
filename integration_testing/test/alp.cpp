@@ -311,11 +311,74 @@ TEST(ALPIntegrationTest, TestConjunctiveBasis) {
   EXPECT_EQ(SSc2, 4);
 }
 
+///
+/// \brief Test the factored Bellman marginal (particularly, the \lambda_k computations)
+///
+TEST(ALPIntegrationTest, TestFactoredBellmanMarginal) {
+    srand(time(NULL));
+
+    sysadmin::Sysadmin thesys = buildSimpleSysadmin("ring", 8);
+    Domain domain = thesys->getDomain();
+    FactoredMDP fmdp = thesys->getFactoredMDP();
+    const RangeVec& ranges = domain->getStateRanges();
+
+    // factored value function with single factor basis functions
+    FactoredValueFunction fval = boost::make_shared<_FactoredValueFunction>(domain);
+    for(Size fa = 0; fa < ranges.size(); fa++) { // assumption: DBN covers all domain variables
+        auto I_o = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa}), State(domain,0));
+        _StateIncrementIterator sitr(I_o->getSubdomain());
+        while(sitr.hasNext()) {
+            auto I = boost::make_shared<_Indicator<Reward>>(domain, SizeVec({fa}), sitr.next());
+            fval->addBasisFunction(std::move(I), 0.);
+        }
+    }
+
+    // run the ALP planner
+    _ALPPlanner planner(fmdp, 0.9);
+    planner.setFactoredValueFunction(fval); // this will be computed
+    int res = planner.plan();
+    EXPECT_EQ(res, 0) << "ALP " << (res == 1 ? "generateLP()" : "solve()") << " failed";
+
+    // compute Bellman marginal (1)
+    auto tplFn = algorithm::factoredBellmanMarginal(domain,{},fval);
+    EXPECT_TRUE(std::get<0>(tplFn).empty());
+    double intr1 = 0.;
+    for(const auto& ef : std::get<1>(tplFn)) {
+        intr1 += ef->eval(State(),Action());
+    }
+    LOG_INFO("Bellman residual integral (1): " << intr1);
+
+    // compute Bellman marginal with relative \lambda_k (2)
+    // \see algorithm::factoredBellmanMarginal
+    vector<DiscreteFunction<Reward>> empty_fns;
+    SizeVec delVars = cpputil::ordered_vec<Size>(domain->getNumStateFactors());
+    FunctionSet<Reward> F = algorithm::factoredBellmanFunctionals(domain, fval);
+    for(const auto& fn : F.getFunctions()) {
+        DiscreteFunction<Reward> margFn = algorithm::marginalize(fn.get(), delVars, false);
+        // obtain lambda coefficient for factor `fn' in Bellman marginal function
+        double lambda = 0;
+        EXPECT_NO_THROW(lambda = algorithm::computeRelativeMarginalLambda(domain, fn, delVars));
+        _FDiscreteFunction<Reward>* of = dynamic_cast<_FDiscreteFunction<Reward>*>(margFn.get());
+        assert(of); // marginals are currently guaranteed to be flat tabular functions
+        (*of) *= lambda;
+        ASSERT_TRUE(margFn->getSubdomain()->getNumStateFactors() == 0 && margFn->getSubdomain()->getNumActionFactors() == 0);
+        empty_fns.push_back(std::move(margFn));
+    }
+    double intr2 = 0.;
+    for(const auto& ef : empty_fns) {
+        intr2 += ef->eval(State(),Action());
+    }
+
+    LOG_INFO("Quotient: " << intr1/intr2);
+    LOG_INFO("# states: " << domain->getNumStates());
+    LOG_INFO("Relative Bellman residual integral (2): " << intr2);
+    EXPECT_EQ(intr1, intr2);
+}
 
 ///
 /// \brief More involved test that also does factored Bellman computations in larger SysAdmin
 ///
-TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
+TEST(ALPIntegrationTest, TestFactoredBellmanResidual) {
   srand(time(NULL));
 
   sysadmin::Sysadmin thesys = buildSysadmin("ring", 4);
@@ -513,7 +576,7 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResiduals) {
     LOG_INFO("Bellman error (1): " << beval);
 
     // Second method: retain variable `1' in domain and maximize manually
-    const SizeVec red_elim_order_s = get_state_vars(domain, {1});
+    const SizeVec red_elim_order_s = get_difference(domain, {1});
     FunctionSet<Reward> F = algorithm::factoredBellmanFunctionals(domain, fval);
     auto tplBe = algorithm::variableElimination(F, red_elim_order_s, algorithm::maximize);
     double beval2 = 0.;

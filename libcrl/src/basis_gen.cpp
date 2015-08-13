@@ -32,7 +32,7 @@ std::ostream& operator<<(std::ostream &os, const Conjunction& conj) {
 double EpsilonScore::score(const DiscreteFunction<Reward>& basis) const {
   assert(basis->getActionFactors().empty());
   // remove variables to reach basis' domain
-  const SizeVec elim_order = get_state_vars(_domain, basis->getStateFactors());
+  const SizeVec elim_order = get_difference(_domain, basis->getStateFactors());
 
   // evaluate max over basis function
   auto facfn = algorithm::factoredBellmanResidual(_domain, _value_fn, elim_order, algorithm::maximize);
@@ -59,7 +59,7 @@ double EpsilonScore::score(const DiscreteFunction<Reward>& basis) const {
 double AbsoluteReductionScore::score(const DiscreteFunction<Reward>& basis) const {
   assert(basis->getActionFactors().empty());
   // remove variables to reach basis' domain
-  const SizeVec elim_order = get_state_vars(_domain, basis->getStateFactors());
+  const SizeVec elim_order = get_difference(_domain, basis->getStateFactors());
 
   // evaluate max over basis function
   auto facfn = algorithm::factoredBellmanResidual(_domain, _value_fn, elim_order, algorithm::maximize);

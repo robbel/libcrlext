@@ -262,6 +262,11 @@ namespace algorithm {
   /// \brief Compute coefficient \f$\lambda_k\f$ for factor \f$\phi_k\f$ in Bellman marginal function
   /// \param delVars The variables from the domain that are being summed out
   double computeMarginalLambda(const Domain& domain, const DiscreteFunction<Reward>& phi, const SizeVec& delVars);
+  /// \brief Compute (relative) coefficient \f$\lambda_k\f$ for factor \f$\phi_k\f$ in Bellman marginal function
+  /// A relative \f$\lambda_k\f$ is normalized w.r.t. all states in the Domain and works for `big' Domains as well
+  /// \param delVars The variables from the domain that are being summed out
+  /// \see _Domain::isBig()
+  double computeRelativeMarginalLambda(const Domain& domain, const DiscreteFunction<Reward>& phi, const SizeVec& delVars);
 
   //
   // Main algorithms

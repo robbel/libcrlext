@@ -163,13 +163,34 @@ FunctionSet<Reward> factoredBellmanFunctionals(const Domain& domain, const Facto
 
 double computeMarginalLambda(const Domain& domain, const DiscreteFunction<Reward>& phi, const SizeVec& delVars) {
   assert(!domain->isBig());
-  SizeVec freeVars = get_state_vars(delVars, phi->getStateFactors());
+  SizeVec freeVars = get_difference(delVars, phi->getStateFactors());
   const RangeVec& stateRanges = domain->getStateRanges();
   double lambda = 1.;
   for(auto var : freeVars) {
       lambda *= stateRanges[var].getSpan()+1;
   }
   return lambda;
+}
+
+double computeRelativeMarginalLambda(const Domain& domain, const DiscreteFunction<Reward>& phi, const SizeVec& delVars) {
+  const RangeVec& stateRanges = domain->getStateRanges();
+
+  // W = X \ Y. Relative size of set W w.r.t. full domain X
+  SizeVec yVars = get_difference(domain, delVars); // set Y (assume small)
+  double lambda_1 = 1.;
+  for(auto var : yVars) {
+    lambda_1 *= stateRanges[var].getSpan()+1;
+  }
+  lambda_1 = 1/lambda_1;
+
+  // Relative size of W \cup Dom(phi_k) with respect to W (assume small intersection)
+  SizeVec resVars = get_intersection(phi->getStateFactors(), delVars);
+  double lambda_2 = 1.;
+  for(auto var : resVars) {
+    lambda_2 *= stateRanges[var].getSpan()+1;
+  }
+  lambda_2 = 1/lambda_2;
+  return lambda_1 * lambda_2;
 }
 
 double factoredBellmanError(const Domain& domain, const FactoredValueFunction& fval, const SizeVec& elimination_order) {
@@ -189,7 +210,7 @@ double factoredBellmanError(const Domain& domain, const FactoredValueFunction& f
 FactoredFunction<Reward> factoredBellmanMarginal(const Domain& domain, const SizeVec& cvars, const vector<DiscreteFunction<Reward>>& maxQ) {
   assert(!domain->isBig());
   // Obtain the variables to marginalize out
-  SizeVec delVars = get_state_vars(domain, cvars);
+  SizeVec delVars = get_difference(domain, cvars);
 
   // obtain Bellman functionals adjusted for their coverage of the state space
   // storage for functions with variable dependencies and empty scope
