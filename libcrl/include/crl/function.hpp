@@ -43,12 +43,14 @@ using DiscreteFunction = boost::shared_ptr<_DiscreteFunction<T>>;
 //
 namespace algorithm {
 
+/// \brief Some elimination heuristics for \a variableEliminationHeur
+enum class ElimHeuristic { NONE, MIN_SCOPE };
 template<class T> T sum_over_domain(const _DiscreteFunction<T>* pf, bool known_flat);
 template<class T> DiscreteFunction<T> instantiate(const _DiscreteFunction<T>* pf, const State& s, bool known_flat);
 template<class T> std::vector<T> slice(const _DiscreteFunction<T>* pf, Size i, const State&s, const Action& a);
 template<class F, class T, class BinOp = decltype(std::plus<T>())> DiscreteFunction<T> join(cpputil::Iterator<DiscreteFunction<T>>& funcs, BinOp binOp = std::plus<T>());
 template<class T, class BinOp = decltype(std::plus<T>())> DiscreteFunction<T> join_Shared(cpputil::Iterator<DiscreteFunction<T>>& funcs, BinOp binOp = std::plus<T>());
-template<class T> std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F, const SizeVec& elimination_order);
+template<class T> std::tuple<Action,T> argVariableEliminationHeur(FunctionSet<T>& F, SizeVec& mutable_elim, ElimHeuristic heur = ElimHeuristic::NONE);
 template<class F, class T, class BinRefOp> DiscreteFunction<T> genericOp_Shared(const _DiscreteFunction<T>* pf, SizeVec vars, bool known_flat, T init, BinRefOp binOp);
 template<class T> DiscreteFunction<T> binpair(const Conjunction& joint_base, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
 template<class T> Size basisCoverage(const Domain& domain, const _DiscreteFunction<T>* basis);
@@ -75,7 +77,7 @@ class _DiscreteFunction {
   // friend declarations
   friend DiscreteFunction<T> algorithm::instantiate<T>(const _DiscreteFunction<T>* pf, const State& s, bool known_flat);
   friend std::vector<T> algorithm::slice<T>(const _DiscreteFunction<T>* pf, Size i, const State&s, const Action& a);
-  friend std::tuple<Action,T> algorithm::argVariableElimination<T>(FunctionSet<T>& F, const SizeVec& elimination_order);
+  friend std::tuple<Action,T> algorithm::argVariableEliminationHeur<T>(FunctionSet<T>& F, SizeVec& mutable_elim, algorithm::ElimHeuristic heur);
   friend DiscreteFunction<T> algorithm::binpair<T>(const Conjunction& joint_base, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
   // C++ does not allow partial specialization of template friends; hence specified for types U, BinOp
   template<class F, class U, class BinOp>

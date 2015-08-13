@@ -387,12 +387,6 @@ InputIterator elimHeuristic(FunctionSet<T>& fset, InputIterator first, InputIter
   return bestIt;
 }
 
-/// \brief Some elimination heuristics for \a variableEliminationHeur
-enum class ElimHeuristic {
-  NONE,
-  MIN_SCOPE
-};
-
 /// \brief Runs variable elimination on the provided \a FunctionSet (the forward pass) with support for heuristic elimination order
 /// The function set itself is modified in the process, as is \a mutable_elim
 /// \tparam F Template parameter passed to the operator \a op, e.g., to support different function return types
@@ -481,13 +475,14 @@ variableElimination(FunctionSet<T>& fset, const crl::SizeVec& elimination_order,
 }
 
 /// \brief Runs variable elimination on the provided \a FunctionSet and computes the argmax (in a backward pass)
+/// \param[in,out] mutable_elim Set to the actual order (from first to last) implemented by the heuristc
 /// \return The maximizing variable setting and the (maximal) value
 template<class T>
-std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F, const crl::SizeVec& elimination_order) {
+std::tuple<Action,T> argVariableEliminationHeur(FunctionSet<T>& F, crl::SizeVec& mutable_elim, ElimHeuristic heur) {
   // Make sure we can eliminate all variables in function set
-  assert(elimination_order.size() >= F.getNumFactors());
+  assert(mutable_elim.size() >= F.getNumFactors());
   // run variable elimination
-  auto retFns = variableElimination(F, elimination_order);
+  auto retFns = variableEliminationHeur(F, mutable_elim, heur); // may modify elimination order in place
   const std::vector<DiscreteFunction<T>>& elim_cache = std::get<0>(retFns);
   const std::vector<DiscreteFunction<T>>& empty_fns  = std::get<1>(retFns);
 
@@ -504,14 +499,14 @@ std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F, const crl::SizeVe
   }
 
   // argmax in reverse order
-  assert(elim_cache.size() == elimination_order.size());
+  assert(elim_cache.size() == mutable_elim.size());
   const Domain& domain = elim_cache.front()->_domain;
   const RangeVec ranges = domain->getActionRanges();
   const Size num_state = domain->getNumStateFactors();
 
   Action retMax(domain); // the globally maximizing joint action
   auto fit = elim_cache.rbegin(); // function iterator
-  for (auto rit = elimination_order.rbegin(); rit != elimination_order.rend(); ++rit, ++fit) {
+  for (auto rit = mutable_elim.rbegin(); rit != mutable_elim.rend(); ++rit, ++fit) {
       Size v = *rit;
       assert(v >= num_state); // eliminating an action variable
       Action ma((*fit)->mapAction(retMax)); // map to local function's domain
@@ -524,6 +519,14 @@ std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F, const crl::SizeVe
   }
 
   return std::make_tuple(retMax, maxVal);
+}
+
+/// \brief Runs variable elimination on the provided \a FunctionSet and computes the argmax (in a backward pass)
+/// \return The maximizing variable setting and the (maximal) value
+template<class T>
+std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F, const crl::SizeVec& elimination_order) {
+  SizeVec mutable_elim(elimination_order);
+  return argVariableEliminationHeur(F, mutable_elim, ElimHeuristic::NONE);
 }
 
 } // namespace algorithm
