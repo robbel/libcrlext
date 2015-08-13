@@ -273,7 +273,8 @@ namespace algorithm {
   FactoredFunction<Reward> factoredBellmanResidual(const Domain& domain, const FactoredValueFunction& fval, const SizeVec& elimination_order, Op op) {
     FunctionSet<Reward> F = factoredBellmanFunctionals(domain, fval);
     // run variableElimination over state factors
-    auto elimTpl = algorithm::variableElimination(F, elimination_order, op);
+    SizeVec mutable_elim(elimination_order);
+    auto elimTpl = algorithm::variableEliminationHeur(F, mutable_elim, ElimHeuristic::MIN_SCOPE, op);
 
     // store functions that retain variable dependencies
     std::vector<DiscreteFunction<Reward>> var_fns = F.getFunctions();
