@@ -474,7 +474,7 @@ variableElimination(FunctionSet<T>& fset, const crl::SizeVec& elimination_order,
   return variableElimination<_FDiscreteFunction<T>>(fset, elimination_order, op);
 }
 
-/// \brief Runs variable elimination on the provided \a FunctionSet and computes the argmax (in a backward pass)
+/// \brief Runs variable elimination on the provided \a FunctionSet (only action dependencies!) and computes the argmax (in a backward pass)
 /// \param[in,out] mutable_elim Set to the actual order (from first to last) implemented by the heuristc
 /// \return The maximizing variable setting and the (maximal) value
 template<class T>

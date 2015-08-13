@@ -27,7 +27,7 @@ namespace {
 class LiftedDBNTest : public ::testing::Test {
 protected:
     LiftedDBNTest() { }
-//  virtual ~LiftedDBNText() { }
+//  virtual ~LiftedDBNTest() { }
     virtual void SetUp() override;
 //  virtual void TearDown() override;
 
