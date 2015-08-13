@@ -387,8 +387,8 @@ InputIterator elimHeuristic(FunctionSet<T>& fset, InputIterator first, InputIter
   return bestIt;
 }
 
-/// \brief Runs variable elimination on the provided \a FunctionSet (the forward pass).
-/// The function set itself is modified in the process.
+/// \brief Runs variable elimination on the provided \a FunctionSet (the forward pass)
+/// The function set itself is modified in the process
 /// \tparam F Template parameter passed to the operator \a op, e.g., to support different function return types
 /// \param op A function pointer denoting whether to perform max (MAP) or sum (marginalization)
 /// \return A tuple of (0) the generated intermediate functions, and (1) the generated functions with empty scope
@@ -424,8 +424,8 @@ variableElimination(FunctionSet<T>& fset, const crl::SizeVec& elimination_order,
 
   return std::make_tuple(std::move(elim_cache),std::move(empty_fns));
 }
-/// \brief Runs variable elimination on the provided \a FunctionSet (the forward pass).
-/// The function set itself is modified in the process.
+/// \brief Runs variable elimination on the provided \a FunctionSet (the forward pass)
+/// The function set itself is modified in the process
 /// \param op A function pointer denoting whether to perform max (MAP) or sum (marginalization)
 /// \return A tuple of (0) the generated intermediate functions, and (1) the generated functions with empty scope
 template<class T, class Op = DiscreteFunction<T> (*)(const _DiscreteFunction<T>*, Size, bool)>
@@ -478,6 +478,78 @@ std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F, const crl::SizeVe
   }
 
   return std::make_tuple(retMax, maxVal);
+}
+
+/// \brief Some elimination heuristics for \a variableEliminationHeur
+enum class ElimHeuristic {
+  NONE,
+  MIN_SCOPE
+};
+
+/// \brief Runs variable elimination on the provided \a FunctionSet (the forward pass) with support for heuristic elimination order
+/// The function set itself is modified in the process, as is \a mutable_elim
+/// \tparam F Template parameter passed to the operator \a op, e.g., to support different function return types
+/// \param[in,out] mutable_elim Set to the actual order (from first to last) implemented by the heuristc
+/// \param op A function pointer denoting whether to perform max (MAP) or sum (marginalization)
+/// \return A tuple of (0) the generated intermediate functions, and (1) the generated functions with empty scope
+template<class F, class T, class Op = DiscreteFunction<T> (*)(const _DiscreteFunction<T>*, Size, bool)>
+std::tuple<std::vector<DiscreteFunction<T>>, std::vector<DiscreteFunction<T>>>
+variableEliminationHeur(FunctionSet<T>& fset, crl::SizeVec& mutable_elim, ElimHeuristic heur = ElimHeuristic::NONE, Op op = algorithm::maximize<F>) {
+  LOG_DEBUG("Number of variables to eliminate: " << mutable_elim.size() << " out of " << fset.getNumFactors());
+
+  std::list<Size> elim_list(mutable_elim.begin(),mutable_elim.end());
+  mutable_elim.clear();
+
+  std::vector<DiscreteFunction<T>> elim_cache;
+  // store for functions that have reached empty scope
+  std::vector<DiscreteFunction<T>> empty_fns;
+  using range = typename FunctionSet<T>::range;
+  while(!elim_list.empty()) {
+      Size v = 0;
+      if(heur == ElimHeuristic::NONE) {
+          v = elim_list.front();
+          elim_list.pop_front();
+      } else if(heur == ElimHeuristic::MIN_SCOPE) {
+          // determine next best variable to delete
+          auto bestIt = elimHeuristic(fset, elim_list.begin(), elim_list.end());
+          assert(bestIt != elim_list.end());
+          v = *bestIt;
+          LOG_DEBUG("Elim heuristic chose: " << v);
+          elim_list.erase(bestIt);
+      }
+      mutable_elim.push_back(v);
+      LOG_DEBUG("Eliminating variable " << v);
+      range r = fset.getFactor(v);
+      if(!r.hasNext()) {
+          LOG_INFO("Variable " << v << " not eliminated. It does not exist in FunctionSet.");
+          continue;
+      }
+
+      DiscreteFunction<T> esum = algorithm::join<F>(r);
+      DiscreteFunction<T> emax = op(esum.get(), v, false);
+      elim_cache.push_back(std::move(esum));
+      fset.eraseFactor(v);
+      if(emax->getSubdomain()->getNumStateFactors() == 0 && emax->getSubdomain()->getNumActionFactors() == 0) {
+        LOG_DEBUG("Function reduced to empty scope");
+        empty_fns.push_back(std::move(emax));
+      }
+      else {
+        fset.insert(std::move(emax)); // continue elimination
+      }
+  }
+
+  return std::make_tuple(std::move(elim_cache),std::move(empty_fns));
+}
+
+/// \brief Runs variable elimination on the provided \a FunctionSet (the forward pass) with support for heuristic elimination order
+/// The function set itself is modified in the process, as is \a mutable_elim
+/// \param[in,out] mutable_elim Set to the actual order (from first to last) implemented by the heuristc
+/// \param op A function pointer denoting whether to perform max (MAP) or sum (marginalization)
+/// \return A tuple of (0) the generated intermediate functions, and (1) the generated functions with empty scope
+template<class T, class Op = DiscreteFunction<T> (*)(const _DiscreteFunction<T>*, Size, bool)>
+std::tuple<std::vector<DiscreteFunction<T>>, std::vector<DiscreteFunction<T>>>
+variableEliminationHeur(FunctionSet<T>& fset, crl::SizeVec& mutable_elim, ElimHeuristic heur = ElimHeuristic::NONE, Op op = algorithm::maximize<_FDiscreteFunction<T>>) {
+  return variableEliminationHeur<_FDiscreteFunction<T>>(fset, mutable_elim, heur, op);
 }
 
 } // namespace algorithm

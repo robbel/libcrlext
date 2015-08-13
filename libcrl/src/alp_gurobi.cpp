@@ -377,8 +377,7 @@ int _LP::generateLiftedLP(const RFunctionVec& C, const RFunctionVec& b, const ve
     }
 
     // Using greedy heuristic for elimination order
-    std::list<Size> mutable_elim;
-    std::copy(elim_order.begin(), elim_order.end(), std::back_inserter(mutable_elim));
+    std::list<Size> mutable_elim(elim_order.begin(), elim_order.end());
 
     int var = _lp->get(GRB_IntAttr_NumVars); // current variable offset
     using range = decltype(_F)::range;
