@@ -387,99 +387,6 @@ InputIterator elimHeuristic(FunctionSet<T>& fset, InputIterator first, InputIter
   return bestIt;
 }
 
-/// \brief Runs variable elimination on the provided \a FunctionSet (the forward pass)
-/// The function set itself is modified in the process
-/// \tparam F Template parameter passed to the operator \a op, e.g., to support different function return types
-/// \param op A function pointer denoting whether to perform max (MAP) or sum (marginalization)
-/// \return A tuple of (0) the generated intermediate functions, and (1) the generated functions with empty scope
-template<class F, class T, class Op = DiscreteFunction<T> (*)(const _DiscreteFunction<T>*, Size, bool)>
-std::tuple<std::vector<DiscreteFunction<T>>, std::vector<DiscreteFunction<T>>>
-variableElimination(FunctionSet<T>& fset, const crl::SizeVec& elimination_order, Op op = algorithm::maximize<F>) {
-  LOG_DEBUG("Number of variables to eliminate: " << elimination_order.size() << " out of " << fset.getNumFactors());
-
-  std::vector<DiscreteFunction<T>> elim_cache;
-  // store for functions that have reached empty scope
-  std::vector<DiscreteFunction<T>> empty_fns;
-  using range = typename FunctionSet<T>::range;
-  for(Size v : elimination_order) {
-      LOG_DEBUG("Eliminating variable " << v);
-      range r = fset.getFactor(v);
-      if(!r.hasNext()) {
-          LOG_INFO("Variable " << v << " not eliminated. It does not exist in FunctionSet.");
-          continue;
-      }
-
-      DiscreteFunction<T> esum = algorithm::join<F>(r);
-      DiscreteFunction<T> emax = op(esum.get(), v, false);
-      elim_cache.push_back(std::move(esum));
-      fset.eraseFactor(v);
-      if(emax->getSubdomain()->getNumStateFactors() == 0 && emax->getSubdomain()->getNumActionFactors() == 0) {
-        LOG_DEBUG("Function reduced to empty scope");
-        empty_fns.push_back(std::move(emax));
-      }
-      else {
-        fset.insert(std::move(emax)); // continue elimination
-      }
-  }
-
-  return std::make_tuple(std::move(elim_cache),std::move(empty_fns));
-}
-/// \brief Runs variable elimination on the provided \a FunctionSet (the forward pass)
-/// The function set itself is modified in the process
-/// \param op A function pointer denoting whether to perform max (MAP) or sum (marginalization)
-/// \return A tuple of (0) the generated intermediate functions, and (1) the generated functions with empty scope
-template<class T, class Op = DiscreteFunction<T> (*)(const _DiscreteFunction<T>*, Size, bool)>
-std::tuple<std::vector<DiscreteFunction<T>>, std::vector<DiscreteFunction<T>>>
-variableElimination(FunctionSet<T>& fset, const crl::SizeVec& elimination_order, Op op = algorithm::maximize<_FDiscreteFunction<T>>) {
-  return variableElimination<_FDiscreteFunction<T>>(fset, elimination_order, op);
-}
-
-/// \brief Runs variable elimination on the provided \a FunctionSet and computes the argmax (in a backward pass)
-/// \return The maximizing variable setting and the (maximal) value
-template<class T>
-std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F, const crl::SizeVec& elimination_order) {
-  // Make sure we can eliminate all variables in function set
-  assert(elimination_order.size() >= F.getNumFactors());
-  // run variable elimination
-  auto retFns = variableElimination(F, elimination_order);
-  const std::vector<DiscreteFunction<T>>& elim_cache = std::get<0>(retFns);
-  const std::vector<DiscreteFunction<T>>& empty_fns  = std::get<1>(retFns);
-
-  if(!F.empty()) {
-      throw cpputil::InvalidException("Functions remain in function set: argVariableElimination failed");
-  }
-
-  // sum over all empty functions defines the maximum value
-  T maxVal = std::accumulate(empty_fns.begin(), empty_fns.end(), T(0), [](T store, const DiscreteFunction<T>& f) {
-      return store + f->eval(State(),Action()); });
-
-  if(elim_cache.empty()) {
-      return std::make_tuple(Action(),maxVal);
-  }
-
-  // argmax in reverse order
-  assert(elim_cache.size() == elimination_order.size());
-  const Domain& domain = elim_cache.front()->_domain;
-  const RangeVec ranges = domain->getActionRanges();
-  const Size num_state = domain->getNumStateFactors();
-
-  Action retMax(domain); // the globally maximizing joint action
-  auto fit = elim_cache.rbegin(); // function iterator
-  for (auto rit = elimination_order.rbegin(); rit != elimination_order.rend(); ++rit, ++fit) {
-      Size v = *rit;
-      assert(v >= num_state); // eliminating an action variable
-      Action ma((*fit)->mapAction(retMax)); // map to local function's domain
-      const std::vector<T>& slice = algorithm::slice(fit->get(), v, State(), ma);
-      auto optIt = std::max_element(slice.begin(), slice.end()); // yields the /first/ maximizing action
-      assert(optIt != slice.end()); // empty range check
-      auto offset = optIt-slice.begin();
-      // update maximizing action
-      retMax.setFactor(v-num_state, ranges[v-num_state].getMin()+offset);
-  }
-
-  return std::make_tuple(retMax, maxVal);
-}
-
 /// \brief Some elimination heuristics for \a variableEliminationHeur
 enum class ElimHeuristic {
   NONE,
@@ -550,6 +457,73 @@ template<class T, class Op = DiscreteFunction<T> (*)(const _DiscreteFunction<T>*
 std::tuple<std::vector<DiscreteFunction<T>>, std::vector<DiscreteFunction<T>>>
 variableEliminationHeur(FunctionSet<T>& fset, crl::SizeVec& mutable_elim, ElimHeuristic heur = ElimHeuristic::NONE, Op op = algorithm::maximize<_FDiscreteFunction<T>>) {
   return variableEliminationHeur<_FDiscreteFunction<T>>(fset, mutable_elim, heur, op);
+}
+
+/// \brief Runs variable elimination on the provided \a FunctionSet (the forward pass)
+/// The function set itself is modified in the process
+/// \tparam F Template parameter passed to the operator \a op, e.g., to support different function return types
+/// \param op A function pointer denoting whether to perform max (MAP) or sum (marginalization)
+/// \return A tuple of (0) the generated intermediate functions, and (1) the generated functions with empty scope
+template<class F, class T, class Op = DiscreteFunction<T> (*)(const _DiscreteFunction<T>*, Size, bool)>
+std::tuple<std::vector<DiscreteFunction<T>>, std::vector<DiscreteFunction<T>>>
+variableElimination(FunctionSet<T>& fset, const crl::SizeVec& elimination_order, Op op = algorithm::maximize<F>) {
+  SizeVec mutable_elim(elimination_order);
+  return variableEliminationHeur<F>(fset, mutable_elim, ElimHeuristic::NONE, op);
+}
+/// \brief Runs variable elimination on the provided \a FunctionSet (the forward pass)
+/// The function set itself is modified in the process
+/// \param op A function pointer denoting whether to perform max (MAP) or sum (marginalization)
+/// \return A tuple of (0) the generated intermediate functions, and (1) the generated functions with empty scope
+template<class T, class Op = DiscreteFunction<T> (*)(const _DiscreteFunction<T>*, Size, bool)>
+std::tuple<std::vector<DiscreteFunction<T>>, std::vector<DiscreteFunction<T>>>
+variableElimination(FunctionSet<T>& fset, const crl::SizeVec& elimination_order, Op op = algorithm::maximize<_FDiscreteFunction<T>>) {
+  return variableElimination<_FDiscreteFunction<T>>(fset, elimination_order, op);
+}
+
+/// \brief Runs variable elimination on the provided \a FunctionSet and computes the argmax (in a backward pass)
+/// \return The maximizing variable setting and the (maximal) value
+template<class T>
+std::tuple<Action,T> argVariableElimination(FunctionSet<T>& F, const crl::SizeVec& elimination_order) {
+  // Make sure we can eliminate all variables in function set
+  assert(elimination_order.size() >= F.getNumFactors());
+  // run variable elimination
+  auto retFns = variableElimination(F, elimination_order);
+  const std::vector<DiscreteFunction<T>>& elim_cache = std::get<0>(retFns);
+  const std::vector<DiscreteFunction<T>>& empty_fns  = std::get<1>(retFns);
+
+  if(!F.empty()) {
+      throw cpputil::InvalidException("Functions remain in function set: argVariableElimination failed");
+  }
+
+  // sum over all empty functions defines the maximum value
+  T maxVal = std::accumulate(empty_fns.begin(), empty_fns.end(), T(0), [](T store, const DiscreteFunction<T>& f) {
+      return store + f->eval(State(),Action()); });
+
+  if(elim_cache.empty()) {
+      return std::make_tuple(Action(),maxVal);
+  }
+
+  // argmax in reverse order
+  assert(elim_cache.size() == elimination_order.size());
+  const Domain& domain = elim_cache.front()->_domain;
+  const RangeVec ranges = domain->getActionRanges();
+  const Size num_state = domain->getNumStateFactors();
+
+  Action retMax(domain); // the globally maximizing joint action
+  auto fit = elim_cache.rbegin(); // function iterator
+  for (auto rit = elimination_order.rbegin(); rit != elimination_order.rend(); ++rit, ++fit) {
+      Size v = *rit;
+      assert(v >= num_state); // eliminating an action variable
+      Action ma((*fit)->mapAction(retMax)); // map to local function's domain
+      const std::vector<T>& slice = algorithm::slice(fit->get(), v, State(), ma);
+      auto optIt = std::max_element(slice.begin(), slice.end()); // yields the /first/ maximizing action
+      assert(optIt != slice.end()); // empty range check
+      auto offset = optIt-slice.begin();
+      // update maximizing action
+      retMax.setFactor(v-num_state, ranges[v-num_state].getMin()+offset);
+  }
+
+  return std::make_tuple(retMax, maxVal);
 }
 
 } // namespace algorithm
