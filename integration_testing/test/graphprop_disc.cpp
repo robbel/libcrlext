@@ -115,15 +115,20 @@ TEST(ALPIntegrationTest, TestGraphpropBasisDiscovery) {
 
     // Compute initial Bellman error
     const SizeVec elim_order_s = cpputil::ordered_vec<Size>(domain->getNumStateFactors());
+    start_time = time_in_milli();
     double beval = algorithm::factoredBellmanError(domain, fval, elim_order_s);
-    LOG_INFO("Bellman error (0): " << beval);
+    end_time = time_in_milli();
+    LOG_INFO("Bellman error (0) [after " << end_time - start_time << "ms]: " << beval);
 
     //
     // Basis generation
     //
     BinaryBasisGenerator<NChooseTwoIterator<Size,SizeVec>,OptBEBFScore> basisGen(domain, fval, fmdp, "optbebf-test");
     for(int k = 0; k < 20; k++) {
+        start_time = time_in_milli();
         DiscreteFunction<Reward> nextBasis = basisGen.nextBest();
+        end_time = time_in_milli();
+        LOG_INFO("[after " << end_time - start_time << "ms]");
         if(!nextBasis) {
           LOG_INFO("No next best basis: cost deemed infinite by Scoring function.");
           break;
@@ -184,8 +189,10 @@ TEST(ALPIntegrationTest, TestGraphpropBasisDiscovery) {
             }
 
             // Compute Bellman error
+            start_time = time_in_milli();
             double beval = algorithm::factoredBellmanError(domain, fval, elim_order_s);
-            LOG_INFO("Bellman error (" << k+1 << "): " << beval);
+            end_time = time_in_milli();
+            LOG_INFO("Bellman error (" << k+1 << ") [after " << end_time - start_time << "ms]: " << beval);
         }
     }
 
