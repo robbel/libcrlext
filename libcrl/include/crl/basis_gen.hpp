@@ -351,7 +351,9 @@ public:
           bestf = std::move(candf);
           bestVal = s;
         }
-        valid++;
+        if(s != -std::numeric_limits<double>::infinity()) {
+          valid++;
+        }
     }
 
     if(bestf) {

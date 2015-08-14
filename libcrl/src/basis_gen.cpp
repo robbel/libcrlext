@@ -99,11 +99,14 @@ double BEBFScore::score(const DiscreteFunction<Reward>& basis) const {
 
   // TODO: assert no overflow
 
-  Size cov = algorithm::basisCoverage(_domain, basis.get());
-  if(cov == 0) {
+  double cov_rel = algorithm::relativeBasisCoverage(_domain, basis.get());
+  //Size cov = algorithm::basisCoverage(_domain, basis.get());
+  //assert(cov_rel * _domain->getNumStates() == static_cast<double>(cov));
+
+  if(cov_rel == 0) {
       return -std::numeric_limits<double>::infinity();
   }
-  return marVal / sqrt(static_cast<double>(cov));
+  return marVal / sqrt(static_cast<double>(cov_rel));
 }
 
 void OptBEBFScore::initialize() {

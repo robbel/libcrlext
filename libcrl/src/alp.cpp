@@ -208,7 +208,6 @@ double factoredBellmanError(const Domain& domain, const FactoredValueFunction& f
 }
 
 FactoredFunction<Reward> factoredBellmanMarginal(const Domain& domain, const SizeVec& cvars, const vector<DiscreteFunction<Reward>>& maxQ) {
-  assert(!domain->isBig());
   // Obtain the variables to marginalize out
   SizeVec delVars = get_difference(domain, cvars);
 
@@ -221,10 +220,12 @@ FactoredFunction<Reward> factoredBellmanMarginal(const Domain& domain, const Siz
   for(const auto& fn : maxQ) {
       DiscreteFunction<Reward> margFn = algorithm::marginalize(fn.get(), delVars, false);
       // obtain lambda coefficient for factor `fn' in Bellman marginal function
-      double lambda = computeMarginalLambda(domain, fn, delVars);
+      double lambda_rel = computeRelativeMarginalLambda(domain, fn, delVars);
+      //double lambda = computeMarginalLambda(domain, fn, delVars);
+      //assert(lambda == lambda_rel*domain->getNumStates());
       _FDiscreteFunction<Reward>* of = dynamic_cast<_FDiscreteFunction<Reward>*>(margFn.get());
       assert(of); // marginals are currently guaranteed to be flat tabular functions
-      (*of) *= lambda;
+      (*of) *= lambda_rel;
 
       if(margFn->getSubdomain()->getNumStateFactors() == 0 && margFn->getSubdomain()->getNumActionFactors() == 0) {
           empty_fns.push_back(std::move(margFn));

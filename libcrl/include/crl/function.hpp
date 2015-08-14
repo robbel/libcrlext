@@ -54,6 +54,7 @@ template<class T> std::tuple<Action,T> argVariableEliminationHeur(FunctionSet<T>
 template<class F, class T, class BinRefOp> DiscreteFunction<T> genericOp_Shared(const _DiscreteFunction<T>* pf, SizeVec vars, bool known_flat, T init, BinRefOp binOp);
 template<class T> DiscreteFunction<T> binpair(const Conjunction& joint_base, const DiscreteFunction<T>& h1, const DiscreteFunction<T>& h2);
 template<class T> Size basisCoverage(const Domain& domain, const _DiscreteFunction<T>* basis);
+template<class T> double relativeBasisCoverage(const Domain& domain, const _DiscreteFunction<T>* basis);
 
 }
 
@@ -752,6 +753,7 @@ class _FDiscreteFunction : public _DiscreteFunction<T> {
     friend T algorithm::sum_over_domain<T>(const _DiscreteFunction<T>* pf, bool known_flat);
     friend DiscreteFunction<T> algorithm::instantiate<T>(const _DiscreteFunction<T>* pf, const State& s, bool known_flat);
     friend Size algorithm::basisCoverage<T>(const Domain& domain, const _DiscreteFunction<T>* basis);
+    friend double algorithm::relativeBasisCoverage<T>(const Domain& domain, const _DiscreteFunction<T>* basis);
 protected:
     /// \brief The internal storage for this function
     boost::shared_ptr<_FStateActionTable<T>> _sa_table;
