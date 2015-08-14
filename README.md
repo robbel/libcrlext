@@ -6,7 +6,7 @@ It is currently maintained as a private repository at https://bitbucket.org/robb
 
 ### How do I get set up? ###
 
-* Install scons, boost, gsl, and clang++3.5 (or, alternatively, change compiler in each SConstruct file)
+* Install scons, boost, gsl, zlib, and clang++3.5 (or, alternatively, change compiler in each SConstruct file)
 * *Deprecated: lpsolve (5.5) is required to support the ALP solver. Required is the static library version that was compiled with -fPIC (e.g. `liblpsolve55-dev` in Ubuntu).* *Note:* *For cplex model export, lpsolve's `libxli_CPLEX` has to be compiled from source.*
 * Instead of lpsolve, we now use Gurobi as the ALP solver. An academic license can be obtained from the [Gurobi website](http://www.gurobi.com)
 * Install RLGlueCore, e.g. via the version 3.04 DEB package from the [rl-glue website](https://code.google.com/p/rl-glue-ext/wiki/RLGlueCore)
