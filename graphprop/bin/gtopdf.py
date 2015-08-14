@@ -2,8 +2,6 @@
 # -*- coding: utf-8 -*-
 
 # Copyright 2015 Philipp Robbel
-# Idea from http://micha.gd/code/2011/09/27/dead-simple-real-time-plotting-with-c-c-and-python/
-# Based in part on graph animation example from graph-tool documentation.
 # 
 # License: http://www.gnu.org/licenses/lgpl LGPL version 3.0, or (at your option) any later version.
 # 
@@ -14,7 +12,7 @@
 
 """Convert graph adjacency matrix from given file into PDF.
 
-Run as ./gvizz <graph_file> <pdf_file>
+Run as ./gtopdf <graph_file> <pdf_file>
 """
 import numpy as np
 from graph_tool.all import *

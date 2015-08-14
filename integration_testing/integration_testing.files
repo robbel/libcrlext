@@ -4,6 +4,7 @@ test/counter.cpp
 test/dbn.cpp
 test/example.cpp
 test/graphprop.cpp
+test/graphprop_disc.cpp
 test/spudd.cpp
 README
 SConstruct

@@ -29,6 +29,7 @@ alp_sources = [build.File('alp.cpp')]
 approxalp_sources = [build.File('approxalp.cpp')]
 dbn_sources = [build.File('dbn.cpp')]
 graphprop_sources = [build.File('graphprop.cpp')]
+graphprop_disc_sources = [build.File('graphprop_disc.cpp')]
 counter_sources = [build.File('counter.cpp')]
 spudd_sources = [build.File('spudd.cpp')]
 headers = []
@@ -66,6 +67,8 @@ dbn = env.Program(bin.Entry('dbn'), dbn_sources, LIBS=['env','crl','pthread','gt
 bin_targets += [dbn]
 graphprop = env.Program(bin.Entry('graphprop'), graphprop_sources, LIBS=['graphprop','crl','pthread','gtest','gtest_main'])
 bin_targets += [graphprop]
+graphprop_disc = env.Program(bin.Entry('graphprop_disc'), graphprop_disc_sources, LIBS=['graphprop','crl','pthread','gtest','gtest_main'])
+bin_targets += [graphprop_disc]
 counter = env.Program(bin.Entry('counter'), counter_sources, LIBS=['crl','pthread','gtest','gtest_main'])
 bin_targets += [counter]
 if has_spudd:
@@ -92,6 +95,7 @@ gtest_alias = env.Alias('test', alp, alp[0].abspath)
 gtest_alias = env.Alias('test', approxalp, approxalp[0].abspath)
 gtest_alias = env.Alias('test', dbn, dbn[0].abspath)
 gtest_alias = env.Alias('test', graphprop, graphprop[0].abspath)
+gtest_alias = env.Alias('test', graphprop_disc, graphprop_disc[0].abspath)
 gtest_alias = env.Alias('test', counter, counter[0].abspath)
 if has_spudd:
         gtest_alias = env.Alias('test', spudd, spudd[0].abspath)
@@ -111,6 +115,7 @@ dist_files += [src.Entry(alp_source) for alp_source in alp_sources]
 dist_files += [src.Entry(approxalp_source) for approxalp_source in approxalp_sources] 
 dist_files += [src.Entry(dbn_source) for dbn_source in dbn_sources] 
 dist_files += [src.Entry(graphprop_source) for graphprop_source in graphprop_sources] 
+dist_files += [src.Entry(graphprop_disc_source) for graphprop_disc_source in graphprop_disc_sources] 
 dist_files += [src.Entry(counter_source) for counter_source in counter_sources] 
 dist_files += [src.Entry(spudd_source) for spudd_source in spudd_sources] 
 
