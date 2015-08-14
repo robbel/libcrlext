@@ -185,7 +185,7 @@ TEST(ALPIntegrationTest, TestGraphpropBasisDiscovery) {
 
             // Compute Bellman error
             double beval = algorithm::factoredBellmanError(domain, fval, elim_order_s);
-            LOG_INFO("Bellman error (" << k << "): " << beval);
+            LOG_INFO("Bellman error (" << k+1 << "): " << beval);
         }
     }
 
