@@ -1,6 +1,6 @@
 # README #
 
-Fork of [libcrl](http://code.google.com/p/libcrl/) to add more experimental rl algorithms, domain template and multiagent support, etc.
+Fork of [libcrl](http://code.google.com/p/libcrl/) to add more experimental rl and planning algorithms, domain template and multiagent support, etc.
 
 It is currently maintained at https://bitbucket.org/robbel/libcrlext.
 
