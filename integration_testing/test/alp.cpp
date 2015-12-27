@@ -709,10 +709,10 @@ TEST(ALPIntegrationTest, TestFactoredBellmanResidual) {
     }
 
     //
-    // Insert and resolve with next best functions twice (BEBFScore criterion)
+    // Insert and resolve with next best functions twice (OptBEBFScore criterion)
     //
 
-    BinaryBasisGenerator<NChooseTwoIterator<Size,SizeVec>,BEBFScore> basisGen(domain, fval, fmdp, "bebf-test");
+    BinaryBasisGenerator<NChooseTwoIterator<Size,SizeVec>,OptBEBFScore> basisGen(domain, fval, fmdp, "bebf-test");
     for(int k = 0; k < 2; k++) {
         DiscreteFunction<Reward> nextBasis = basisGen.nextBest();
         if(!nextBasis) {

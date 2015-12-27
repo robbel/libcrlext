@@ -144,7 +144,7 @@ TEST(ALPIntegrationTest, TestGraphpropExhaustiveBasis) {
 #if !NDEBUG
     LOG_DEBUG("Writing basis function weights to weights.txt");
     {
-      ofstream file("weights.txt");
+      ofstream file("weights0.txt");
       for(double w : fval->getWeight()) {
         file << std::fixed << std::setprecision(std::numeric_limits<double>::digits10+2) << w << '\n';
       }

@@ -159,6 +159,7 @@ TEST_F(ApproxALPTest, TestSysadminConstraintGeneration) {
   _ApproxALP approxalp(_domain, _planner);
   State maxjs(_domain);
   Action maxja(_domain);
+  const SizeVec elim_order = cpputil::ordered_vec<Size>(_domain->getNumStateFactors());
 
   //
   // insert a couple of constraints
@@ -172,6 +173,9 @@ TEST_F(ApproxALPTest, TestSysadminConstraintGeneration) {
       lp.addStateActionConstraint(maxjs, maxja, _planner->getC(), _planner->getLRFs());
       int res = lp.solve(_fval.get());
       EXPECT_EQ(res, 0) << "ALP solve() failed";
+      // compute Bellman error
+      double beval = algorithm::factoredBellmanError(_domain, _fval, elim_order);
+      LOG_INFO("Iter Bellman error: " << beval);
   }
 
   // TODO: check whether js,ja pair has already been inserted
