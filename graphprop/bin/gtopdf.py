@@ -16,6 +16,7 @@ Run as ./gtopdf <graph_file> <pdf_file>
 """
 import numpy as np
 from graph_tool.all import *
+#import matplotlib
 import sys, os, os.path
 
 # The one and only graph instance
@@ -38,4 +39,5 @@ if __name__ == "__main__":
   pos = sfdp_layout(g)
 
   # Draw graph to PDF
-  graph_draw(g, pos=pos, output=sys.argv[2])
+  #graph_draw(g, pos=pos, output=sys.argv[2], ecmap=matplotlib.cm.binary, vcmap=matplotlib.cm.binary, vertex_fill_color=[0.6, 0.6, 0.6, 0.5])
+  graph_draw(g, pos=pos, output=sys.argv[2]) #alternative: vertex_fill_color=[0.6, 0.6, 0.6, 0.7]
