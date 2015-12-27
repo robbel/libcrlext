@@ -2,7 +2,7 @@
 
 Fork of [libcrl](http://code.google.com/p/libcrl/) to add more experimental rl algorithms, domain template and multiagent support, etc.
 
-It is currently maintained as a private repository at https://bitbucket.org/robbel/libcrlext.
+It is currently maintained at https://bitbucket.org/robbel/libcrlext.
 
 ### How do I get set up? ###
 
