@@ -1,8 +1,8 @@
 # README #
 
-Fork of [libcrl](http://code.google.com/p/libcrl/) to add more experimental rl and planning algorithms, domain template and multiagent support, etc.
+Fork of ~http://code.google.com/p/libcrl/~ to add more experimental rl and planning algorithms, domain template and multiagent support, etc.
 
-It is currently maintained at https://bitbucket.org/robbel/libcrlext.
+It is currently maintained at https://github.com/robbel/libcrlext.
 
 ### How do I get set up? ###
 
@@ -22,4 +22,4 @@ Files are licensed under the [LGPL](http://www.gnu.org/licenses/lgpl) version 3.
 
 ### Who do I talk to? ###
 
-The [repo owner](https://bitbucket.org/robbel) can be contacted at [robbel@gmail.com](mailto:robbel@gmail.com).
+The [repo owner](https://github.com/robbel) can be contacted at [robbel@gmail.com](mailto:robbel@gmail.com).
